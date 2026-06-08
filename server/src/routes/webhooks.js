@@ -3,7 +3,7 @@ import { query } from '../db/pool.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { fulfillCheckoutSession } from '../lib/fulfillment.js';
-import { sendTicketDelivery } from '../lib/email.js';
+import { sendTicketDelivery, sendBoothConfirmation, sendOrderConfirmation } from '../lib/email.js';
 
 // Stripe webhook (§15, §4.3). MUST receive the raw body for signature
 // verification, so this router is mounted BEFORE the global JSON parser.
@@ -43,13 +43,18 @@ webhookRouter.post(
         case 'checkout.session.completed':
         case 'checkout.session.async_payment_succeeded': {
           const result = await fulfillCheckoutSession(event.data.object);
-          // Deliver tickets by email AFTER the fulfillment transaction commits.
-          // Non-fatal: an email failure must not fail the webhook (tickets are
-          // already issued and visible on the confirmation page).
-          if (result?.order && !result.alreadyPaid && result.issued?.length) {
-            await sendTicketDelivery(result.order).catch((err) =>
+          // Send the confirmation email AFTER the fulfillment transaction
+          // commits, routed by order kind. Non-fatal: an email failure must not
+          // fail the webhook (the order is already fulfilled).
+          if (result?.order && !result.alreadyPaid) {
+            const order = result.order;
+            const send =
+              order.kind === 'ticket' ? sendTicketDelivery
+              : order.kind === 'vendor' ? sendBoothConfirmation
+              : sendOrderConfirmation;
+            await send(order).catch((err) =>
               // eslint-disable-next-line no-console
-              console.error('Ticket delivery email failed:', err.message),
+              console.error('Confirmation email failed:', err.message),
             );
           }
           break;

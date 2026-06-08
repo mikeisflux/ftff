@@ -59,3 +59,45 @@ export async function sendTicketDelivery(order) {
     text,
   });
 }
+
+const money = (cents, cur = 'usd') =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format((cents || 0) / 100);
+
+// Booth purchase confirmation (§9).
+export async function sendBoothConfirmation(order) {
+  if (!order?.customer_email) return { skipped: true, reason: 'no_recipient' };
+  const { rows } = await query(
+    `SELECT b.label, b.zone FROM booths b WHERE b.order_id = $1`,
+    [order.id],
+  );
+  const booth = rows[0];
+  const html =
+    `<h1>Your booth is confirmed</h1>` +
+    `<p>Order <strong>${order.order_number}</strong></p>` +
+    (booth ? `<p>Booth <strong>${booth.label}</strong>${booth.zone ? ` — ${booth.zone}` : ''}</p>` : '') +
+    `<p>Total paid: ${money(order.total_cents, order.currency)}</p>` +
+    `<p>Our exhibitor team will follow up with move-in details.</p>`;
+  return sendEmail({
+    to: order.customer_email,
+    subject: `Booth confirmed — ${order.order_number}`,
+    html,
+  });
+}
+
+// Generic order confirmation (store, §10).
+export async function sendOrderConfirmation(order) {
+  if (!order?.customer_email) return { skipped: true, reason: 'no_recipient' };
+  const { rows: items } = await query(
+    `SELECT description, quantity, unit_price_cents FROM order_items WHERE order_id=$1`,
+    [order.id],
+  );
+  const li = items
+    .map((i) => `<li>${i.quantity} × ${i.description || 'Item'} — ${money(i.unit_price_cents, order.currency)}</li>`)
+    .join('');
+  const html =
+    `<h1>Order confirmed</h1>` +
+    `<p>Order <strong>${order.order_number}</strong></p>` +
+    `<ul>${li}</ul>` +
+    `<p>Total: ${money(order.total_cents, order.currency)}</p>`;
+  return sendEmail({ to: order.customer_email, subject: `Order confirmed — ${order.order_number}`, html });
+}

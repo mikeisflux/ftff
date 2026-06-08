@@ -67,6 +67,21 @@ publicRouter.get(
   }),
 );
 
+// GET /booths — vendor floor: booths + the floor-plan image URL (§9).
+publicRouter.get(
+  '/booths',
+  asyncHandler(async (_req, res) => {
+    const { getSettingValue } = await import('../lib/settings.js');
+    const floorplanUrl = await getSettingValue('vendor.floorplan_url');
+    const { rows } = await query(
+      `SELECT id, label, zone, price_cents, status, pos_x, pos_y, width, height
+         FROM booths ORDER BY label`,
+    );
+    res.set('Cache-Control', 'no-store');
+    res.json({ floorplanUrl: floorplanUrl || null, booths: rows });
+  }),
+);
+
 // GET /faqs
 publicRouter.get(
   '/faqs',

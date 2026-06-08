@@ -16,6 +16,7 @@ import { webhookRouter } from './routes/webhooks.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
+import { adminBoothsRouter } from './routes/adminBooths.js';
 
 export function createApp() {
   const app = express();
@@ -61,6 +62,7 @@ export function createApp() {
   api.use('/admin/theme', csrfProtection, adminThemeRouter);
   api.use('/admin/tickets', csrfProtection, adminTicketsRouter);
   api.use('/admin/dashboard', csrfProtection, adminDashboardRouter);
+  api.use('/admin/booths', csrfProtection, adminBoothsRouter);
 
   app.use('/api/v1', api);
 

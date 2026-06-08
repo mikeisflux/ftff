@@ -1,12 +1,16 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
+import { startHoldReleaseJob } from './jobs/releaseHolds.js';
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`🚀 API listening on ${env.PUBLIC_URL} (port ${env.PORT}, ${env.NODE_ENV})`);
 });
+
+// Background: release expired booth holds (§9).
+startHoldReleaseJob();
 
 async function shutdown(signal) {
   // eslint-disable-next-line no-console

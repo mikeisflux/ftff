@@ -4,7 +4,11 @@ import { query } from '../db/pool.js';
 import { env } from '../config/env.js';
 import { asyncHandler, notFound } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
+import { withTransaction } from '../db/pool.js';
 import { getStripe } from '../lib/stripe.js';
+import { getSettingValue } from '../lib/settings.js';
+import { HttpError } from '../lib/http.js';
+import { randomToken } from '../lib/crypto.js';
 import { computeTicketOrder, createPendingTicketOrder } from '../lib/orders.js';
 
 // Guest checkout for tickets (§8, §15). Amounts are computed server-side; the
@@ -55,6 +59,81 @@ checkoutRouter.post(
     });
 
     await query(`UPDATE orders SET stripe_session_id = $2 WHERE id = $1`, [order.id, session.id]);
+    res.json({ url: session.url, sessionId: session.id, orderNumber: order.order_number });
+  }),
+);
+
+const boothSchema = z.object({
+  boothId: z.string().uuid(),
+  vendor: z.object({
+    name: z.string().min(1).max(200),
+    email: z.string().email(),
+    phone: z.string().max(40).optional(),
+  }),
+});
+
+// POST /checkout/booth — atomically soft-holds the booth, creates a vendor
+// order, and opens Stripe Checkout. The hold (status=held, held_until) prevents
+// two vendors buying the same booth mid-checkout (§9); a background job releases
+// expired holds.
+checkoutRouter.post(
+  '/booth',
+  formLimiter,
+  asyncHandler(async (req, res) => {
+    const { boothId, vendor } = boothSchema.parse(req.body);
+    const stripe = await getStripe();
+    const holdMinutes = Number(await getSettingValue('vendor.hold_minutes')) || 15;
+    const currency = (await getSettingValue('stripe.currency')) || 'usd';
+    const heldUntil = new Date(Date.now() + holdMinutes * 60_000);
+
+    const { order, booth } = await withTransaction(async (client) => {
+      // Atomic claim: only an available booth can be held.
+      const claim = await client.query(
+        `UPDATE booths SET status='held', held_until=$2
+          WHERE id=$1 AND status='available'
+          RETURNING id, label, zone, price_cents`,
+        [boothId, heldUntil],
+      );
+      if (claim.rowCount === 0) {
+        throw new HttpError(409, 'That booth is no longer available.', 'booth_unavailable');
+      }
+      const b = claim.rows[0];
+      const ord = (
+        await client.query(
+          `INSERT INTO orders (order_number, customer_name, customer_email, customer_phone,
+                               kind, subtotal_cents, total_cents, currency, status)
+           VALUES ($1,$2,$3,$4,'vendor',$5,$5,$6,'pending') RETURNING *`,
+          [`FX-${Date.now().toString(36).toUpperCase()}-${randomToken(2).toUpperCase()}`,
+            vendor.name, vendor.email, vendor.phone ?? null, b.price_cents, currency],
+        )
+      ).rows[0];
+      await client.query(
+        `INSERT INTO order_items (order_id, kind, booth_id, description, unit_price_cents, quantity)
+         VALUES ($1,'booth',$2,$3,$4,1)`,
+        [ord.id, b.id, `Booth ${b.label}${b.zone ? ` (${b.zone})` : ''}`, b.price_cents],
+      );
+      await client.query(`UPDATE booths SET order_id=$2 WHERE id=$1`, [b.id, ord.id]);
+      return { order: ord, booth: b };
+    });
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: vendor.email,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency,
+            unit_amount: booth.price_cents,
+            product_data: { name: `Booth ${booth.label}` },
+          },
+        },
+      ],
+      metadata: { order_id: order.id, order_number: order.order_number, booth_id: booth.id },
+      success_url: `${env.CLIENT_ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.CLIENT_ORIGIN}/floor-plan`,
+    });
+    await query(`UPDATE orders SET stripe_session_id=$2 WHERE id=$1`, [order.id, session.id]);
     res.json({ url: session.url, sessionId: session.id, orderNumber: order.order_number });
   }),
 );

@@ -216,6 +216,16 @@ ON CONFLICT (slug) DO UPDATE
       seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,
       is_published = TRUE, published_at = COALESCE(pages.published_at, now());
 
+-- ── booths (default vendor floor inventory; admin replaces via the editor) ───
+INSERT INTO booths (label, zone, price_cents, pos_x, pos_y, width, height) VALUES
+  ('A1', 'Artist Alley',  35000, 0.06, 0.10, 0.16, 0.16),
+  ('A2', 'Artist Alley',  35000, 0.26, 0.10, 0.16, 0.16),
+  ('A3', 'Artist Alley',  35000, 0.46, 0.10, 0.16, 0.16),
+  ('B1', 'Exhibitor Hall',75000, 0.06, 0.40, 0.22, 0.22),
+  ('B2', 'Exhibitor Hall',75000, 0.34, 0.40, 0.22, 0.22),
+  ('C1', 'Premium',      120000, 0.66, 0.40, 0.26, 0.30)
+ON CONFLICT DO NOTHING;
+
 -- ── FAQs ─────────────────────────────────────────────────────────────────────
 INSERT INTO faqs (question, answer, sort_order) VALUES
   ('Where is the convention held?', 'At the Donald E. Stephens Convention Center in Rosemont, IL.', 1),

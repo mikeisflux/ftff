@@ -9,6 +9,7 @@ const serverEntry = path.resolve(here, '../src/index.js');
 const testFiles = [
   path.resolve(here, './checkout-flow.test.mjs'),
   path.resolve(here, './validate-flow.test.mjs'),
+  path.resolve(here, './booth-flow.test.mjs'),
 ];
 const BASE = 'http://localhost:4000/api/v1';
 

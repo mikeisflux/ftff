@@ -36,36 +36,46 @@ export async function fulfillCheckoutSession(session) {
     );
 
     const items = (
-      await client.query(
-        `SELECT ticket_type_id, quantity FROM order_items
-          WHERE order_id = $1 AND kind = 'ticket'`,
-        [orderId],
-      )
+      await client.query(`SELECT * FROM order_items WHERE order_id = $1`, [orderId])
     ).rows;
 
     const issued = [];
     for (const it of items) {
-      for (let i = 0; i < it.quantity; i += 1) {
-        const token = randomToken(24); // 48 hex chars, unguessable
-        const t = await client.query(
-          `INSERT INTO tickets (order_id, ticket_type_id, attendee_name, qr_token)
-           VALUES ($1, $2, $3, $4) RETURNING id, qr_token`,
-          [orderId, it.ticket_type_id, order.customer_name, token],
+      if (it.kind === 'ticket') {
+        for (let i = 0; i < it.quantity; i += 1) {
+          const token = randomToken(24); // 48 hex chars, unguessable
+          const t = await client.query(
+            `INSERT INTO tickets (order_id, ticket_type_id, attendee_name, qr_token)
+             VALUES ($1, $2, $3, $4) RETURNING id, qr_token`,
+            [orderId, it.ticket_type_id, order.customer_name, token],
+          );
+          issued.push(t.rows[0]);
+        }
+        await client.query(
+          `UPDATE ticket_types SET quantity_sold = quantity_sold + $2 WHERE id = $1`,
+          [it.ticket_type_id, it.quantity],
         );
-        issued.push(t.rows[0]);
+      } else if (it.kind === 'booth') {
+        // Booth is sold to this order; clear the soft hold.
+        await client.query(
+          `UPDATE booths SET status='sold', held_until=NULL WHERE id=$1`,
+          [it.booth_id],
+        );
+      } else if (it.kind === 'product') {
+        // Decrement inventory atomically (oversell-safe; floor at 0).
+        if (it.variant_id) {
+          await client.query(
+            `UPDATE product_variants SET inventory = GREATEST(inventory - $2, 0) WHERE id=$1`,
+            [it.variant_id, it.quantity],
+          );
+        }
       }
-      // Payment is captured, so we always record the sale; availability was
-      // pre-checked at checkout to avoid oversell of capped types.
-      await client.query(
-        `UPDATE ticket_types SET quantity_sold = quantity_sold + $2 WHERE id = $1`,
-        [it.ticket_type_id, it.quantity],
-      );
     }
 
     await audit(null, 'order.fulfilled', {
       entity: 'order',
       entityId: orderId,
-      meta: { tickets: issued.length },
+      meta: { kind: order.kind, tickets: issued.length },
     });
 
     return { order, issued, alreadyPaid: false };

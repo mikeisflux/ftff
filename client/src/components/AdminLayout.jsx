@@ -7,6 +7,7 @@ import { api } from '../lib/api.js';
 const NAV = [
   { to: '/admin/dashboard', label: 'Dashboard', roles: ['admin', 'editor'] },
   { to: '/admin/tickets', label: 'Tickets', roles: ['admin'] },
+  { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
   { to: '/admin/scan', label: 'Scan / Check-in', roles: ['admin', 'door_staff'] },
   { to: '/admin/settings', label: 'Settings', roles: ['admin'] },
 ];
