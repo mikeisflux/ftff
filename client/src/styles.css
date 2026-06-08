@@ -54,7 +54,53 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
   border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 .brand { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
-.nav-spacer { flex: 1; }
+.brand-logo { height: 34px; display: block; }
+
+/* Desktop mega-menu */
+.megamenu { display: flex; align-items: center; gap: 6px; flex: 1; }
+.menu-item { position: relative; }
+.menu-item > a,
+.menu-trigger {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text); font: inherit; font-weight: 600;
+  padding: 8px 12px; border-radius: var(--radius);
+}
+.menu-item > a:hover, .menu-trigger:hover {
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--color-text);
+}
+.caret { font-size: .7em; opacity: .8; }
+.dropdown {
+  position: absolute; top: 100%; left: 0; margin-top: 6px;
+  min-width: 220px; display: grid; gap: 2px; padding: 8px;
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0,0,0,.5),
+              0 0 calc(30px * var(--glow-intensity)) color-mix(in srgb, var(--glow-color) 30%, transparent);
+  z-index: 60;
+}
+.dropdown a { padding: 8px 12px; border-radius: 8px; color: var(--color-text); }
+.dropdown a:hover { background: color-mix(in srgb, var(--color-primary) 20%, transparent); }
+
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.share-wrap { position: relative; }
+.cta-buy { padding: 8px 16px; }
+.hamburger { display: none; }
+
+/* Mobile drawer */
+.drawer { display: none; }
+.drawer-trigger {
+  width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  color: var(--color-text); font: inherit; font-weight: 700; padding: 14px 4px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 20%, transparent);
+}
+.drawer-section > a { display: block; padding: 14px 4px; font-weight: 700; color: var(--color-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 20%, transparent); }
+.drawer-children { display: grid; gap: 2px; padding: 6px 0 12px 12px; }
+.drawer-children a { padding: 10px 4px; color: var(--color-muted); }
 
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -103,6 +149,22 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
   text-align: center; overflow: hidden; border-radius: var(--radius);
 }
 .hero h1 { font-size: clamp(2rem, 6vw, 4rem); margin: 0; }
+.hero-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  color: var(--color-text); font-size: 1.6rem; line-height: 1;
+}
+.hero-arrow.left { left: 16px; }
+.hero-arrow.right { right: 16px; }
+.hero-arrow:hover { box-shadow: 0 0 calc(20px * var(--glow-intensity)) var(--glow-color); }
+.hero-dots { position: absolute; bottom: 16px; left: 0; right: 0; display: flex; gap: 8px; justify-content: center; }
+.hero-dots .dot {
+  width: 10px; height: 10px; border-radius: 50%; border: none; cursor: pointer;
+  background: color-mix(in srgb, var(--color-muted) 60%, transparent);
+}
+.hero-dots .dot.active { background: var(--color-primary); box-shadow: 0 0 10px var(--glow-color); }
 
 /* Share popover */
 .popover {
@@ -124,6 +186,16 @@ input, textarea, select {
 }
 input:focus, textarea:focus { outline: 2px solid var(--color-primary); }
 label { display: block; margin: 12px 0 4px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .megamenu { display: none; }       /* desktop menu hidden on mobile */
+  .cta-buy { display: none; }        /* CTA lives in the drawer on mobile */
+  .hamburger { display: inline-flex; }
+  .drawer {
+    display: block; position: fixed; inset: 64px 0 0 0; z-index: 55;
+    background: var(--color-background); padding: 16px; overflow-y: auto;
+  }
+}
 
 @media (max-width: 720px) {
   .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }

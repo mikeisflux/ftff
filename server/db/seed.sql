@@ -188,13 +188,28 @@ BEGIN
     (exh_id, 'Past Exhibitors', '/past-exhibitors', 8);
 END $$;
 
--- ── footer / CMS pages (§7.2) ────────────────────────────────────────────────
-INSERT INTO pages (slug, title, blocks, is_published, published_at) VALUES
-  ('about-us',      'About Us',      '[{"type":"heading","data":{"text":"About Us"}},{"type":"richtext","data":{"html":"<p>Welcome to the show.</p>"}}]'::jsonb, TRUE, now()),
-  ('policies',      'Policies',      '[{"type":"heading","data":{"text":"Policies"}}]'::jsonb, TRUE, now()),
-  ('accessibility', 'Accessibility', '[{"type":"heading","data":{"text":"Accessibility"}}]'::jsonb, TRUE, now()),
-  ('show-hours',    'Show Hours',    '[{"type":"heading","data":{"text":"Show Hours"}}]'::jsonb, TRUE, now())
-ON CONFLICT (slug) DO NOTHING;
+-- ── footer / CMS pages (§7.2) — seeded with real default content ─────────────
+-- Upsert so re-seeding refreshes the default copy. Admins edit these in the
+-- block-based Page Builder; the JSON blocks here are the source of truth.
+INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, is_published, published_at) VALUES
+  ('about-us', 'About Us',
+   '[{"type":"heading","data":{"text":"About FAN EXPO Chicago"}},{"type":"richtext","data":{"html":"<p>FAN EXPO Chicago is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by FAN EXPO HQ, the largest producer of comic conventions in North America.</p>"}}]'::jsonb,
+   '<h2>About FAN EXPO Chicago</h2><p>FAN EXPO Chicago is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by FAN EXPO HQ, the largest producer of comic conventions in North America.</p>',
+   'About Us | FAN EXPO Chicago', 'Learn about FAN EXPO Chicago, the city''s premier pop-culture convention.', TRUE, now()),
+
+  ('policies', 'Policies',
+   '[{"type":"heading","data":{"text":"Policies"}},{"type":"richtext","data":{"html":"<p>By attending FAN EXPO Chicago you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>"}}]'::jsonb,
+   '<h2>Policies</h2><p>By attending FAN EXPO Chicago you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>',
+   'Policies | FAN EXPO Chicago', 'Ticket, refund, conduct, and prop policies for FAN EXPO Chicago.', TRUE, now()),
+
+  ('accessibility', 'Accessibility',
+   '[{"type":"heading","data":{"text":"Accessibility"}},{"type":"richtext","data":{"html":"<p>FAN EXPO Chicago is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>"}}]'::jsonb,
+   '<h2>Accessibility</h2><p>FAN EXPO Chicago is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>',
+   'Accessibility | FAN EXPO Chicago', 'Accessibility services and accommodations at FAN EXPO Chicago.', TRUE, now())
+ON CONFLICT (slug) DO UPDATE
+  SET title = EXCLUDED.title, blocks = EXCLUDED.blocks, body_html = EXCLUDED.body_html,
+      seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,
+      is_published = TRUE, published_at = COALESCE(pages.published_at, now());
 
 -- ── FAQs ─────────────────────────────────────────────────────────────────────
 INSERT INTO faqs (question, answer, sort_order) VALUES

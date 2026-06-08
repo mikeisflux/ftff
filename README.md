@@ -22,9 +22,22 @@ Production-grade convention website + admin suite (FAN EXPO-style). Built from
   with a persisted light/dark toggle and pre-paint flash avoidance.
 - Public read endpoints (slides, show-info, guests, ticket-types, faqs, nav,
   pages/:slug) + guest form posts (newsletter/contact/media/exhibitor).
-- React client shell: header (mega-menu, theme toggle, one-click share),
-  home page (hero, show info, ticket cards, 8 featured guests), CMS page
-  renderer, footer, admin login + settings panel.
+- React client shell, fully wired (no dead links/placeholders):
+  - Header with a working two-level mega-menu (desktop dropdowns + mobile
+    accordion drawer), theme toggle, one-click share; brand/logo from live data.
+  - Home: real hero carousel (autoplay/pause/swipe/arrows/dots), show info +
+    directions, ticket cards, featured guests.
+  - Data-driven pages: Tickets (real types; checkout arrives in the payments
+    phase), Guests grid + 6 category filters, FAQs, Show Hours.
+  - Public forms wired to their endpoints: Contact, Newsletter, Media
+    Inquiries, Exhibitor Application, Suggest a Guest.
+  - CMS renderer: authored content for About/Policies/Accessibility; honest
+    "in preparation" state for not-yet-authored pages.
+  - Admin login + Settings panel (identity + logout).
+
+> Phase boundary: commerce flows (ticket checkout, store, vendor floor,
+> livestream, full email client) are later phases (§17) and are presented
+> honestly — never as working features — until their phase lands.
 
 **Next phases:** payments core + Stripe webhook → ticketing/QR → vendor floor →
 store → email (SendGrid + Inbound Parse + Gmail-style client) → Cloudflare

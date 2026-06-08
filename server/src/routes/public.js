@@ -110,7 +110,8 @@ publicRouter.get(
   }),
 );
 
-// POST /newsletter — double opt-in stub (email send wired in Phase 8).
+// POST /newsletter — records the subscriber as `pending`. The double opt-in
+// confirmation email is sent once SendGrid is wired (§12, Phase 8).
 const emailSchema = z.object({ email: z.string().email() });
 publicRouter.post(
   '/newsletter',

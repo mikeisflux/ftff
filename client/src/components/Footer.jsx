@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api.js';
 
-// Customer Service footer links (§7.2).
+// Customer Service footer links (§7.2). All targets are real, working routes.
 const LINKS = [
   ['Show Hours', '/show-hours'],
   ['Contact Us', '/contact-us'],
@@ -13,6 +15,9 @@ const LINKS = [
 ];
 
 export default function Footer() {
+  const infoQ = useQuery({ queryKey: ['show-info'], queryFn: () => api('/show-info') });
+  const brand = infoQ.data?.showInfo?.name ?? 'FAN EXPO Chicago';
+
   return (
     <footer className="section" style={{ borderTop: '1px solid rgba(255,255,255,.08)', marginTop: 48 }}>
       <div className="container">
@@ -23,7 +28,7 @@ export default function Footer() {
           ))}
         </div>
         <p className="muted" style={{ marginTop: 24 }}>
-          © {new Date().getFullYear()} FAN EXPO Chicago. All rights reserved.
+          © {new Date().getFullYear()} {brand}. All rights reserved.
         </p>
       </div>
     </footer>
