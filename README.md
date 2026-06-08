@@ -35,13 +35,35 @@ Production-grade convention website + admin suite (FAN EXPO-style). Built from
     "in preparation" state for not-yet-authored pages.
   - Admin login + Settings panel (identity + logout).
 
-> Phase boundary: commerce flows (ticket checkout, store, vendor floor,
-> livestream, full email client) are later phases (§17) and are presented
-> honestly — never as working features — until their phase lands.
+**Phase 2 — Payments + Ticketing (done).**
 
-**Next phases:** payments core + Stripe webhook → ticketing/QR → vendor floor →
-store → email (SendGrid + Inbound Parse + Gmail-style client) → Cloudflare
-Stream → admin polish → hardening. See spec §17.
+- Stripe client built from the encrypted `stripe.secret_key` setting; card data
+  never touches our servers (SAQ A). Currency from `stripe.currency`.
+- `POST /checkout/tickets`: prices the cart **server-side** from `ticket_types`
+  (client never sets prices), creates a pending order + items, opens a
+  Stripe-hosted Checkout Session, returns the redirect URL.
+- `POST /webhooks/stripe`: raw-body **signature verification**, event-ID dedupe
+  (idempotent), fulfills `checkout.session.completed` → marks order paid, issues
+  one ticket per seat with a unique unguessable `qr_token`, bumps inventory.
+- `GET /t/:token`: public mobile ticket page with an inline QR (encodes the
+  opaque validation URL).
+- Client: real **Buy Tickets** checkout (quantity + buyer contact → Stripe),
+  post-redirect **success** page (polls until paid, shows tickets), and a
+  wallet-style **mobile ticket** page.
+- Ticket pricing: single-day **$40**, 3-day **$80**, digital **$10**.
+- Tested end-to-end (`npm test` in `/server`): server boots, a signed webhook
+  drives order→paid + 3 unique tickets, replays are deduped, tampered
+  signatures are rejected (400), and the ticket QR renders. (Live Checkout
+  Session creation requires real Stripe keys + network and is exercised once
+  keys are entered in the Settings panel.)
+
+> Phase boundary: remaining commerce flows (store, vendor floor, livestream,
+> full email client) are later phases (§17) and are presented honestly — never
+> as working features — until their phase lands.
+
+**Next phases:** vendor floor → store → email (SendGrid + Inbound Parse +
+Gmail-style client) → Cloudflare Stream → door-staff validation app + admin
+polish → hardening. See spec §17.
 
 ## Toolchain (pinned, §2)
 

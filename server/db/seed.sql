@@ -94,13 +94,18 @@ UPDATE settings SET value = '15',  is_set = TRUE WHERE key = 'vendor.hold_minute
 UPDATE settings SET value = 'FAN EXPO Chicago', is_set = TRUE WHERE key = 'site.name' AND NOT is_set;
 
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────
+-- Pricing: single-day $40, 3-day (multi-day) $80, digital $10. Upsert so
+-- re-seeding refreshes prices/copy.
 INSERT INTO ticket_types (code, name, description, price_cents, is_digital, sort_order) VALUES
-  ('friday',    'Friday',  'Single-day admission for Friday.',   4500, FALSE, 1),
-  ('saturday',  'Saturday','Single-day admission for Saturday.', 6500, FALSE, 2),
-  ('sunday',    'Sunday',  'Single-day admission for Sunday.',   4500, FALSE, 3),
-  ('three_day', '3-Day',   'All three days. Best value.',        12500, FALSE, 4),
-  ('digital',   'Digital', 'Virtual Con Experience livestream access.', 2500, TRUE, 5)
-ON CONFLICT (code) DO NOTHING;
+  ('friday',    'Friday',  'Single-day admission for Friday.',   4000, FALSE, 1),
+  ('saturday',  'Saturday','Single-day admission for Saturday.', 4000, FALSE, 2),
+  ('sunday',    'Sunday',  'Single-day admission for Sunday.',   4000, FALSE, 3),
+  ('three_day', '3-Day',   'All three days. Best value.',        8000, FALSE, 4),
+  ('digital',   'Digital', 'Virtual Con Experience livestream access.', 1000, TRUE, 5)
+ON CONFLICT (code) DO UPDATE
+  SET name = EXCLUDED.name, description = EXCLUDED.description,
+      price_cents = EXCLUDED.price_cents, is_digital = EXCLUDED.is_digital,
+      sort_order = EXCLUDED.sort_order;
 
 -- ── default mega-menu (§7.0) ─────────────────────────────────────────────────
 DO $$

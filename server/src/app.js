@@ -10,6 +10,9 @@ import { authRouter } from './routes/auth.js';
 import { settingsRouter } from './routes/settings.js';
 import { publicThemeRouter, adminThemeRouter } from './routes/theme.js';
 import { publicRouter } from './routes/public.js';
+import { checkoutRouter } from './routes/checkout.js';
+import { ticketRouter } from './routes/tickets.js';
+import { webhookRouter } from './routes/webhooks.js';
 
 export function createApp() {
   const app = express();
@@ -25,8 +28,10 @@ export function createApp() {
     }),
   );
 
-  // NOTE: the Stripe webhook needs the raw body for signature verification, so
-  // it is mounted in Phase 4 BEFORE this JSON parser. Until then, JSON is fine.
+  // The Stripe webhook needs the RAW body for signature verification, so it is
+  // mounted BEFORE the JSON parser (it uses its own express.raw).
+  app.use('/api/v1/webhooks', webhookRouter);
+
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use(globalLimiter);
@@ -41,6 +46,8 @@ export function createApp() {
   // and reCAPTCHA (wired in a later phase).
   api.use('/', publicRouter);
   api.use('/theme', publicThemeRouter);
+  api.use('/checkout', checkoutRouter);
+  api.use('/t', ticketRouter);
 
   // Admin (role-gated inside each router). CSRF double-submit applies to all
   // state-changing admin requests (§4.3) — these are the cookie-auth targets.

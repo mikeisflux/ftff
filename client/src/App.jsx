@@ -6,6 +6,8 @@ import CmsPage from './pages/CmsPage.jsx';
 import Faqs from './pages/Faqs.jsx';
 import ShowHours from './pages/ShowHours.jsx';
 import Tickets from './pages/Tickets.jsx';
+import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
+import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
 import {
   Contact,
@@ -51,6 +53,8 @@ export default function App() {
 
           {/* Functional public sections (data-driven, fully working) */}
           <Route path="/buy-tickets" element={<Tickets />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/t/:token" element={<TicketPage />} />
           <Route path="/faqs" element={<Faqs />} />
           <Route path="/show-hours" element={<ShowHours />} />
 
