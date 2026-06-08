@@ -18,6 +18,10 @@ import {
 } from './pages/forms/FormPages.jsx';
 import Login from './pages/admin/Login.jsx';
 import Settings from './pages/admin/Settings.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
+import Dashboard from './pages/admin/Dashboard.jsx';
+import TicketsAdmin from './pages/admin/TicketsAdmin.jsx';
+import Scan from './pages/admin/Scan.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -37,8 +41,13 @@ export default function App() {
     return (
       <Routes>
         <Route path="/admin/login" element={<Login />} />
-        <Route path="/admin/settings" element={<Settings />} />
-        <Route path="/admin" element={<Login />} />
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/tickets" element={<TicketsAdmin />} />
+          <Route path="/admin/scan" element={<Scan />} />
+          <Route path="/admin/settings" element={<Settings />} />
+        </Route>
         <Route path="/admin/*" element={<Login />} />
       </Routes>
     );

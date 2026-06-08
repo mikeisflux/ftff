@@ -13,6 +13,9 @@ import { publicRouter } from './routes/public.js';
 import { checkoutRouter } from './routes/checkout.js';
 import { ticketRouter } from './routes/tickets.js';
 import { webhookRouter } from './routes/webhooks.js';
+import { validateRouter } from './routes/validate.js';
+import { adminTicketsRouter } from './routes/adminTickets.js';
+import { adminDashboardRouter } from './routes/adminDashboard.js';
 
 export function createApp() {
   const app = express();
@@ -49,10 +52,15 @@ export function createApp() {
   api.use('/checkout', checkoutRouter);
   api.use('/t', ticketRouter);
 
+  // Door-staff validation (cookie-auth, role-gated). CSRF double-submit.
+  api.use('/validate', csrfProtection, validateRouter);
+
   // Admin (role-gated inside each router). CSRF double-submit applies to all
   // state-changing admin requests (§4.3) — these are the cookie-auth targets.
   api.use('/admin/settings', csrfProtection, settingsRouter);
   api.use('/admin/theme', csrfProtection, adminThemeRouter);
+  api.use('/admin/tickets', csrfProtection, adminTicketsRouter);
+  api.use('/admin/dashboard', csrfProtection, adminDashboardRouter);
 
   app.use('/api/v1', api);
 

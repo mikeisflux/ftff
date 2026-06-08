@@ -83,43 +83,26 @@ function SettingRow({ s, onSaved }) {
 export default function Settings() {
   const nav = useNavigate();
   const [settings, setSettings] = useState([]);
-  const [me, setMe] = useState(null);
   const [error, setError] = useState('');
 
   async function load() {
     try {
-      const [{ settings }, { user }] = await Promise.all([
-        api('/admin/settings'),
-        api('/auth/me'),
-      ]);
+      const { settings } = await api('/admin/settings');
       setSettings(settings);
-      setMe(user);
     } catch (err) {
       if (err.status === 401) nav('/admin/login');
       else setError(err.message);
     }
   }
 
-  async function logout() {
-    await api('/auth/logout', { method: 'POST' }).catch(() => {});
-    nav('/admin/login');
-  }
-
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Warn before navigating away with unsaved edits is handled per-field; here we
-  // group by category.
+  // Group by category; unsaved-edit warnings are handled per-field.
   const cats = [...new Set(settings.map((s) => s.category))];
 
   return (
-    <div className="section container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="glow">Settings</h1>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {me && <span className="muted">{me.email} · {me.role}</span>}
-          <button className="btn secondary" onClick={logout}>Log out</button>
-        </div>
-      </div>
+    <div>
+      <h1 className="glow">Settings</h1>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
       {cats.map((cat) => (
         <section key={cat} style={{ marginBottom: 28 }}>

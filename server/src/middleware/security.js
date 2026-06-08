@@ -32,7 +32,13 @@ export function securityHeaders() {
           'https://*.cloudflarestream.com',
           'https://maps.googleapis.com',
         ],
-        frameSrc: ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],
+        frameSrc: [
+          "'self'",
+          'https://js.stripe.com',
+          'https://hooks.stripe.com',
+          'https://maps.google.com',
+          'https://www.google.com',
+        ],
         mediaSrc: ["'self'", 'https://*.cloudflarestream.com', 'blob:'],
         frameAncestors: ["'none'"], // clickjacking protection
         objectSrc: ["'none'"],

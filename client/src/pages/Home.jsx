@@ -33,21 +33,37 @@ export default function Home() {
       {show && (
         <section className="section container">
           <h2>When &amp; Where</h2>
-          <div className="card">
-            <p><strong>{show.venue}</strong></p>
-            <p className="muted">{show.address}</p>
-            {show.starts_on && <p>{show.starts_on} – {show.ends_on}</p>}
-            {Array.isArray(show.hours_json) && show.hours_json.length > 0 && (
-              <ul>
-                {show.hours_json.map((h) => (
-                  <li key={h.day}>{h.day}: {h.open}–{h.close}</li>
-                ))}
-              </ul>
-            )}
-            {directionsUrl && (
-              <a className="btn secondary" href={directionsUrl} target="_blank" rel="noopener">
-                Get Directions
-              </a>
+          <div className="grid info-grid" style={{ alignItems: 'stretch' }}>
+            <div className="card">
+              <p><strong>{show.venue}</strong></p>
+              <p className="muted">{show.address}</p>
+              {show.starts_on && <p>{show.starts_on} – {show.ends_on}</p>}
+              {Array.isArray(show.hours_json) && show.hours_json.length > 0 && (
+                <ul>
+                  {show.hours_json.map((h) => (
+                    <li key={h.day}>{h.day}: {h.open}–{h.close}</li>
+                  ))}
+                </ul>
+              )}
+              {directionsUrl && (
+                <a className="btn secondary" href={directionsUrl} target="_blank" rel="noopener">
+                  Get Directions
+                </a>
+              )}
+            </div>
+            {show.address && (
+              <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: 280 }}>
+                {/* Embedded venue map. Keyless Google Maps embed — renders the
+                    venue location without exposing any API key to the browser. */}
+                <iframe
+                  title={`Map of ${show.venue || 'the venue'}`}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(show.address)}&z=15&output=embed`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  style={{ border: 0, width: '100%', height: '100%', minHeight: 280 }}
+                  allowFullScreen
+                />
+              </div>
             )}
           </div>
         </section>

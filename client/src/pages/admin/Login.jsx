@@ -14,8 +14,9 @@ export default function Login() {
     setError('');
     setBusy(true);
     try {
-      await api('/auth/login', { method: 'POST', body: { email, password } });
-      nav('/admin/settings');
+      const { user } = await api('/auth/login', { method: 'POST', body: { email, password } });
+      // Door staff go straight to the scanner; others to the dashboard.
+      nav(user.role === 'door_staff' ? '/admin/scan' : '/admin/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {

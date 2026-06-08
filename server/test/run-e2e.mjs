@@ -6,7 +6,10 @@ import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const serverEntry = path.resolve(here, '../src/index.js');
-const flowTest = path.resolve(here, './checkout-flow.test.mjs');
+const testFiles = [
+  path.resolve(here, './checkout-flow.test.mjs'),
+  path.resolve(here, './validate-flow.test.mjs'),
+];
 const BASE = 'http://localhost:4000/api/v1';
 
 const server = spawn('node', [serverEntry], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -40,5 +43,19 @@ if (!ok) {
   cleanup(1);
 }
 
-const test = spawn('node', [flowTest], { stdio: 'inherit', env: { ...process.env, BASE } });
-test.on('exit', (code) => cleanup(code ?? 1));
+function runTest(file) {
+  return new Promise((resolve) => {
+    const t = spawn('node', [file], { stdio: 'inherit', env: { ...process.env, BASE } });
+    t.on('exit', (code) => resolve(code ?? 1));
+  });
+}
+
+let failures = 0;
+for (const file of testFiles) {
+  // eslint-disable-next-line no-console
+  console.log(`\n── ${path.basename(file)} ──`);
+  // eslint-disable-next-line no-await-in-loop
+  const code = await runTest(file);
+  if (code !== 0) failures += 1;
+}
+cleanup(failures === 0 ? 0 : 1);
