@@ -67,6 +67,40 @@ publicRouter.get(
   }),
 );
 
+// GET /products — store listing (active products) (§10).
+publicRouter.get(
+  '/products',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT id, slug, title, description, images, price_cents, currency
+         FROM products WHERE is_active = TRUE ORDER BY sort_order, title`,
+    );
+    res.json({ products: rows });
+  }),
+);
+
+// GET /products/:slug — product detail with active variants.
+publicRouter.get(
+  '/products/:slug',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
+      `SELECT id, slug, title, description, images, price_cents, currency
+         FROM products WHERE slug = $1 AND is_active = TRUE`,
+      [req.params.slug],
+    );
+    const product = rows[0];
+    if (!product) throw notFound('Product not found');
+    const variants = (
+      await query(
+        `SELECT id, sku, options, price_cents, inventory FROM product_variants
+          WHERE product_id = $1 AND is_active = TRUE ORDER BY created_at`,
+        [product.id],
+      )
+    ).rows;
+    res.json({ product: { ...product, variants } });
+  }),
+);
+
 // GET /booths — vendor floor: booths + the floor-plan image URL (§9).
 publicRouter.get(
   '/booths',

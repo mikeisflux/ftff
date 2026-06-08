@@ -28,11 +28,16 @@ export async function fulfillCheckoutSession(session) {
       return { order, alreadyPaid: true, issued: [] };
     }
 
+    // Persist the shipping address collected by Stripe Checkout for physical
+    // goods, when present.
+    const shipping = session.shipping_details ?? session.shipping ?? null;
     await client.query(
       `UPDATE orders SET status = 'paid', paid_at = now(),
-              stripe_payment_intent = $2, stripe_session_id = COALESCE(stripe_session_id, $3)
+              stripe_payment_intent = $2, stripe_session_id = COALESCE(stripe_session_id, $3),
+              shipping_address = COALESCE($4, shipping_address)
         WHERE id = $1`,
-      [orderId, session.payment_intent ?? null, session.id ?? null],
+      [orderId, session.payment_intent ?? null, session.id ?? null,
+        shipping ? JSON.stringify(shipping) : null],
     );
 
     const items = (

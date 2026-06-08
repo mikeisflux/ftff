@@ -10,6 +10,7 @@ const testFiles = [
   path.resolve(here, './checkout-flow.test.mjs'),
   path.resolve(here, './validate-flow.test.mjs'),
   path.resolve(here, './booth-flow.test.mjs'),
+  path.resolve(here, './store-flow.test.mjs'),
 ];
 const BASE = 'http://localhost:4000/api/v1';
 

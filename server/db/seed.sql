@@ -226,6 +226,35 @@ INSERT INTO booths (label, zone, price_cents, pos_x, pos_y, width, height) VALUE
   ('C1', 'Premium',      120000, 0.66, 0.40, 0.26, 0.30)
 ON CONFLICT DO NOTHING;
 
+-- ── store products (default merch; admin replaces via the Products manager) ──
+INSERT INTO products (slug, title, description, price_cents, sort_order) VALUES
+  ('event-tee',          'Official Event T-Shirt', 'Soft cotton tee with this year''s show art.', 2500, 1),
+  ('commemorative-poster','Commemorative Poster',  '18×24 print, limited run.',                   1500, 2),
+  ('enamel-pin-set',     'Enamel Pin Set',         'Set of 3 collectible enamel pins.',            1200, 3)
+ON CONFLICT (slug) DO NOTHING;
+
+-- variants (sizes for the tee; single variant for others)
+DO $$
+DECLARE tee UUID; poster UUID; pins UUID;
+BEGIN
+  SELECT id INTO tee FROM products WHERE slug='event-tee';
+  SELECT id INTO poster FROM products WHERE slug='commemorative-poster';
+  SELECT id INTO pins FROM products WHERE slug='enamel-pin-set';
+  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=tee) THEN
+    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES
+      (tee, 'TEE-S',  '{"size":"S"}',  50),
+      (tee, 'TEE-M',  '{"size":"M"}',  80),
+      (tee, 'TEE-L',  '{"size":"L"}',  80),
+      (tee, 'TEE-XL', '{"size":"XL"}', 40);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=poster) THEN
+    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES (poster, 'POSTER', '{}', 200);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=pins) THEN
+    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES (pins, 'PINSET', '{}', 120);
+  END IF;
+END $$;
+
 -- ── FAQs ─────────────────────────────────────────────────────────────────────
 INSERT INTO faqs (question, answer, sort_order) VALUES
   ('Where is the convention held?', 'At the Donald E. Stephens Convention Center in Rosemont, IL.', 1),

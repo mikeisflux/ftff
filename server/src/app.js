@@ -17,6 +17,8 @@ import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
 import { adminBoothsRouter } from './routes/adminBooths.js';
+import { adminProductsRouter } from './routes/adminProducts.js';
+import { adminOrdersRouter } from './routes/adminOrders.js';
 
 export function createApp() {
   const app = express();
@@ -63,6 +65,8 @@ export function createApp() {
   api.use('/admin/tickets', csrfProtection, adminTicketsRouter);
   api.use('/admin/dashboard', csrfProtection, adminDashboardRouter);
   api.use('/admin/booths', csrfProtection, adminBoothsRouter);
+  api.use('/admin/products', csrfProtection, adminProductsRouter);
+  api.use('/admin/orders', csrfProtection, adminOrdersRouter);
 
   app.use('/api/v1', api);
 

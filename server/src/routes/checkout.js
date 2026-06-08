@@ -9,7 +9,12 @@ import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { HttpError } from '../lib/http.js';
 import { randomToken } from '../lib/crypto.js';
-import { computeTicketOrder, createPendingTicketOrder } from '../lib/orders.js';
+import {
+  computeTicketOrder,
+  createPendingTicketOrder,
+  computeStoreOrder,
+  createPendingStoreOrder,
+} from '../lib/orders.js';
 
 // Guest checkout for tickets (§8, §15). Amounts are computed server-side; the
 // browser is handed only the Stripe-hosted Checkout URL (SAQ A — card data
@@ -59,6 +64,47 @@ checkoutRouter.post(
     });
 
     await query(`UPDATE orders SET stripe_session_id = $2 WHERE id = $1`, [order.id, session.id]);
+    res.json({ url: session.url, sessionId: session.id, orderNumber: order.order_number });
+  }),
+);
+
+const storeSchema = z.object({
+  items: z.array(z.object({ variantId: z.string().uuid(), quantity: z.number().int().min(1).max(50) })).min(1),
+  customer: z.object({
+    name: z.string().min(1).max(200),
+    email: z.string().email(),
+    phone: z.string().max(40).optional(),
+  }),
+});
+
+// POST /checkout/store — store cart -> Stripe Checkout. Prices server-side,
+// checks inventory, and collects a shipping address for physical goods (§10).
+checkoutRouter.post(
+  '/store',
+  formLimiter,
+  asyncHandler(async (req, res) => {
+    const { items, customer } = storeSchema.parse(req.body);
+    const stripe = await getStripe();
+    const computed = await computeStoreOrder(items);
+    const order = await createPendingStoreOrder({ customer, computed });
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: customer.email,
+      shipping_address_collection: { allowed_countries: ['US', 'CA'] },
+      line_items: computed.lines.map((l) => ({
+        quantity: l.quantity,
+        price_data: {
+          currency: computed.currency,
+          unit_amount: l.unitPriceCents,
+          product_data: { name: l.name },
+        },
+      })),
+      metadata: { order_id: order.id, order_number: order.order_number },
+      success_url: `${env.CLIENT_ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.CLIENT_ORIGIN}/cart`,
+    });
+    await query(`UPDATE orders SET stripe_session_id=$2 WHERE id=$1`, [order.id, session.id]);
     res.json({ url: session.url, sessionId: session.id, orderNumber: order.order_number });
   }),
 );

@@ -203,10 +203,14 @@ CREATE TABLE IF NOT EXISTS orders (
   stripe_session_id    TEXT,
   stripe_payment_intent TEXT,
   shipping_address     JSONB,
+  fulfillment_status   TEXT NOT NULL DEFAULT 'unfulfilled'
+                         CHECK (fulfillment_status IN ('unfulfilled','fulfilled','shipped','cancelled')),
   paid_at              TIMESTAMPTZ,
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- For existing databases predating fulfillment_status:
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fulfillment_status TEXT NOT NULL DEFAULT 'unfulfilled';
 DROP TRIGGER IF EXISTS trg_orders_updated ON orders;
 CREATE TRIGGER trg_orders_updated BEFORE UPDATE ON orders
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

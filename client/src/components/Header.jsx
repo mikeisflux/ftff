@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../theme/ThemeProvider.jsx';
+import { useCart } from '../store/CartContext.jsx';
 import { api } from '../lib/api.js';
 
 // Persistent header with a two-level mega-menu (§7.0): desktop dropdowns,
@@ -10,6 +11,7 @@ import { api } from '../lib/api.js';
 // hardcoded content.
 export default function Header() {
   const { mode, toggle, allowToggle, theme } = useTheme();
+  const cart = useCart();
   const { pathname } = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null); // desktop dropdown id
@@ -115,6 +117,15 @@ export default function Header() {
 
       <div className="header-actions">
         <Link to="/buy-tickets" className="btn cta-buy">Buy Tickets</Link>
+
+        <Link to="/cart" className="icon-btn" aria-label="Cart" style={{ position: 'relative' }}>
+          🛒
+          {cart.count > 0 && (
+            <span style={{ position: 'absolute', top: -6, right: -6, background: 'var(--color-accent)', color: '#fff', borderRadius: 10, fontSize: 11, padding: '1px 6px', fontWeight: 700 }}>
+              {cart.count}
+            </span>
+          )}
+        </Link>
 
         <div ref={shareRef} className="share-wrap">
           <button className="icon-btn" aria-label="Share this site" onClick={onShare}>🔗</button>

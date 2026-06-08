@@ -10,6 +10,9 @@ import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
 import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
+import Shop from './pages/Shop.jsx';
+import Product from './pages/Product.jsx';
+import Cart from './pages/Cart.jsx';
 import {
   Contact,
   MediaInquiries,
@@ -24,6 +27,8 @@ import Dashboard from './pages/admin/Dashboard.jsx';
 import TicketsAdmin from './pages/admin/TicketsAdmin.jsx';
 import Scan from './pages/admin/Scan.jsx';
 import Booths from './pages/admin/Booths.jsx';
+import Products from './pages/admin/Products.jsx';
+import Orders from './pages/admin/Orders.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -48,6 +53,8 @@ export default function App() {
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/tickets" element={<TicketsAdmin />} />
           <Route path="/admin/booths" element={<Booths />} />
+          <Route path="/admin/products" element={<Products />} />
+          <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/scan" element={<Scan />} />
           <Route path="/admin/settings" element={<Settings />} />
         </Route>
@@ -68,6 +75,9 @@ export default function App() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/t/:token" element={<TicketPage />} />
           <Route path="/floor-plan" element={<FloorPlan />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/shop/:slug" element={<Product />} />
+          <Route path="/cart" element={<Cart />} />
           <Route path="/faqs" element={<Faqs />} />
           <Route path="/show-hours" element={<ShowHours />} />
 
