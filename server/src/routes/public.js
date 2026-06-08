@@ -4,6 +4,7 @@ import { query } from '../db/pool.js';
 import { asyncHandler, notFound } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
 import { sanitizeHtml } from '../lib/sanitize.js';
+import { notifyAdminOfSubmission, confirmSubmission } from '../lib/email.js';
 
 // Public read endpoints + public form submissions (§7, §14).
 export const publicRouter = Router();
@@ -201,6 +202,9 @@ function contactHandler(kind) {
         sanitizeHtml(data.message),
       ],
     );
+    // Notify admin + confirm to submitter (config-gated, non-blocking; §7.2).
+    notifyAdminOfSubmission({ kind, ...data }).catch(() => {});
+    confirmSubmission({ email: data.email, name: data.name, kind }).catch(() => {});
     res.json({ ok: true });
   });
 }

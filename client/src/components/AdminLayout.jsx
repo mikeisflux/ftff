@@ -8,6 +8,7 @@ const NAV = [
   { to: '/admin/dashboard', label: 'Dashboard', roles: ['admin', 'editor'] },
   { to: '/admin/tickets', label: 'Tickets', roles: ['admin'] },
   { to: '/admin/orders', label: 'Orders', roles: ['admin'] },
+  { to: '/admin/mail', label: 'Mail', roles: ['admin', 'editor'] },
   { to: '/admin/products', label: 'Products', roles: ['admin', 'editor'] },
   { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
   { to: '/admin/scan', label: 'Scan / Check-in', roles: ['admin', 'door_staff'] },

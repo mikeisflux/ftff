@@ -84,6 +84,26 @@ export async function sendBoothConfirmation(order) {
   });
 }
 
+// Form submissions: notify the admin inbox + confirm to the submitter (§7.2).
+export async function notifyAdminOfSubmission({ kind, name, email, subject, message }) {
+  const to = await getSettingValue('sendgrid.from_address');
+  if (!to) return { skipped: true, reason: 'sendgrid_unconfigured' };
+  const html =
+    `<h2>New ${kind} submission</h2>` +
+    `<p><strong>${name || 'Unknown'}</strong> &lt;${email || 'n/a'}&gt;</p>` +
+    (subject ? `<p>Subject: ${subject}</p>` : '') +
+    `<p>${(message || '').replace(/</g, '&lt;')}</p>`;
+  return sendEmail({ to, subject: `New ${kind}: ${subject || name || email || ''}`.slice(0, 120), html });
+}
+
+export async function confirmSubmission({ email, name, kind }) {
+  if (!email) return { skipped: true, reason: 'no_recipient' };
+  const html =
+    `<h2>Thanks, ${name || 'there'}!</h2>` +
+    `<p>We received your ${kind} and will be in touch.</p>`;
+  return sendEmail({ to: email, subject: 'We received your message', html });
+}
+
 // Generic order confirmation (store, §10).
 export async function sendOrderConfirmation(order) {
   if (!order?.customer_email) return { skipped: true, reason: 'no_recipient' };

@@ -13,6 +13,8 @@ import { publicRouter } from './routes/public.js';
 import { checkoutRouter } from './routes/checkout.js';
 import { ticketRouter } from './routes/tickets.js';
 import { webhookRouter } from './routes/webhooks.js';
+import { inboundRouter } from './routes/inbound.js';
+import { adminEmailRouter } from './routes/adminEmail.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
@@ -34,9 +36,10 @@ export function createApp() {
     }),
   );
 
-  // The Stripe webhook needs the RAW body for signature verification, so it is
-  // mounted BEFORE the JSON parser (it uses its own express.raw).
+  // Webhooks need non-JSON bodies (Stripe: raw for signature verification;
+  // SendGrid Inbound Parse: multipart), so they mount BEFORE the JSON parser.
   app.use('/api/v1/webhooks', webhookRouter);
+  app.use('/api/v1/webhooks', inboundRouter);
 
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
@@ -67,6 +70,7 @@ export function createApp() {
   api.use('/admin/booths', csrfProtection, adminBoothsRouter);
   api.use('/admin/products', csrfProtection, adminProductsRouter);
   api.use('/admin/orders', csrfProtection, adminOrdersRouter);
+  api.use('/admin/email', csrfProtection, adminEmailRouter);
 
   app.use('/api/v1', api);
 

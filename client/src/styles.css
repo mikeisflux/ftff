@@ -204,6 +204,12 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
   .grid.cols-3 { grid-template-columns: 1fr; }
 }
 
+/* Mail client */
+.mail-grid { display: grid; grid-template-columns: 180px 320px 1fr; gap: 12px; margin-top: 12px; }
+@media (max-width: 900px) { .mail-grid { grid-template-columns: 1fr; } }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 100; padding: 16px; }
+.modal { width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+
 /* Admin shell */
 .admin-shell { display: flex; min-height: 100vh; }
 .admin-sidebar {

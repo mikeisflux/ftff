@@ -29,6 +29,7 @@ import Scan from './pages/admin/Scan.jsx';
 import Booths from './pages/admin/Booths.jsx';
 import Products from './pages/admin/Products.jsx';
 import Orders from './pages/admin/Orders.jsx';
+import Mail from './pages/admin/Mail.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/admin/booths" element={<Booths />} />
           <Route path="/admin/products" element={<Products />} />
           <Route path="/admin/orders" element={<Orders />} />
+          <Route path="/admin/mail" element={<Mail />} />
           <Route path="/admin/scan" element={<Scan />} />
           <Route path="/admin/settings" element={<Settings />} />
         </Route>
