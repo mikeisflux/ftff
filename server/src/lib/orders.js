@@ -5,9 +5,14 @@ import { HttpError, badRequest } from './http.js';
 // Order construction for ticket checkout (§15). Amounts are ALWAYS computed
 // server-side from the database — the client never sets prices.
 
-/** Human-friendly unique order number, e.g. FX-7F3A9C2B. */
+/**
+ * Human-friendly, collision-resistant order number, e.g. FX-LZ4K9P-A1B2.
+ * Time component keeps numbers roughly sortable; the random suffix makes
+ * same-millisecond collisions astronomically unlikely (UNIQUE enforces it).
+ */
 function makeOrderNumber() {
-  return `FX-${randomToken(4).toUpperCase()}`;
+  const time = Date.now().toString(36).toUpperCase();
+  return `FX-${time}-${randomToken(2).toUpperCase()}`;
 }
 
 /**

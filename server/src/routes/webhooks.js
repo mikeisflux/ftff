@@ -3,6 +3,7 @@ import { query } from '../db/pool.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { fulfillCheckoutSession } from '../lib/fulfillment.js';
+import { sendTicketDelivery } from '../lib/email.js';
 
 // Stripe webhook (§15, §4.3). MUST receive the raw body for signature
 // verification, so this router is mounted BEFORE the global JSON parser.
@@ -40,9 +41,19 @@ webhookRouter.post(
     try {
       switch (event.type) {
         case 'checkout.session.completed':
-        case 'checkout.session.async_payment_succeeded':
-          await fulfillCheckoutSession(event.data.object);
+        case 'checkout.session.async_payment_succeeded': {
+          const result = await fulfillCheckoutSession(event.data.object);
+          // Deliver tickets by email AFTER the fulfillment transaction commits.
+          // Non-fatal: an email failure must not fail the webhook (tickets are
+          // already issued and visible on the confirmation page).
+          if (result?.order && !result.alreadyPaid && result.issued?.length) {
+            await sendTicketDelivery(result.order).catch((err) =>
+              // eslint-disable-next-line no-console
+              console.error('Ticket delivery email failed:', err.message),
+            );
+          }
           break;
+        }
         default:
           break; // ignore unhandled event types
       }

@@ -30,11 +30,14 @@ checkoutRouter.post(
   asyncHandler(async (req, res) => {
     const { items, customer } = cartSchema.parse(req.body);
 
-    // Authoritative pricing + availability check.
+    // Verify Stripe is configured BEFORE creating an order, so a misconfigured
+    // site doesn't leave orphan pending orders.
+    const stripe = await getStripe();
+
+    // Authoritative pricing + availability check, then a pending order.
     const computed = await computeTicketOrder(items);
     const order = await createPendingTicketOrder({ customer, computed });
 
-    const stripe = await getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: customer.email,

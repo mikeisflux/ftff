@@ -91,6 +91,31 @@ async function main() {
   assert.equal(tj.ticket.status, 'valid', 'ticket valid');
   console.log('  ✓ mobile ticket page renders QR');
 
+  // 9. Ticket-delivery email is wired and config-gated: with SendGrid unset it
+  //    skips gracefully (no throw) rather than being a dead stub.
+  const { sendTicketDelivery } = await import('../src/lib/email.js');
+  const fullOrder = (await pool.query('SELECT * FROM orders WHERE id=$1', [order.id])).rows[0];
+  const emailResult = await sendTicketDelivery(fullOrder);
+  assert.equal(emailResult.skipped, true, 'email skipped when SendGrid unconfigured');
+  assert.equal(emailResult.reason, 'sendgrid_unconfigured', 'graceful skip reason');
+  console.log('  ✓ ticket-delivery email wired (gracefully skips until SendGrid configured)');
+
+  // 10. Checkout cleanly reports unconfigured Stripe (no orphan order created).
+  await (await import('../src/lib/settings.js')).clearSetting('stripe.secret_key', null);
+  const before = (await pool.query('SELECT count(*)::int n FROM orders')).rows[0].n;
+  const rUnconf = await fetch(`${BASE}/checkout/tickets`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items: [{ code: 'friday', quantity: 1 }], customer: { name: 'X', email: 'x@y.com' } }),
+  });
+  const unconfBody = await rUnconf.json();
+  assert.equal(rUnconf.status, 503, 'checkout returns 503 when Stripe unconfigured');
+  assert.equal(unconfBody.code, 'stripe_unconfigured', 'clear error code');
+  const after = (await pool.query('SELECT count(*)::int n FROM orders')).rows[0].n;
+  assert.equal(after, before, 'no orphan order created on unconfigured checkout');
+  console.log('  ✓ unconfigured checkout: 503 + no orphan order');
+  await setSetting('stripe.secret_key', 'sk_test_placeholder', null); // restore
+
   console.log('\nALL CHECKOUT-FLOW ASSERTIONS PASSED');
   await pool.end();
 }
