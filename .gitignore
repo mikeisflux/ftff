@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.local
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+.vscode/
+.idea/
+*.pem
+*.key
+uploads/
+tmp/

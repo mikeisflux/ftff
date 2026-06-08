@@ -1,0 +1,24 @@
+{
+  "name": "convention-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Production-grade convention website + admin suite (FAN EXPO-style).",
+  "type": "module",
+  "engines": {
+    "node": ">=26.3.0"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace server & npm run dev --workspace client",
+    "dev:server": "npm run dev --workspace server",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "db:migrate": "npm run db:migrate --workspace server",
+    "db:seed": "npm run db:seed --workspace server",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}

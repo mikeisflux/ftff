@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAN EXPO Chicago</title>
+    <meta name="description" content="The ultimate fan experience." />
+    <!--
+      Pre-paint theme set to avoid a flash of the wrong theme (§7.0a).
+      Reads the persisted user choice before React mounts. Server-rendered OG
+      tags are injected by origin middleware in a later phase (§7.0b).
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme-mode');
+          var mode = saved === 'light' || saved === 'dark' ? saved : 'dark';
+          document.documentElement.setAttribute('data-theme', mode);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
