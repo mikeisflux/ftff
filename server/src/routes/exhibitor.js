@@ -23,6 +23,20 @@ function reference() {
   return `EX-${Date.now().toString(36).toUpperCase()}-${randomToken(2).toUpperCase()}`;
 }
 
+// GET /exhibitor/past — public directory of prior-year exhibitors (company,
+// stand, category). Empty until populated; the page handles the empty state.
+exhibitorRouter.get(
+  '/past',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT company, stand, category, year, website
+         FROM past_exhibitors WHERE is_active = TRUE
+        ORDER BY company ASC`,
+    );
+    res.json({ exhibitors: rows });
+  }),
+);
+
 // GET /exhibitor/config — prices + remaining table inventory (for the live form).
 exhibitorRouter.get(
   '/config',

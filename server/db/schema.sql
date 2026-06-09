@@ -585,3 +585,54 @@ CREATE TRIGGER trg_exhibitor_apps_updated BEFORE UPDATE ON exhibitor_application
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_status ON exhibitor_applications(status);
 CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_email ON exhibitor_applications(contact_email);
+
+-- ── exhibitor_rewards (referral cash-back toward booth bookings) ─────────────
+-- Each exhibitor gets a unique referral code; when fans buy tickets via their
+-- share link, the exhibitor earns a % of the sale as rewards toward a future
+-- booth booking.
+CREATE TABLE IF NOT EXISTS exhibitor_rewards (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code           TEXT UNIQUE NOT NULL,
+  name           TEXT,
+  email          CITEXT UNIQUE NOT NULL,
+  balance_cents  INTEGER NOT NULL DEFAULT 0,   -- available to redeem
+  earned_cents   INTEGER NOT NULL DEFAULT 0,   -- lifetime earned
+  redeemed_cents INTEGER NOT NULL DEFAULT 0,   -- lifetime redeemed
+  is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_exhibitor_rewards_updated ON exhibitor_rewards;
+CREATE TRIGGER trg_exhibitor_rewards_updated BEFORE UPDATE ON exhibitor_rewards
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Ledger of reward movements (earn from referrals, manual adjust, redeem).
+CREATE TABLE IF NOT EXISTS reward_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reward_id   UUID NOT NULL REFERENCES exhibitor_rewards(id) ON DELETE CASCADE,
+  type        TEXT NOT NULL CHECK (type IN ('earn','redeem','adjust')),
+  order_id    UUID REFERENCES orders(id),
+  sale_cents  INTEGER NOT NULL DEFAULT 0,
+  amount_cents INTEGER NOT NULL,             -- signed: +earn/+adjust, -redeem
+  note        TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reward_events_reward ON reward_events(reward_id);
+
+-- Referral attribution on orders (which exhibitor's link drove this sale).
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS reward_credited BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ── past_exhibitors (directory of prior-year exhibitors) ────────────────────
+-- Populated after each show; powers the Past Exhibitors directory page.
+CREATE TABLE IF NOT EXISTS past_exhibitors (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company     TEXT NOT NULL,
+  stand       TEXT,
+  category    TEXT,            -- e.g. Retailer, Artist Alley, Corporate
+  year        INTEGER,
+  website     TEXT,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_past_exhibitors_company ON past_exhibitors(company);

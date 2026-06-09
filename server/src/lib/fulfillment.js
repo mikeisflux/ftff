@@ -2,6 +2,7 @@ import { withTransaction } from '../db/pool.js';
 import { randomToken } from './crypto.js';
 import { audit } from './audit.js';
 import { commit as commitInventory } from './inventory.js';
+import { creditReferral } from './rewards.js';
 
 // Webhook-driven fulfillment (§15). The Stripe webhook is the source of truth.
 // This runs inside a transaction, locks the order row, and is idempotent: a
@@ -85,6 +86,12 @@ export async function fulfillCheckoutSession(session) {
           );
         }
       }
+    }
+
+    // Exhibitor Rewards: credit the referring exhibitor for a referred ticket
+    // sale (idempotent — credits an order at most once).
+    if (order.kind === 'ticket' && order.referral_code) {
+      await creditReferral(client, order);
     }
 
     await audit(null, 'order.fulfilled', {

@@ -40,6 +40,8 @@ import { adminProductsRouter } from './routes/adminProducts.js';
 import { adminOrdersRouter } from './routes/adminOrders.js';
 import { exhibitorRouter } from './routes/exhibitor.js';
 import { adminExhibitorsRouter } from './routes/adminExhibitors.js';
+import { rewardsRouter } from './routes/rewards.js';
+import { adminRewardsRouter } from './routes/adminRewards.js';
 
 export function createApp() {
   const app = express();
@@ -86,6 +88,7 @@ export function createApp() {
   api.use('/public-config', publicConfigRouter);
   api.use('/checkout', checkoutRouter);
   api.use('/exhibitor', exhibitorRouter);
+  api.use('/rewards', rewardsRouter);
   api.use('/t', ticketRouter);
   api.use('/virtual', virtualRouter);
 
@@ -100,6 +103,7 @@ export function createApp() {
   api.use('/admin/dashboard', csrfProtection, adminDashboardRouter);
   api.use('/admin/booths', csrfProtection, adminBoothsRouter);
   api.use('/admin/exhibitors', csrfProtection, adminExhibitorsRouter);
+  api.use('/admin/rewards', csrfProtection, adminRewardsRouter);
   api.use('/admin/products', csrfProtection, adminProductsRouter);
   api.use('/admin/orders', csrfProtection, adminOrdersRouter);
   api.use('/admin/email', csrfProtection, adminEmailRouter);

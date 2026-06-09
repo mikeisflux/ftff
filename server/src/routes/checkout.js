@@ -30,6 +30,7 @@ const cartSchema = z.object({
     email: z.string().email(),
     phone: z.string().max(40).optional(),
   }),
+  referralCode: z.string().max(40).optional().nullable(),
 });
 
 // POST /checkout/tickets -> { url, sessionId }
@@ -37,7 +38,7 @@ checkoutRouter.post(
   '/tickets',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { items, customer } = cartSchema.parse(req.body);
+    const { items, customer, referralCode } = cartSchema.parse(req.body);
 
     // Verify Stripe is configured BEFORE creating an order, so a misconfigured
     // site doesn't leave orphan pending orders.
@@ -46,6 +47,10 @@ checkoutRouter.post(
     // Authoritative pricing + availability check, then a pending order.
     const computed = await computeTicketOrder(items);
     const order = await createPendingTicketOrder({ customer, computed });
+    // Attribute the sale to a referring exhibitor's share link, if present.
+    if (referralCode) {
+      await query(`UPDATE orders SET referral_code = $2 WHERE id = $1`, [order.id, referralCode.trim()]);
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

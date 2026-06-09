@@ -17,6 +17,9 @@ import Retailers from './pages/Retailers.jsx';
 import ArtistAlley from './pages/ArtistAlley.jsx';
 import Corporate from './pages/Corporate.jsx';
 import Advertise from './pages/Advertise.jsx';
+import ExhibitorRewards from './pages/ExhibitorRewards.jsx';
+import SocialToolkit from './pages/SocialToolkit.jsx';
+import PastExhibitors from './pages/PastExhibitors.jsx';
 import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
@@ -59,6 +62,7 @@ import NavBuilder from './pages/admin/NavBuilder.jsx';
 import PageBuilder from './pages/admin/PageBuilder.jsx';
 import ThemeStudio from './pages/admin/ThemeStudio.jsx';
 import Exhibitors from './pages/admin/Exhibitors.jsx';
+import Rewards from './pages/admin/Rewards.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -84,6 +88,7 @@ export default function App() {
           <Route path="/admin/tickets" element={<TicketsAdmin />} />
           <Route path="/admin/booths" element={<Booths />} />
           <Route path="/admin/exhibitors" element={<Exhibitors />} />
+          <Route path="/admin/rewards" element={<Rewards />} />
           <Route path="/admin/slides" element={<Slides />} />
           <Route path="/admin/guests" element={<GuestsAdmin />} />
           <Route path="/admin/faqs" element={<FaqsAdmin />} />
@@ -153,6 +158,9 @@ export default function App() {
           <Route path="/artist-alley" element={<ArtistAlley />} />
           <Route path="/corporate" element={<Corporate />} />
           <Route path="/advertise" element={<Advertise />} />
+          <Route path="/exhibitor-rewards" element={<ExhibitorRewards />} />
+          <Route path="/social-media-tool-kit" element={<SocialToolkit />} />
+          <Route path="/past-exhibitors" element={<PastExhibitors />} />
           <Route path="/suggest-a-guest" element={<SuggestGuest />} />
 
           {/* Apply-section application forms */}

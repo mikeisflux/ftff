@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+
+// Persist an exhibitor referral code (?ref=CODE) so the sale is attributed even
+// if the buyer browses before checking out.
+function captureReferral() {
+  try {
+    const code = new URLSearchParams(window.location.search).get('ref');
+    if (code) localStorage.setItem('ftff_ref', code.slice(0, 40));
+  } catch { /* ignore */ }
+}
 
 const money = (cents, cur = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format(
@@ -19,6 +28,8 @@ export default function Tickets() {
   const [status, setStatus] = useState('idle'); // idle | submitting | error
   const [error, setError] = useState('');
 
+  useEffect(() => { captureReferral(); }, []);
+
   const setCount = (code, n) =>
     setQty((q) => ({ ...q, [code]: Math.max(0, Math.min(20, n)) }));
 
@@ -35,9 +46,10 @@ export default function Tickets() {
     setStatus('submitting');
     setError('');
     try {
+      const referralCode = (() => { try { return localStorage.getItem('ftff_ref') || undefined; } catch { return undefined; } })();
       const { url } = await api('/checkout/tickets', {
         method: 'POST',
-        body: { items, customer },
+        body: { items, customer, referralCode },
       });
       window.location.assign(url); // redirect to Stripe-hosted Checkout
     } catch (err) {

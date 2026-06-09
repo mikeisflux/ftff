@@ -11,6 +11,7 @@ const testFiles = [
   path.resolve(here, './validate-flow.test.mjs'),
   path.resolve(here, './booth-flow.test.mjs'),
   path.resolve(here, './exhibitor-flow.test.mjs'),
+  path.resolve(here, './rewards-flow.test.mjs'),
   path.resolve(here, './store-flow.test.mjs'),
   path.resolve(here, './email-flow.test.mjs'),
   path.resolve(here, './virtual-flow.test.mjs'),

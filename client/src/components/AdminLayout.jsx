@@ -22,6 +22,7 @@ const NAV_GROUPS = [
     { to: '/admin/discounts', label: 'Discounts', roles: ['admin', 'editor'] },
     { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
     { to: '/admin/exhibitors', label: 'Exhibitors', roles: ['admin', 'editor'] },
+    { to: '/admin/rewards', label: 'Exhibitor Rewards', roles: ['admin', 'editor'] },
   ] },
   { label: 'Content', items: [
     { to: '/admin/pages', label: 'Page Builder', roles: ['admin', 'editor'] },
