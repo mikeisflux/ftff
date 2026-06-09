@@ -19,6 +19,10 @@ export default [
     },
   },
   {
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
+  },
+  {
     files: ['client/**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2023,
