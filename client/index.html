@@ -10,7 +10,7 @@
       Reads the persisted user choice before React mounts. Server-rendered OG
       tags are injected by origin middleware in a later phase (§7.0b).
     -->
-    <script>
+    <script id="theme-init">
       (function () {
         try {
           var saved = localStorage.getItem('theme-mode');

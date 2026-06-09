@@ -1,7 +1,10 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { env } from './config/env.js';
+import { readFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { env, isProd } from './config/env.js';
 import { securityHeaders, cspNonce, permissionsPolicy } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimit.js';
 import { csrfProtection } from './middleware/auth.js';
@@ -25,6 +28,8 @@ import { adminNavRouter } from './routes/adminNav.js';
 import { adminPagesRouter } from './routes/adminPages.js';
 import { adminUploadsRouter } from './routes/adminUploads.js';
 import { UPLOAD_DIR } from './lib/uploads.js';
+import { publicConfigRouter, sitemapHandler, robotsHandler } from './routes/publicConfig.js';
+import { getMetaForPath, injectMeta } from './lib/seo.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
@@ -70,6 +75,7 @@ export function createApp() {
   // and reCAPTCHA (wired in a later phase).
   api.use('/', publicRouter);
   api.use('/theme', publicThemeRouter);
+  api.use('/public-config', publicConfigRouter);
   api.use('/checkout', checkoutRouter);
   api.use('/t', ticketRouter);
   api.use('/virtual', virtualRouter);
@@ -102,6 +108,33 @@ export function createApp() {
   api.use('/admin/uploads', csrfProtection, adminUploadsRouter);
 
   app.use('/api/v1', api);
+
+  // SEO helpers.
+  app.get('/sitemap.xml', sitemapHandler);
+  app.get('/robots.txt', robotsHandler);
+
+  // Serve the built SPA with per-route OG/Twitter meta injected at the origin
+  // (§7.0b). Mounted only when a production build exists; in dev, Vite serves
+  // the SPA and proxies /api here.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const distDir = path.resolve(here, '../../client/dist');
+  const indexPath = path.join(distDir, 'index.html');
+  if (existsSync(indexPath)) {
+    const indexHtml = readFileSync(indexPath, 'utf8');
+    app.use(express.static(distDir, { index: false, maxAge: '1y' }));
+    app.get('*', async (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+      try {
+        const meta = await getMetaForPath(req.path);
+        res
+          .set('Content-Type', 'text/html; charset=utf-8')
+          .set('Cache-Control', 'no-cache')
+          .send(injectMeta(indexHtml, meta, res.locals.cspNonce));
+      } catch {
+        res.type('html').send(indexHtml);
+      }
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
