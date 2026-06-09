@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../theme/ThemeProvider.jsx';
 
 // Full-featured hero carousel (§7.1.1): autoplay with pause-on-hover, swipe on
 // touch, prev/next arrows, dots, lazy images. Respects prefers-reduced-motion
 // (no autoplay). Renders a static fallback when there is a single slide and a
-// branded fallback when there are none.
+// branded fallback (the logo) when there are none.
 export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubtitle }) {
+  const { theme, mode } = useTheme();
+  const logo = (mode === 'light' ? theme?.logo_light_url : theme?.logo_dark_url) || theme?.logo_url;
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchX = useRef(null);
@@ -28,7 +31,9 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
     return (
       <section className="hero section">
         <div className="container">
-          <h1 className="glow">{fallbackTitle}</h1>
+          {logo
+            ? <img src={logo} alt={fallbackTitle} className="hero-logo" />
+            : <h1 className="glow">{fallbackTitle}</h1>}
           {fallbackSubtitle && <p className="muted" style={{ fontSize: '1.2rem' }}>{fallbackSubtitle}</p>}
           <Link to="/buy-tickets" className="btn">Buy Tickets</Link>
         </div>
