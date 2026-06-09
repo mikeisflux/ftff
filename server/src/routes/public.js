@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db/pool.js';
+import { env } from '../config/env.js';
 import { asyncHandler, notFound } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
 import { requireRecaptcha } from '../middleware/recaptcha.js';
 import { sanitizeHtml } from '../lib/sanitize.js';
-import { notifyAdminOfSubmission, confirmSubmission } from '../lib/email.js';
+import { randomToken } from '../lib/crypto.js';
+import { notifyAdminOfSubmission, confirmSubmission, sendNewsletterConfirm } from '../lib/email.js';
 
 // Public read endpoints + public form submissions (§7, §14).
 export const publicRouter = Router();
@@ -170,12 +172,76 @@ publicRouter.post(
   requireRecaptcha,
   asyncHandler(async (req, res) => {
     const { email } = emailSchema.parse(req.body);
-    await query(
-      `INSERT INTO newsletter_subscribers (email, status)
-       VALUES ($1, 'pending')
-       ON CONFLICT (email) DO NOTHING`,
-      [email],
+    const token = randomToken(24);
+    // Double opt-in: (re)issue a confirmation token. Re-subscribing an
+    // unsubscribed/expired address resets it to pending.
+    const { rows } = await query(
+      `INSERT INTO newsletter_subscribers (email, status, confirm_token)
+       VALUES ($1, 'pending', $2)
+       ON CONFLICT (email) DO UPDATE SET
+         confirm_token = EXCLUDED.confirm_token,
+         status = CASE WHEN newsletter_subscribers.status = 'subscribed'
+                       THEN 'subscribed' ELSE 'pending' END
+       RETURNING status`,
+      [email, token],
     );
+    // Already-confirmed addresses don't need another email.
+    if (rows[0].status !== 'subscribed') {
+      sendNewsletterConfirm(email, token).catch(() => {});
+    }
+    res.json({ ok: true });
+  }),
+);
+
+// GET /newsletter/confirm?token=… — double opt-in confirmation (clicked in email).
+publicRouter.get(
+  '/newsletter/confirm',
+  asyncHandler(async (req, res) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    const { rowCount } = await query(
+      `UPDATE newsletter_subscribers SET status='subscribed'
+        WHERE confirm_token=$1 AND status <> 'subscribed'`,
+      [token],
+    );
+    const ok = rowCount > 0 || (await query(`SELECT 1 FROM newsletter_subscribers WHERE confirm_token=$1`, [token])).rowCount > 0;
+    res.redirect(`${env.CLIENT_ORIGIN}/newsletter/${ok ? 'confirmed' : 'invalid'}`);
+  }),
+);
+
+// GET /newsletter/unsubscribe?token=…
+publicRouter.get(
+  '/newsletter/unsubscribe',
+  asyncHandler(async (req, res) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    await query(`UPDATE newsletter_subscribers SET status='unsubscribed' WHERE confirm_token=$1`, [token]);
+    res.redirect(`${env.CLIENT_ORIGIN}/newsletter/unsubscribed`);
+  }),
+);
+
+// POST /apply/:kind — Apply-section application/submission forms (§7.0).
+const APPLY_KINDS = new Set(['panel', 'crew', 'creator', 'cosplay_guest', 'community', 'suggest_guest', 'volunteer']);
+const applySchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email(),
+  subject: z.string().max(300).optional(),
+  message: z.string().min(1).max(8000),
+  details: z.record(z.string()).optional(),
+});
+publicRouter.post(
+  '/apply/:kind',
+  formLimiter,
+  requireRecaptcha,
+  asyncHandler(async (req, res) => {
+    const kind = req.params.kind;
+    if (!APPLY_KINDS.has(kind)) throw notFound('Unknown application type');
+    const data = applySchema.parse(req.body);
+    await query(
+      `INSERT INTO applications (kind, name, email, subject, message, details)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [kind, data.name, data.email, data.subject ?? null, sanitizeHtml(data.message), JSON.stringify(data.details ?? {})],
+    );
+    notifyAdminOfSubmission({ kind: `application:${kind}`, ...data }).catch(() => {});
+    confirmSubmission({ email: data.email, name: data.name, kind: 'application' }).catch(() => {});
     res.json({ ok: true });
   }),
 );

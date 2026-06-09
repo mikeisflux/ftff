@@ -22,7 +22,7 @@ import { adminEmailRouter } from './routes/adminEmail.js';
 import { virtualRouter } from './routes/virtual.js';
 import { adminStreamRouter } from './routes/adminStream.js';
 import { adminUsersRouter } from './routes/adminUsers.js';
-import { adminAuditRouter, adminSubmissionsRouter, adminNewsletterRouter } from './routes/adminMisc.js';
+import { adminAuditRouter, adminSubmissionsRouter, adminNewsletterRouter, adminApplicationsRouter } from './routes/adminMisc.js';
 import { adminSlidesRouter, adminFaqsRouter, adminShowInfoRouter, adminTicketTypesRouter } from './routes/adminContent.js';
 import { adminGuestsRouter } from './routes/adminGuests.js';
 import { adminNavRouter } from './routes/adminNav.js';
@@ -103,6 +103,7 @@ export function createApp() {
   api.use('/admin/audit', csrfProtection, adminAuditRouter);
   api.use('/admin/submissions', csrfProtection, adminSubmissionsRouter);
   api.use('/admin/newsletter', csrfProtection, adminNewsletterRouter);
+  api.use('/admin/applications', csrfProtection, adminApplicationsRouter);
   api.use('/admin/slides', csrfProtection, adminSlidesRouter);
   api.use('/admin/faqs', csrfProtection, adminFaqsRouter);
   api.use('/admin/show-info', csrfProtection, adminShowInfoRouter);

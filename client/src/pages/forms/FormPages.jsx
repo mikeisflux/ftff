@@ -55,7 +55,7 @@ export function SuggestGuest() {
   return (
     <Page title="Suggest a Guest">
       <ContactForm
-        endpoint="/contact"
+        endpoint="/apply/suggest_guest"
         intro="Who would you love to see at the show? Let us know."
         subjectDefault="Guest Suggestion"
         buttonLabel="Send Suggestion"
@@ -63,6 +63,59 @@ export function SuggestGuest() {
       />
     </Page>
   );
+}
+
+// Apply-section application forms (§7.0) → /apply/:kind.
+export function PanelSubmission() {
+  return (
+    <Page title="Panel Submission">
+      <ContactForm endpoint="/apply/panel" subjectDefault="Panel Submission" buttonLabel="Submit Panel"
+        intro="Pitch your panel. Include the title, format, length, panelists, and a short description in your message." />
+    </Page>
+  );
+}
+export function Crew() {
+  return (
+    <Page title="Join the Crew">
+      <ContactForm endpoint="/apply/crew" subjectDefault="Crew Application" buttonLabel="Apply to Crew"
+        intro="Want to volunteer on crew? Tell us your availability, interests, and any relevant experience." />
+    </Page>
+  );
+}
+export function ProfessionalCreators() {
+  return (
+    <Page title="Professional Creators">
+      <ContactForm endpoint="/apply/creator" showCompany subjectDefault="Professional Creator Application" buttonLabel="Apply"
+        intro="Comic creators, artists, and writers — tell us about your work and links to your portfolio." />
+    </Page>
+  );
+}
+export function CosplayGuest() {
+  return (
+    <Page title="Cosplay Guest">
+      <ContactForm endpoint="/apply/cosplay_guest" subjectDefault="Cosplay Guest Application" buttonLabel="Apply"
+        intro="Interested in appearing as a cosplay guest? Share your socials, following, and what you'd bring to the show." />
+    </Page>
+  );
+}
+export function Community() {
+  return (
+    <Page title="Community">
+      <ContactForm endpoint="/apply/community" showCompany subjectDefault="Community Inquiry" buttonLabel="Get Involved"
+        intro="Community groups, clubs, and nonprofits — tell us how you'd like to participate." />
+    </Page>
+  );
+}
+
+// Newsletter double opt-in result pages.
+export function NewsletterConfirmed() {
+  return <Page title="You're subscribed! 🎉"><div className="card"><p>Thanks for confirming — you'll hear from us soon.</p></div></Page>;
+}
+export function NewsletterUnsubscribed() {
+  return <Page title="Unsubscribed"><div className="card"><p>You've been removed from the list. Sorry to see you go!</p></div></Page>;
+}
+export function NewsletterInvalid() {
+  return <Page title="Link expired"><div className="card"><p className="muted">That confirmation link is invalid or expired. Please sign up again.</p></div></Page>;
 }
 
 export function Newsletter() {

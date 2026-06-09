@@ -96,6 +96,19 @@ export async function notifyAdminOfSubmission({ kind, name, email, subject, mess
   return sendEmail({ to, subject: `New ${kind}: ${subject || name || email || ''}`.slice(0, 120), html });
 }
 
+// Newsletter double opt-in confirmation (§7.2).
+export async function sendNewsletterConfirm(email, token) {
+  if (!email) return { skipped: true, reason: 'no_recipient' };
+  const confirmUrl = `${env.PUBLIC_URL}/api/v1/newsletter/confirm?token=${encodeURIComponent(token)}`;
+  const unsubUrl = `${env.PUBLIC_URL}/api/v1/newsletter/unsubscribe?token=${encodeURIComponent(token)}`;
+  const html =
+    `<h2>Confirm your subscription</h2>` +
+    `<p>Tap below to start getting show news, guest reveals, and ticket alerts.</p>` +
+    `<p><a href="${confirmUrl}" style="display:inline-block;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none">Confirm subscription</a></p>` +
+    `<p style="font-size:12px;color:#666">If you didn't request this, ignore this email or <a href="${unsubUrl}">unsubscribe</a>.</p>`;
+  return sendEmail({ to: email, subject: 'Confirm your subscription', html });
+}
+
 export async function confirmSubmission({ email, name, kind }) {
   if (!email) return { skipped: true, reason: 'no_recipient' };
   const html =

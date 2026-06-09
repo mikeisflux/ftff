@@ -9,10 +9,51 @@ import { audit } from '../lib/audit.js';
 export const adminAuditRouter = Router();
 export const adminSubmissionsRouter = Router();
 export const adminNewsletterRouter = Router();
+export const adminApplicationsRouter = Router();
 
 adminAuditRouter.use(requireAuth, requireRole('admin'));
 adminSubmissionsRouter.use(requireAuth, requireRole('admin', 'editor'));
 adminNewsletterRouter.use(requireAuth, requireRole('admin', 'editor'));
+adminApplicationsRouter.use(requireAuth, requireRole('admin', 'editor'));
+
+// ── applications (Apply-section submissions) ─────────────────────────────────
+adminApplicationsRouter.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const params = [];
+    let where = '';
+    if (typeof req.query.kind === 'string' && req.query.kind) {
+      params.push(req.query.kind);
+      where = `WHERE kind = $1`;
+    }
+    const { rows } = await query(
+      `SELECT id, kind, name, email, subject, message, details, is_read, created_at
+         FROM applications ${where} ORDER BY created_at DESC LIMIT 300`,
+      params,
+    );
+    res.json({ applications: rows });
+  }),
+);
+
+adminApplicationsRouter.post(
+  '/:id/read',
+  asyncHandler(async (req, res) => {
+    const read = Boolean(z.object({ read: z.boolean() }).parse(req.body).read);
+    const { rowCount } = await query(`UPDATE applications SET is_read=$2 WHERE id=$1`, [req.params.id, read]);
+    if (rowCount === 0) throw notFound('Application not found');
+    res.json({ ok: true });
+  }),
+);
+
+adminApplicationsRouter.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const { rowCount } = await query(`DELETE FROM applications WHERE id=$1`, [req.params.id]);
+    if (rowCount === 0) throw notFound('Application not found');
+    await audit(req.user.id, 'application.delete', { entity: 'application', entityId: req.params.id });
+    res.json({ ok: true });
+  }),
+);
 
 // GET /admin/audit?action=&limit=&offset=
 adminAuditRouter.get(

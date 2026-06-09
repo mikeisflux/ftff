@@ -396,7 +396,22 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_contact_kind ON contact_messages(kind);
 
--- ── email_messages (Gmail-style client, §12) ─────────────────────────────────
+-- ── applications (Apply / submission forms, §7.0) ────────────────────────────
+CREATE TABLE IF NOT EXISTS applications (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind        TEXT NOT NULL CHECK (kind IN
+                ('panel','crew','creator','cosplay_guest','community','suggest_guest','volunteer')),
+  name        TEXT,
+  email       CITEXT,
+  subject     TEXT,
+  message     TEXT,
+  details     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_read     BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_applications_kind ON applications(kind, created_at DESC);
+
+-- ── email_messages (Gmail-style client, §12) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS email_messages (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   thread_id    UUID,

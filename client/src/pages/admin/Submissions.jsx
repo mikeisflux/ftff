@@ -7,20 +7,25 @@ export default function Submissions() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(null);
 
+  const isApplications = tab === 'applications';
+  const base = isApplications ? '/admin/applications' : '/admin/submissions';
+
   const load = useCallback(async () => {
     setOpen(null);
     if (tab === 'newsletter') {
       setItems((await api('/admin/newsletter')).subscribers);
+    } else if (tab === 'applications') {
+      setItems((await api('/admin/applications')).applications);
     } else {
       setItems((await api(`/admin/submissions?kind=${tab}`)).submissions);
     }
   }, [tab]);
   useEffect(() => { load(); }, [load]);
 
-  async function markRead(id, read) { await api(`/admin/submissions/${id}/read`, { method: 'POST', body: { read } }); await load(); }
-  async function del(id) { if (window.confirm('Delete this submission?')) { await api(`/admin/submissions/${id}`, { method: 'DELETE' }); await load(); } }
+  async function markRead(id, read) { await api(`${base}/${id}/read`, { method: 'POST', body: { read } }); await load(); }
+  async function del(id) { if (window.confirm('Delete this submission?')) { await api(`${base}/${id}`, { method: 'DELETE' }); await load(); } }
 
-  const TABS = [['contact', 'Contact'], ['media', 'Media'], ['exhibitor', 'Exhibitor'], ['newsletter', 'Newsletter']];
+  const TABS = [['contact', 'Contact'], ['media', 'Media'], ['exhibitor', 'Exhibitor'], ['applications', 'Applications'], ['newsletter', 'Newsletter']];
 
   return (
     <div>

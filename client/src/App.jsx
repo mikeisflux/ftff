@@ -20,6 +20,14 @@ import {
   Exhibitor,
   SuggestGuest,
   Newsletter,
+  PanelSubmission,
+  Crew,
+  ProfessionalCreators,
+  CosplayGuest,
+  Community,
+  NewsletterConfirmed,
+  NewsletterUnsubscribed,
+  NewsletterInvalid,
 } from './pages/forms/FormPages.jsx';
 import Login from './pages/admin/Login.jsx';
 import Settings from './pages/admin/Settings.jsx';
@@ -121,6 +129,18 @@ export default function App() {
           <Route path="/media-inquiries" element={<MediaInquiries />} />
           <Route path="/become-an-exhibitor" element={<Exhibitor />} />
           <Route path="/suggest-a-guest" element={<SuggestGuest />} />
+
+          {/* Apply-section application forms */}
+          <Route path="/panel-submission" element={<PanelSubmission />} />
+          <Route path="/crew" element={<Crew />} />
+          <Route path="/professional-creators" element={<ProfessionalCreators />} />
+          <Route path="/cosplay-guest" element={<CosplayGuest />} />
+          <Route path="/community" element={<Community />} />
+
+          {/* Newsletter double opt-in results */}
+          <Route path="/newsletter/confirmed" element={<NewsletterConfirmed />} />
+          <Route path="/newsletter/unsubscribed" element={<NewsletterUnsubscribed />} />
+          <Route path="/newsletter/invalid" element={<NewsletterInvalid />} />
 
           {/* Everything else resolves to a CMS page (real content where
               authored, honest in-preparation state otherwise). */}
