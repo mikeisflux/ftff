@@ -10,11 +10,13 @@ function SettingRow({ s, onSaved }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   const dirty = editing && value.length > 0;
 
   async function save() {
     setBusy(true);
+    setError('');
     try {
       await api(`/admin/settings/${encodeURIComponent(s.key)}`, {
         method: 'PUT',
@@ -24,6 +26,8 @@ function SettingRow({ s, onSaved }) {
       setValue('');
       setSaved(true);
       onSaved();
+    } catch (err) {
+      setError(err.status === 401 ? 'Your session expired — please reload and sign in again.' : (err.message || 'Save failed'));
     } finally {
       setBusy(false);
     }
@@ -31,9 +35,12 @@ function SettingRow({ s, onSaved }) {
 
   async function clear() {
     setBusy(true);
+    setError('');
     try {
       await api(`/admin/settings/${encodeURIComponent(s.key)}`, { method: 'DELETE' });
       onSaved();
+    } catch (err) {
+      setError(err.message || 'Clear failed');
     } finally {
       setBusy(false);
     }
@@ -70,12 +77,13 @@ function SettingRow({ s, onSaved }) {
             placeholder={s.isSecret ? 'Enter secret value' : 'Enter value'}
           />
           {dirty && <span className="muted">unsaved</span>}
-          <button className="btn" onClick={save} disabled={busy || !value}>Confirm &amp; Save</button>
-          <button className="btn secondary" onClick={() => { setEditing(false); setValue(''); }}>
+          <button className="btn" onClick={save} disabled={busy || !value}>{busy ? 'Saving…' : 'Confirm & Save'}</button>
+          <button className="btn secondary" onClick={() => { setEditing(false); setValue(''); setError(''); }}>
             Cancel
           </button>
         </div>
       )}
+      {error && <p style={{ color: 'var(--color-danger)', marginTop: 6 }}>{error}</p>}
     </div>
   );
 }

@@ -26,7 +26,20 @@ export async function uploadFile(path, file, fields = {}) {
   return data;
 }
 
-export async function api(path, { method = 'GET', body, headers = {} } = {}) {
+// Refresh the access token at most once at a time when a request 401s, so an
+// expired short-lived session is renewed transparently instead of silently
+// failing admin actions.
+let refreshing = null;
+function refreshSession() {
+  if (!refreshing) {
+    refreshing = fetch(`${BASE}/auth/refresh`, {
+      method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': csrfToken() },
+    }).then((r) => r.ok).catch(() => false).finally(() => { refreshing = null; });
+  }
+  return refreshing;
+}
+
+export async function api(path, { method = 'GET', body, headers = {}, _retry = false } = {}) {
   const opts = {
     method,
     credentials: 'include',
@@ -39,7 +52,17 @@ export async function api(path, { method = 'GET', body, headers = {} } = {}) {
   if (!['GET', 'HEAD'].includes(method)) {
     opts.headers['X-CSRF-Token'] = csrfToken();
   }
-  const res = await fetch(`${BASE}${path}`, opts);
+  let res = await fetch(`${BASE}${path}`, opts);
+
+  // Session expired? Refresh once and retry the original request.
+  if (res.status === 401 && !_retry && !path.startsWith('/auth/')) {
+    const ok = await refreshSession();
+    if (ok) {
+      if (!['GET', 'HEAD'].includes(method)) opts.headers['X-CSRF-Token'] = csrfToken();
+      res = await fetch(`${BASE}${path}`, opts);
+    }
+  }
+
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
