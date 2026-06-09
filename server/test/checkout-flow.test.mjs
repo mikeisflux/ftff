@@ -55,13 +55,14 @@ async function main() {
   assert.equal(r1.status, 200, 'webhook accepted');
   console.log('  ✓ webhook accepted (valid signature)');
 
-  // 5. Assert order paid + 3 tickets issued with unique tokens.
+  // 5. Order paid + only the 2 physical (3-Day) tickets get QR rows; the Digital
+  //    ticket is intentionally NOT scannable (no QR).
   const paid = (await pool.query('SELECT status FROM orders WHERE id=$1', [order.id])).rows[0];
   assert.equal(paid.status, 'paid', 'order marked paid');
   const tickets = (await pool.query('SELECT qr_token FROM tickets WHERE order_id=$1', [order.id])).rows;
-  assert.equal(tickets.length, 3, 'one ticket per seat issued');
-  assert.equal(new Set(tickets.map((t) => t.qr_token)).size, 3, 'tokens unique');
-  console.log('  ✓ order paid, 3 unique tickets issued');
+  assert.equal(tickets.length, 2, 'physical seats get QR; digital does not');
+  assert.equal(new Set(tickets.map((t) => t.qr_token)).size, 2, 'tokens unique');
+  console.log('  ✓ order paid, 2 physical tickets issued (digital = no QR)');
 
   // 6. Replay the SAME event → idempotent (no extra tickets).
   const r2 = await fetch(`${BASE}/webhooks/stripe`, {
@@ -72,7 +73,7 @@ async function main() {
   const body2 = await r2.json();
   assert.equal(body2.duplicate, true, 'duplicate event deduped');
   const count2 = (await pool.query('SELECT count(*)::int n FROM tickets WHERE order_id=$1', [order.id])).rows[0].n;
-  assert.equal(count2, 3, 'no double-issue on replay');
+  assert.equal(count2, 2, 'no double-issue on replay');
   console.log('  ✓ replayed event deduped, no double-issue');
 
   // 7. Tampered signature is rejected.

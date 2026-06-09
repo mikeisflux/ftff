@@ -35,7 +35,7 @@ import Settings from './pages/admin/Settings.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 import TicketsAdmin from './pages/admin/TicketsAdmin.jsx';
-import Scan from './pages/admin/Scan.jsx';
+import ScanGate from './pages/ScanGate.jsx';
 import Booths from './pages/admin/Booths.jsx';
 import Products from './pages/admin/Products.jsx';
 import Orders from './pages/admin/Orders.jsx';
@@ -64,6 +64,9 @@ const GUEST_CATEGORY_ROUTES = {
 export default function App() {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+
+  // Standalone door-staff scanner — no public header/footer, no admin shell.
+  if (pathname === '/scan') return <ScanGate />;
 
   if (isAdmin) {
     return (
@@ -94,7 +97,6 @@ export default function App() {
           <Route path="/admin/submissions" element={<Submissions />} />
           <Route path="/admin/users" element={<Users />} />
           <Route path="/admin/audit" element={<Audit />} />
-          <Route path="/admin/scan" element={<Scan />} />
           <Route path="/admin/settings" element={<Settings />} />
         </Route>
         <Route path="/admin/*" element={<Login />} />

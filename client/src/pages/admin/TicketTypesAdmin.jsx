@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '../../lib/api.js';
+import { api, uploadFile } from '../../lib/api.js';
 
 // Full CRUD for ticket types (§13). Prices entered in dollars; five are seeded
 // by default but admins can add/remove their own (VIP, weekend, kids, etc.).
-const blank = { code: '', name: '', price: '40.00', description: '', is_digital: false, quantity_total: '', is_active: true };
+const blank = { code: '', name: '', price: '40.00', description: '', is_digital: false, quantity_total: '', is_active: true, image_url: '' };
 const toCents = (d) => Math.round(Number(d || 0) * 100);
 const toDollars = (c) => (Number(c || 0) / 100).toFixed(2);
 
@@ -24,7 +24,7 @@ export default function TicketTypesAdmin() {
         name: form.name, description: form.description || null,
         price_cents: toCents(form.price), is_digital: form.is_digital,
         quantity_total: form.quantity_total === '' ? null : Number(form.quantity_total),
-        is_active: form.is_active,
+        is_active: form.is_active, image_url: form.image_url || null,
       } });
       setForm(blank); await load();
     } catch (err) { setMsg(err.data?.details?.[0]?.message || err.message); }
@@ -37,10 +37,16 @@ export default function TicketTypesAdmin() {
         name: t.name, description: t.description, price_cents: toCents(t._price),
         is_digital: t.is_digital,
         quantity_total: t.quantity_total === '' || t.quantity_total == null ? null : Number(t.quantity_total),
-        is_active: t.is_active, sort_order: t.sort_order,
+        is_active: t.is_active, sort_order: t.sort_order, image_url: t.image_url || null,
       } });
       setMsg(`Saved ${t.name}.`); await load();
     } catch (err) { setMsg(err.message); }
+  }
+
+  async function uploadImage(file, apply) {
+    setMsg('');
+    try { const { url } = await uploadFile('/admin/uploads', file); apply(url); }
+    catch (err) { setMsg(err.message); }
   }
 
   async function del(t) {
@@ -67,6 +73,13 @@ export default function TicketTypesAdmin() {
         </div>
         <label>Description</label>
         <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+        <label>Tile image</label>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {form.image_url && <img src={form.image_url} alt="" style={{ height: 48, borderRadius: 6 }} />}
+          <label className="btn secondary" style={{ cursor: 'pointer' }}>Upload image
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { if (e.target.files[0]) uploadImage(e.target.files[0], (url) => setForm((f) => ({ ...f, image_url: url }))); e.target.value = ''; }} />
+          </label>
+        </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 10, alignItems: 'center' }}>
           <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><input type="checkbox" style={{ width: 'auto' }} checked={form.is_digital} onChange={(e) => setForm((f) => ({ ...f, is_digital: e.target.checked }))} /> Digital (Virtual Con access)</label>
           <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><input type="checkbox" style={{ width: 'auto' }} checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} /> Active</label>

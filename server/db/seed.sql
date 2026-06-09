@@ -13,7 +13,7 @@ VALUES (
   jsonb_build_object(
     'dark', jsonb_build_object(
       'primary',   '#7c3aed',
-      'secondary', '#06b6d4',
+      'secondary', '#2dd4bf',
       'accent',    '#ec4899',
       'background', '#070711',
       'surface',   '#0f0f1f',
@@ -24,7 +24,7 @@ VALUES (
     ),
     'light', jsonb_build_object(
       'primary',   '#6d28d9',
-      'secondary', '#0891b2',
+      'secondary', '#0d9488',
       'accent',    '#db2777',
       'background', '#f7f7fb',
       'surface',   '#ffffff',
@@ -34,7 +34,7 @@ VALUES (
       'danger',    '#dc2626'
     )
   ),
-  '#7c3aed', 65, 'Orbitron', 'Inter', '12px', 'dark', TRUE
+  '#2dd4bf', 65, 'Orbitron', 'Inter', '12px', 'dark', TRUE
 )
 ON CONFLICT (id) DO NOTHING;
 
@@ -109,16 +109,15 @@ UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'virtual.chat_enab
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────
 -- Pricing: single-day $40, 3-day (multi-day) $80, digital $10. Upsert so
 -- re-seeding refreshes prices/copy.
-INSERT INTO ticket_types (code, name, description, price_cents, is_digital, sort_order) VALUES
-  ('friday',    'Friday',  'Single-day admission for Friday.',   4000, FALSE, 1),
-  ('saturday',  'Saturday','Single-day admission for Saturday.', 4000, FALSE, 2),
-  ('sunday',    'Sunday',  'Single-day admission for Sunday.',   4000, FALSE, 3),
-  ('three_day', '3-Day',   'All three days. Best value.',        8000, FALSE, 4),
-  ('digital',   'Digital', 'Virtual Con Experience livestream access.', 1000, TRUE, 5)
+INSERT INTO ticket_types (code, name, description, price_cents, is_digital, sort_order, image_url) VALUES
+  ('friday',    'Friday',  'Single-day admission for Friday.',   4000, FALSE, 1, '/tickets/friday.png'),
+  ('saturday',  'Saturday','Single-day admission for Saturday.', 4000, FALSE, 2, '/tickets/saturday.png'),
+  ('sunday',    'Sunday',  'Single-day admission for Sunday.',   4000, FALSE, 3, '/tickets/sunday.png'),
+  ('three_day', '3-Day',   'All three days. Best value.',        8000, FALSE, 4, '/tickets/three_day.png'),
+  ('digital',   'Digital', 'Virtual Con livestream access — login with your confirmation number.', 1000, TRUE, 5, '/tickets/digital.png')
 ON CONFLICT (code) DO UPDATE
-  SET name = EXCLUDED.name, description = EXCLUDED.description,
-      price_cents = EXCLUDED.price_cents, is_digital = EXCLUDED.is_digital,
-      sort_order = EXCLUDED.sort_order;
+  -- Re-seed refreshes copy + tile image but NEVER overwrites admin-set prices.
+  SET image_url = COALESCE(ticket_types.image_url, EXCLUDED.image_url);
 
 -- ── default mega-menu (§7.0) ─────────────────────────────────────────────────
 DO $$
@@ -143,6 +142,7 @@ BEGIN
   INSERT INTO nav_menu (label, route, sort_order) VALUES ('Apply', '/crew', 5) RETURNING id INTO apply_id;
   INSERT INTO nav_menu (label, route, sort_order) VALUES ('Exhibitors', '/become-an-exhibitor', 6) RETURNING id INTO exh_id;
   INSERT INTO nav_menu (label, route, sort_order) VALUES ('About Us', '/about-us', 7);
+  INSERT INTO nav_menu (label, route, sort_order, is_cta) VALUES ('LIVE!', '/virtual', 8, TRUE);
 
   -- Shop children
   INSERT INTO nav_menu (parent_id, label, route, sort_order, is_cta) VALUES

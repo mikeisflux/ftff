@@ -69,11 +69,11 @@ export default function Header() {
   ];
 
   function NavLink({ item, onClick }) {
-    const props = item.url
-      ? { href: item.url, target: item.opens_new_tab ? '_blank' : undefined, rel: 'noopener' }
-      : null;
-    if (props) return <a {...props} onClick={onClick}>{item.label}</a>;
-    return <Link to={item.route || '/'} onClick={onClick}>{item.label}</Link>;
+    const cls = item.is_cta ? 'menu-cta' : undefined;
+    if (item.url) {
+      return <a href={item.url} target={item.opens_new_tab ? '_blank' : undefined} rel="noopener" className={cls} onClick={onClick}>{item.label}</a>;
+    }
+    return <Link to={item.route || '/'} className={cls} onClick={onClick}>{item.label}</Link>;
   }
 
   return (

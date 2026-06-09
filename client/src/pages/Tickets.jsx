@@ -60,8 +60,10 @@ export default function Tickets() {
         <form onSubmit={checkout}>
           <div className="grid cols-3">
             {types.map((t) => (
-              <div className="card" key={t.id}>
-                <h3>{t.name}</h3>
+              <div className="card" key={t.id} style={{ padding: 0, overflow: 'hidden' }}>
+                {t.image_url && <img src={t.image_url} alt={t.name} style={{ width: '100%', display: 'block' }} />}
+                <div style={{ padding: 20 }}>
+                <h3 style={{ marginTop: 0 }}>{t.name}</h3>
                 <p className="muted">{t.description}</p>
                 <p style={{ fontSize: '1.6rem', margin: '8px 0' }}>{money(t.price_cents, t.currency)}</p>
                 {t.is_digital && <p className="muted">Includes Virtual Con Experience access.</p>}
@@ -69,6 +71,7 @@ export default function Tickets() {
                   <button type="button" className="btn secondary" onClick={() => setCount(t.code, (qty[t.code] || 0) - 1)} aria-label={`Decrease ${t.name}`}>−</button>
                   <span style={{ minWidth: 24, textAlign: 'center' }}>{qty[t.code] || 0}</span>
                   <button type="button" className="btn secondary" onClick={() => setCount(t.code, (qty[t.code] || 0) + 1)} aria-label={`Increase ${t.name}`}>+</button>
+                </div>
                 </div>
               </div>
             ))}

@@ -3,13 +3,14 @@ import Hls from 'hls.js';
 import { api } from '../lib/api.js';
 import LiveChat from '../components/LiveChat.jsx';
 
-// Virtual Con Experience (§11): gated to Digital ticket holders. The viewer
-// enters their Digital ticket token; the server validates entitlement and mints
-// a short-lived access token + HLS URL. Playback via hls.js (native HLS on Safari).
+// LIVE — Virtual Con Experience (§11): gated to Digital ticket holders, who log
+// in with the confirmation (order) number + email from their purchase. The
+// server validates the paid Digital order and mints a short-lived access token.
 export default function Virtual() {
   const videoRef = useRef(null);
   const [access, setAccess] = useState(null); // { token, hls, streamConfigured }
-  const [token, setToken] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [status, setStatus] = useState({ configured: false, live: false });
   const [vod, setVod] = useState([]);
   const [error, setError] = useState('');
@@ -17,23 +18,17 @@ export default function Virtual() {
 
   useEffect(() => { api('/virtual/status').then(setStatus).catch(() => {}); }, []);
 
-  // Prefill token from ?t= (e.g. linked from the mobile ticket page).
-  useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('t');
-    if (t) setToken(t);
-  }, []);
-
   async function unlock(e) {
     e?.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const res = await api('/virtual/playback-token', { method: 'POST', body: { qr_token: token } });
+      const res = await api('/virtual/playback-token', { method: 'POST', body: { orderNumber, email } });
       setAccess(res);
       const vodRes = await api(`/virtual/vod?token=${encodeURIComponent(res.token)}`).catch(() => ({ vod: [] }));
       setVod(vodRes.vod || []);
     } catch (err) {
-      setError(err.data?.code === 'not_digital' ? 'That ticket isn’t a Digital ticket.' : err.message || 'Could not verify your ticket.');
+      setError(err.message || 'Could not verify your purchase.');
     } finally {
       setBusy(false);
     }
@@ -64,13 +59,16 @@ export default function Virtual() {
       {!access ? (
         <form className="card" style={{ maxWidth: 520 }} onSubmit={unlock}>
           <p className="muted">
-            Enter your <strong>Digital ticket</strong> code to watch the livestream and past sessions.
+            Digital ticket holders: enter the <strong>confirmation number</strong> and{' '}
+            <strong>email</strong> from your purchase to watch the livestream and past sessions.
           </p>
-          <label>Digital ticket token</label>
-          <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="From your ticket email" required />
+          <label>Confirmation number</label>
+          <input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="e.g. FFF-LZ4K9P-A1B2" required />
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="The email you bought with" required />
           {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
           <div style={{ marginTop: 12 }}>
-            <button className="btn" disabled={busy}>{busy ? 'Verifying…' : 'Unlock stream'}</button>
+            <button className="btn" disabled={busy}>{busy ? 'Verifying…' : 'Enter the stream'}</button>
           </div>
           <p className="muted" style={{ marginTop: 10, fontSize: '.85rem' }}>
             Stream is currently {status.live ? 'LIVE 🔴' : status.configured ? 'offline' : 'not yet scheduled'}.

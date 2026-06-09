@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { query } from '../db/pool.js';
 import { env } from '../config/env.js';
-import { asyncHandler, forbidden, unauthorized } from '../lib/http.js';
+import { asyncHandler, unauthorized } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
 import { getCloudflareConfig, getLiveInput, liveHlsUrl, listVideos } from '../lib/cloudflare.js';
 import { getSettingValue } from '../lib/settings.js';
@@ -16,23 +16,33 @@ export const virtualRouter = Router();
 
 const STREAM_TTL_SECONDS = 1800; // 30 min
 
-const tokenSchema = z.object({ qr_token: z.string().min(8).max(128) });
+const gateSchema = z.object({
+  orderNumber: z.string().min(3).max(40),
+  email: z.string().email(),
+});
 
-// POST /virtual/playback-token — verify a Digital ticket, mint an access token.
+// POST /virtual/playback-token — Digital holders log in with their confirmation
+// (order) number + email. We verify a PAID order with that number + email that
+// contains a Digital ticket, then mint a short-lived access token.
 virtualRouter.post(
   '/playback-token',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { qr_token } = tokenSchema.parse(req.body);
+    const { orderNumber, email } = gateSchema.parse(req.body);
     const { rows } = await query(
-      `SELECT t.status, tt.is_digital
-         FROM tickets t JOIN ticket_types tt ON tt.id = t.ticket_type_id
-        WHERE t.qr_token = $1`,
-      [qr_token],
+      `SELECT 1
+         FROM orders o
+         JOIN order_items oi ON oi.order_id = o.id AND oi.kind = 'ticket'
+         JOIN ticket_types tt ON tt.id = oi.ticket_type_id AND tt.is_digital = TRUE
+        WHERE upper(o.order_number) = upper($1)
+          AND o.customer_email = $2
+          AND o.status = 'paid'
+        LIMIT 1`,
+      [orderNumber.trim(), email.trim()],
     );
-    const ticket = rows[0];
-    if (!ticket || ticket.status === 'void') throw unauthorized('Ticket not valid');
-    if (!ticket.is_digital) throw forbidden('A Digital ticket is required for the Virtual Con.', 'not_digital');
+    if (rows.length === 0) {
+      throw unauthorized('No Digital ticket found for that confirmation number and email.', 'no_match');
+    }
 
     // Short-lived entitlement token (our own signing). When Cloudflare signed
     // URLs are configured, this is where we'd also mint a Stream-signed token.

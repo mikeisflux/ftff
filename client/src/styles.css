@@ -71,6 +71,15 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
   color: var(--color-text);
 }
 .caret { font-size: .7em; opacity: .8; }
+/* "LIVE!" CTA nav item */
+.menu-cta {
+  color: #fff !important; font-weight: 800; border-radius: 999px;
+  padding: 6px 14px !important; margin-left: 2px;
+  background: linear-gradient(135deg, #ef4444, var(--color-accent));
+  box-shadow: 0 0 14px rgba(239,68,68,0.6); animation: livepulse 1.7s ease-in-out infinite;
+}
+.menu-cta:hover { color: #fff !important; filter: brightness(1.1); }
+@keyframes livepulse { 0%,100% { box-shadow: 0 0 10px rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 22px rgba(239,68,68,0.95); } }
 .dropdown {
   /* Contiguous with the trigger (no margin gap) so moving the mouse down into
      the menu doesn't cross a hover dead-zone and close it. The visual spacing
@@ -119,7 +128,7 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 /* Buttons / cards */
 .btn {
   display: inline-block; padding: 10px 18px; border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 52%, var(--color-accent) 100%);
   color: #fff; font-weight: 600; border: none; cursor: pointer;
   box-shadow: 0 0 calc(24px * var(--glow-intensity)) color-mix(in srgb, var(--glow-color) 70%, transparent);
 }

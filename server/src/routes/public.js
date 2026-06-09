@@ -64,7 +64,7 @@ publicRouter.get(
   asyncHandler(async (_req, res) => {
     const { rows } = await query(
       `SELECT id, code, name, description, price_cents, currency, is_digital,
-              quantity_total, quantity_sold, sort_order
+              quantity_total, quantity_sold, sort_order, image_url
          FROM ticket_types WHERE is_active = TRUE ORDER BY sort_order`,
     );
     res.json({ ticketTypes: rows });

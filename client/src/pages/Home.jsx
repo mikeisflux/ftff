@@ -35,7 +35,13 @@ export default function Home() {
         <section className="section container">
           <h2>When &amp; Where</h2>
           <div className="grid info-grid" style={{ alignItems: 'stretch' }}>
-            <div className="card">
+            <div
+              className="card"
+              style={{
+                background: 'linear-gradient(rgba(7,10,20,0.74), rgba(7,10,20,0.92)), url(/venue-bg.png) center/cover',
+                backgroundColor: 'var(--color-surface)',
+              }}
+            >
               <p><strong>{show.venue}</strong></p>
               <p className="muted">{show.address}</p>
               {show.starts_on && <p>{formatDateRange(show.starts_on, show.ends_on)}</p>}
@@ -76,11 +82,14 @@ export default function Home() {
           <h2>Buy Tickets</h2>
           <div className="grid cols-3">
             {tickets.data.ticketTypes.map((t) => (
-              <div className="card" key={t.id}>
-                <h3>{t.name}</h3>
-                <p className="muted">{t.description}</p>
-                <p style={{ fontSize: '1.4rem' }}>{money(t.price_cents, t.currency)}</p>
-                <Link to="/buy-tickets" className="btn">View</Link>
+              <div className="card" key={t.id} style={{ padding: 0, overflow: 'hidden' }}>
+                {t.image_url && <img src={t.image_url} alt={t.name} style={{ width: '100%', display: 'block' }} />}
+                <div style={{ padding: 20 }}>
+                  <h3 style={{ marginTop: 0 }}>{t.name}</h3>
+                  <p className="muted">{t.description}</p>
+                  <p style={{ fontSize: '1.4rem' }}>{money(t.price_cents, t.currency)}</p>
+                  <Link to="/buy-tickets" className="btn">View</Link>
+                </div>
               </div>
             ))}
           </div>

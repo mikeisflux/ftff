@@ -24,7 +24,9 @@ export async function sendEmail({ to, subject, html, text }) {
   return { sent: true };
 }
 
-// Ticket delivery email (§8 step 4): one mobile-ticket link per issued ticket.
+// Order/ticket delivery email (§8 step 4). Physical tickets get scannable QR
+// links; Digital tickets get the confirmation number + LIVE access instructions
+// (no QR — they log in to the stream with confirmation number + email).
 export async function sendTicketDelivery(order) {
   if (!order?.customer_email) return { skipped: true, reason: 'no_recipient' };
 
@@ -34,27 +36,36 @@ export async function sendTicketDelivery(order) {
       WHERE t.order_id = $1 ORDER BY t.created_at`,
     [order.id],
   );
-  if (tickets.length === 0) return { skipped: true, reason: 'no_tickets' };
+  const { rows: dig } = await query(
+    `SELECT 1 FROM order_items oi JOIN ticket_types tt ON tt.id = oi.ticket_type_id
+      WHERE oi.order_id = $1 AND tt.is_digital = TRUE LIMIT 1`,
+    [order.id],
+  );
+  const hasDigital = dig.length > 0;
+  if (tickets.length === 0 && !hasDigital) return { skipped: true, reason: 'no_tickets' };
 
-  const links = tickets
-    .map(
-      (t) =>
-        `<li style="margin:6px 0"><strong>${t.ticket_name}</strong> — ` +
-        `<a href="${env.PUBLIC_URL}/t/${t.qr_token}">View / show at the door</a></li>`,
-    )
-    .join('');
-  const html =
-    `<h1>Your tickets are ready</h1>` +
-    `<p>Order <strong>${order.order_number}</strong></p>` +
-    `<ul>${links}</ul>` +
-    `<p>Open each link on your phone — the QR code is scanned for entry.</p>`;
-  const text =
-    `Your tickets (Order ${order.order_number}):\n` +
-    tickets.map((t) => `- ${t.ticket_name}: ${env.PUBLIC_URL}/t/${t.qr_token}`).join('\n');
+  let html = `<h1>Your order is confirmed</h1>` +
+    `<p>Confirmation number: <strong>${order.order_number}</strong></p>`;
+  let text = `Your order is confirmed.\nConfirmation number: ${order.order_number}\n`;
+
+  if (tickets.length > 0) {
+    const links = tickets
+      .map((t) => `<li style="margin:6px 0"><strong>${t.ticket_name}</strong> — <a href="${env.PUBLIC_URL}/t/${t.qr_token}">View / show at the door</a></li>`)
+      .join('');
+    html += `<h2>Your tickets</h2><ul>${links}</ul><p>Open each on your phone — the QR code is scanned at entry.</p>`;
+    text += `\nTickets:\n` + tickets.map((t) => `- ${t.ticket_name}: ${env.PUBLIC_URL}/t/${t.qr_token}`).join('\n') + '\n';
+  }
+  if (hasDigital) {
+    html += `<h2>Virtual Con — LIVE</h2>` +
+      `<p>Your Digital ticket includes livestream access. When the show is live, go to ` +
+      `<a href="${env.PUBLIC_URL}/virtual">${env.PUBLIC_URL.replace(/^https?:\/\//, '')}/virtual</a> ` +
+      `and sign in with your <strong>confirmation number</strong> (${order.order_number}) and this email address.</p>`;
+    text += `\nVirtual Con (LIVE): ${env.PUBLIC_URL}/virtual — sign in with confirmation number ${order.order_number} + this email.\n`;
+  }
 
   return sendEmail({
     to: order.customer_email,
-    subject: `Your tickets — ${order.order_number}`,
+    subject: `Your order is confirmed — ${order.order_number}`,
     html,
     text,
   });

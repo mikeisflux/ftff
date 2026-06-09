@@ -191,6 +191,7 @@ CREATE TRIGGER trg_ticket_types_updated BEFORE UPDATE ON ticket_types
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- Existing DBs: drop the old fixed-five enum constraint so admins can add types.
 ALTER TABLE ticket_types DROP CONSTRAINT IF EXISTS ticket_types_code_check;
+ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 -- ── orders ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (

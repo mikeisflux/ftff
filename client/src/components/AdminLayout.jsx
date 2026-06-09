@@ -13,7 +13,6 @@ const NAV_GROUPS = [
     { to: '/admin/orders', label: 'Orders', roles: ['admin'] },
     { to: '/admin/tickets', label: 'Tickets', roles: ['admin'] },
     { to: '/admin/ticket-types', label: 'Ticket Types', roles: ['admin'] },
-    { to: '/admin/scan', label: 'Scan / Check-in', roles: ['admin', 'door_staff'] },
   ] },
   { label: 'Store & Vendors', items: [
     { to: '/admin/products', label: 'Shop', roles: ['admin', 'editor'] },
@@ -52,7 +51,11 @@ export default function AdminLayout() {
 
   useEffect(() => {
     api('/auth/me')
-      .then(({ user }) => { setMe(user); setReady(true); })
+      .then(({ user }) => {
+        // Door staff have no admin access — send them to the standalone scanner.
+        if (user.role === 'door_staff') { nav('/scan'); return; }
+        setMe(user); setReady(true);
+      })
       .catch(() => nav('/admin/login'));
   }, [nav]);
 

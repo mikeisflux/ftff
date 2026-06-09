@@ -129,6 +129,7 @@ const ttBase = {
   is_digital: z.boolean().optional(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().optional(),
+  image_url: z.string().max(500).optional().nullable(),
 };
 const ttUpdate = z.object(ttBase);
 const ttCreate = z.object({
@@ -142,11 +143,11 @@ adminTicketTypesRouter.get('/', asyncHandler(async (_q, res) =>
 adminTicketTypesRouter.post('/', asyncHandler(async (req, res) => {
   const t = ttCreate.parse(req.body);
   const { rows } = await query(
-    `INSERT INTO ticket_types (code, name, description, price_cents, quantity_total, is_digital, is_active, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8,(SELECT COALESCE(MAX(sort_order)+1,0) FROM ticket_types)))
+    `INSERT INTO ticket_types (code, name, description, price_cents, quantity_total, is_digital, is_active, sort_order, image_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8,(SELECT COALESCE(MAX(sort_order)+1,0) FROM ticket_types)), $9)
      RETURNING *`,
     [t.code, t.name, t.description ?? null, t.price_cents, t.quantity_total ?? null,
-      t.is_digital ?? false, t.is_active ?? true, t.sort_order ?? null],
+      t.is_digital ?? false, t.is_active ?? true, t.sort_order ?? null, t.image_url ?? null],
   ).catch((e) => { if (e.code === '23505') throw badRequest('A ticket type with that code already exists'); throw e; });
   await audit(req.user.id, 'ticket_type.create', { entity: 'ticket_type', entityId: rows[0].id });
   res.status(201).json({ ticketType: rows[0] });
@@ -156,10 +157,11 @@ adminTicketTypesRouter.put('/:id', asyncHandler(async (req, res) => {
   const t = ttUpdate.parse(req.body);
   const { rows } = await query(
     `UPDATE ticket_types SET name=$2, description=$3, price_cents=$4, quantity_total=$5,
-            is_digital=COALESCE($6,is_digital), is_active=$7, sort_order=COALESCE($8,sort_order)
+            is_digital=COALESCE($6,is_digital), is_active=$7, sort_order=COALESCE($8,sort_order),
+            image_url=$9
       WHERE id=$1 RETURNING *`,
     [req.params.id, t.name, t.description ?? null, t.price_cents, t.quantity_total ?? null,
-      t.is_digital ?? null, t.is_active ?? true, t.sort_order ?? null],
+      t.is_digital ?? null, t.is_active ?? true, t.sort_order ?? null, t.image_url ?? null],
   );
   if (!rows[0]) throw notFound('Ticket type not found');
   await audit(req.user.id, 'ticket_type.update', { entity: 'ticket_type', entityId: req.params.id });
