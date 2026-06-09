@@ -28,7 +28,7 @@ export default function Footer() {
           ))}
         </div>
         <p className="muted" style={{ marginTop: 24 }}>
-          © {new Date().getFullYear()} {brand}. All rights reserved.
+          © {new Date().getFullYear()} {brand}. All rights reserved. Designed by Mike Wheeler.
         </p>
       </div>
     </footer>
