@@ -41,7 +41,11 @@ export default function TicketPage() {
           {t.status === 'void' && 'Void'}
         </p>
         <p className="muted" style={{ fontSize: '.85rem' }}>Order {t.orderNumber}</p>
-        {t.isDigital && <p className="muted">Digital — grants Virtual Con access.</p>}
+        {t.isDigital && (
+          <p style={{ marginTop: 12 }}>
+            <a className="btn" href={`/virtual?t=${token}`}>Enter Virtual Con →</a>
+          </p>
+        )}
       </div>
     </div>
   );

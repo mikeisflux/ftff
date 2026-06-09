@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.7",
+    "hls.js": "^1.5.20",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-router-dom": "^7.1.1"

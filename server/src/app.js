@@ -15,6 +15,8 @@ import { ticketRouter } from './routes/tickets.js';
 import { webhookRouter } from './routes/webhooks.js';
 import { inboundRouter } from './routes/inbound.js';
 import { adminEmailRouter } from './routes/adminEmail.js';
+import { virtualRouter } from './routes/virtual.js';
+import { adminStreamRouter } from './routes/adminStream.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
@@ -57,6 +59,7 @@ export function createApp() {
   api.use('/theme', publicThemeRouter);
   api.use('/checkout', checkoutRouter);
   api.use('/t', ticketRouter);
+  api.use('/virtual', virtualRouter);
 
   // Door-staff validation (cookie-auth, role-gated). CSRF double-submit.
   api.use('/validate', csrfProtection, validateRouter);
@@ -71,6 +74,7 @@ export function createApp() {
   api.use('/admin/products', csrfProtection, adminProductsRouter);
   api.use('/admin/orders', csrfProtection, adminOrdersRouter);
   api.use('/admin/email', csrfProtection, adminEmailRouter);
+  api.use('/admin/stream', csrfProtection, adminStreamRouter);
 
   app.use('/api/v1', api);
 

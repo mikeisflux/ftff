@@ -13,6 +13,7 @@ import FloorPlan from './pages/FloorPlan.jsx';
 import Shop from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
+import Virtual from './pages/Virtual.jsx';
 import {
   Contact,
   MediaInquiries,
@@ -30,6 +31,7 @@ import Booths from './pages/admin/Booths.jsx';
 import Products from './pages/admin/Products.jsx';
 import Orders from './pages/admin/Orders.jsx';
 import Mail from './pages/admin/Mail.jsx';
+import Stream from './pages/admin/Stream.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -57,6 +59,7 @@ export default function App() {
           <Route path="/admin/products" element={<Products />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />
+          <Route path="/admin/stream" element={<Stream />} />
           <Route path="/admin/scan" element={<Scan />} />
           <Route path="/admin/settings" element={<Settings />} />
         </Route>
@@ -80,6 +83,7 @@ export default function App() {
           <Route path="/shop" element={<Shop />} />
           <Route path="/shop/:slug" element={<Product />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/virtual" element={<Virtual />} />
           <Route path="/faqs" element={<Faqs />} />
           <Route path="/show-hours" element={<ShowHours />} />
 
