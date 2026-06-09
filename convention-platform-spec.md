@@ -1,6 +1,6 @@
 # Convention Platform — Build Specification
 
-> **Purpose of this document:** A complete, self-contained build brief for **Claude Code** to implement a production-grade convention website with a full admin suite. Build in phases (see §17). Treat every "MUST" as a hard requirement and every "SHOULD" as a strong default. Where this doc says **CONFIRM**, surface the decision before implementing.
+> **Purpose of this document:** A complete, self-contained build brief to implement a production-grade convention website with a full admin suite. Build in phases (see §17). Treat every "MUST" as a hard requirement and every "SHOULD" as a strong default. Where this doc says **CONFIRM**, surface the decision before implementing.
 
 ---
 
@@ -454,7 +454,7 @@ Third-party keys (Stripe, SendGrid, Cloudflare, Maps, reCAPTCHA) are entered thr
 
 ---
 
-## 17. Build phases (suggested order for Claude Code)
+## 17. Build phases (suggested order)
 
 1. **Foundation:** monorepo, env, Postgres schema + migrations + seed, auth (login/roles/JWT cookies), security middleware (helmet/CSP/rate-limit/CSRF), audit log.
 2. **Settings panel + secrets encryption** (everything downstream depends on keys).
