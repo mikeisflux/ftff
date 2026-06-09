@@ -19,6 +19,12 @@ import { virtualRouter } from './routes/virtual.js';
 import { adminStreamRouter } from './routes/adminStream.js';
 import { adminUsersRouter } from './routes/adminUsers.js';
 import { adminAuditRouter, adminSubmissionsRouter, adminNewsletterRouter } from './routes/adminMisc.js';
+import { adminSlidesRouter, adminFaqsRouter, adminShowInfoRouter, adminTicketTypesRouter } from './routes/adminContent.js';
+import { adminGuestsRouter } from './routes/adminGuests.js';
+import { adminNavRouter } from './routes/adminNav.js';
+import { adminPagesRouter } from './routes/adminPages.js';
+import { adminUploadsRouter } from './routes/adminUploads.js';
+import { UPLOAD_DIR } from './lib/uploads.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
 import { adminDashboardRouter } from './routes/adminDashboard.js';
@@ -51,6 +57,10 @@ export function createApp() {
 
   app.get('/api/v1/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
+  // Serve locally-stored uploads (dev fallback for the §13 upload pipeline;
+  // object storage / CDN is used in production).
+  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '1y', immutable: true }));
+
   const api = express.Router();
   api.use('/auth', authRouter);
 
@@ -81,6 +91,14 @@ export function createApp() {
   api.use('/admin/audit', csrfProtection, adminAuditRouter);
   api.use('/admin/submissions', csrfProtection, adminSubmissionsRouter);
   api.use('/admin/newsletter', csrfProtection, adminNewsletterRouter);
+  api.use('/admin/slides', csrfProtection, adminSlidesRouter);
+  api.use('/admin/faqs', csrfProtection, adminFaqsRouter);
+  api.use('/admin/show-info', csrfProtection, adminShowInfoRouter);
+  api.use('/admin/ticket-types', csrfProtection, adminTicketTypesRouter);
+  api.use('/admin/guests', csrfProtection, adminGuestsRouter);
+  api.use('/admin/nav', csrfProtection, adminNavRouter);
+  api.use('/admin/pages', csrfProtection, adminPagesRouter);
+  api.use('/admin/uploads', csrfProtection, adminUploadsRouter);
 
   app.use('/api/v1', api);
 

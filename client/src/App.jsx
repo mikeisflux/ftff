@@ -35,6 +35,14 @@ import Stream from './pages/admin/Stream.jsx';
 import Users from './pages/admin/Users.jsx';
 import Audit from './pages/admin/Audit.jsx';
 import Submissions from './pages/admin/Submissions.jsx';
+import Slides from './pages/admin/Slides.jsx';
+import GuestsAdmin from './pages/admin/GuestsAdmin.jsx';
+import FaqsAdmin from './pages/admin/FaqsAdmin.jsx';
+import ShowInfo from './pages/admin/ShowInfo.jsx';
+import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
+import NavBuilder from './pages/admin/NavBuilder.jsx';
+import PageBuilder from './pages/admin/PageBuilder.jsx';
+import ThemeStudio from './pages/admin/ThemeStudio.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -59,6 +67,14 @@ export default function App() {
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/tickets" element={<TicketsAdmin />} />
           <Route path="/admin/booths" element={<Booths />} />
+          <Route path="/admin/slides" element={<Slides />} />
+          <Route path="/admin/guests" element={<GuestsAdmin />} />
+          <Route path="/admin/faqs" element={<FaqsAdmin />} />
+          <Route path="/admin/show-info" element={<ShowInfo />} />
+          <Route path="/admin/ticket-types" element={<TicketTypesAdmin />} />
+          <Route path="/admin/nav" element={<NavBuilder />} />
+          <Route path="/admin/pages" element={<PageBuilder />} />
+          <Route path="/admin/theme" element={<ThemeStudio />} />
           <Route path="/admin/products" element={<Products />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />

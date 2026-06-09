@@ -9,6 +9,23 @@ function csrfToken() {
   return m ? decodeURIComponent(m[1]) : '';
 }
 
+// Multipart upload (images). Sends the CSRF header; lets the browser set the
+// multipart Content-Type/boundary.
+export async function uploadFile(path, file, fields = {}) {
+  const fd = new FormData();
+  fd.set('file', file);
+  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'X-CSRF-Token': csrfToken() },
+    body: fd,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) { const e = new Error(data?.error || res.statusText); e.data = data; throw e; }
+  return data;
+}
+
 export async function api(path, { method = 'GET', body, headers = {} } = {}) {
   const opts = {
     method,

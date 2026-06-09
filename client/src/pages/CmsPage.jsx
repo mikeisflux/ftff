@@ -59,7 +59,11 @@ export default function CmsPage() {
   return (
     <div className="section container">
       <h1 className="glow">{page.title}</h1>
-      {Array.isArray(page.blocks) && page.blocks.map((b, i) => <Block key={i} block={b} />)}
+      {/* Prefer the server-rendered, sanitized body_html cache (covers the full
+          block library); fall back to client block rendering for legacy pages. */}
+      {page.body_html
+        ? <div className="cms-body" dangerouslySetInnerHTML={{ __html: page.body_html }} />
+        : Array.isArray(page.blocks) && page.blocks.map((b, i) => <Block key={i} block={b} />)}
     </div>
   );
 }
