@@ -3,6 +3,7 @@ import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import Home from './pages/Home.jsx';
 import CmsPage from './pages/CmsPage.jsx';
+import NotFound from './pages/NotFound.jsx';
 import Faqs from './pages/Faqs.jsx';
 import ShowHours from './pages/ShowHours.jsx';
 import Tickets from './pages/Tickets.jsx';
@@ -144,9 +145,11 @@ export default function App() {
           <Route path="/newsletter/unsubscribed" element={<NewsletterUnsubscribed />} />
           <Route path="/newsletter/invalid" element={<NewsletterInvalid />} />
 
-          {/* Everything else resolves to a CMS page (real content where
+          {/* Single-segment paths resolve to a CMS page (real content where
               authored, honest in-preparation state otherwise). */}
           <Route path="/:slug" element={<CmsPage />} />
+          {/* Anything else (unknown multi-segment) → friendly 404. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
