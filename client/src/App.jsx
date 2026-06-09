@@ -20,6 +20,11 @@ import Advertise from './pages/Advertise.jsx';
 import ExhibitorRewards from './pages/ExhibitorRewards.jsx';
 import SocialToolkit from './pages/SocialToolkit.jsx';
 import PastExhibitors from './pages/PastExhibitors.jsx';
+import GettingHere from './pages/GettingHere.jsx';
+import TravelHotels from './pages/TravelHotels.jsx';
+import ShowGuides from './pages/ShowGuides.jsx';
+import FirstTimeGuide from './pages/FirstTimeGuide.jsx';
+import MeetingCelebsGuide from './pages/MeetingCelebsGuide.jsx';
 import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
@@ -161,6 +166,11 @@ export default function App() {
           <Route path="/exhibitor-rewards" element={<ExhibitorRewards />} />
           <Route path="/social-media-tool-kit" element={<SocialToolkit />} />
           <Route path="/past-exhibitors" element={<PastExhibitors />} />
+          <Route path="/getting-here" element={<GettingHere />} />
+          <Route path="/travel-hotels" element={<TravelHotels />} />
+          <Route path="/show-guides" element={<ShowGuides />} />
+          <Route path="/first-time-guide" element={<FirstTimeGuide />} />
+          <Route path="/meeting-celebs-guide" element={<MeetingCelebsGuide />} />
           <Route path="/suggest-a-guest" element={<SuggestGuest />} />
 
           {/* Apply-section application forms */}
