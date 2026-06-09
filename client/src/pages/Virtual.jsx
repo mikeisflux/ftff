@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { api } from '../lib/api.js';
+import LiveChat from '../components/LiveChat.jsx';
 
 // Virtual Con Experience (§11): gated to Digital ticket holders. The viewer
 // enters their Digital ticket token; the server validates entitlement and mints
@@ -77,14 +78,17 @@ export default function Virtual() {
         </form>
       ) : (
         <>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            {access.hls ? (
-              <video ref={videoRef} controls playsInline style={{ width: '100%', background: '#000', aspectRatio: '16/9' }} />
-            ) : (
-              <div style={{ aspectRatio: '16/9', display: 'grid', placeItems: 'center', background: '#000' }}>
-                <p className="muted">You’re in! The stream is offline right now — check back at showtime.</p>
-              </div>
-            )}
+          <div className="virtual-stage">
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {access.hls ? (
+                <video ref={videoRef} controls playsInline style={{ width: '100%', background: '#000', aspectRatio: '16/9' }} />
+              ) : (
+                <div style={{ aspectRatio: '16/9', display: 'grid', placeItems: 'center', background: '#000' }}>
+                  <p className="muted">You’re in! The stream is offline right now — check back at showtime.</p>
+                </div>
+              )}
+            </div>
+            {access.chatEnabled && <LiveChat token={access.token} />}
           </div>
 
           {vod.length > 0 && (

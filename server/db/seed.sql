@@ -85,13 +85,16 @@ INSERT INTO settings (key, category, label, description, is_secret) VALUES
   ('social.instagram_url',           'Social',        'Instagram URL',              NULL, FALSE),
 
   ('vendor.floorplan_url',           'Vendors',       'Floor Plan Image URL',       'Uploaded floor-plan image.', FALSE),
-  ('vendor.hold_minutes',            'Vendors',       'Booth Hold Minutes',         'Soft-hold duration during checkout.', FALSE)
+  ('vendor.hold_minutes',            'Vendors',       'Booth Hold Minutes',         'Soft-hold duration during checkout.', FALSE),
+
+  ('virtual.chat_enabled',           'Video',         'Live Chat Enabled',          'Show live chat on the Virtual Con page.', FALSE)
 ON CONFLICT (key) DO NOTHING;
 
 -- sensible non-secret defaults
 UPDATE settings SET value = 'usd', is_set = TRUE WHERE key = 'stripe.currency' AND NOT is_set;
 UPDATE settings SET value = '15',  is_set = TRUE WHERE key = 'vendor.hold_minutes' AND NOT is_set;
 UPDATE settings SET value = 'FAN EXPO Chicago', is_set = TRUE WHERE key = 'site.name' AND NOT is_set;
+UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'virtual.chat_enabled' AND NOT is_set;
 
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────
 -- Pricing: single-day $40, 3-day (multi-day) $80, digital $10. Upsert so

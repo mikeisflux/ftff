@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { asyncHandler, forbidden, unauthorized } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
 import { getCloudflareConfig, getLiveInput, liveHlsUrl, listVideos } from '../lib/cloudflare.js';
+import { getSettingValue } from '../lib/settings.js';
 
 // Virtual Con Experience (§11): gated to holders of a Digital ticket. Entitlement
 // is validated server-side on every playback-token mint; the stream URL is only
@@ -39,6 +40,7 @@ virtualRouter.post(
 
     const cfg = await getCloudflareConfig();
     const hls = cfg ? liveHlsUrl(cfg) : null;
+    const chatEnabled = (await getSettingValue('virtual.chat_enabled')) !== 'false';
 
     res.json({
       entitled: true,
@@ -46,6 +48,7 @@ virtualRouter.post(
       hls, // null until Cloudflare is configured; page shows "offline" gracefully
       expiresIn: STREAM_TTL_SECONDS,
       streamConfigured: Boolean(hls),
+      chatEnabled,
     });
   }),
 );

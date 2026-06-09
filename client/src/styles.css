@@ -204,6 +204,13 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
   .grid.cols-3 { grid-template-columns: 1fr; }
 }
 
+/* Virtual Con stage + live chat */
+.virtual-stage { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .virtual-stage { grid-template-columns: 1fr; } }
+.live-chat { display: flex; flex-direction: column; max-height: 70vh; }
+.chat-log { flex: 1; overflow-y: auto; min-height: 200px; max-height: 50vh; margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
+.chat-line { font-size: 14px; word-break: break-word; }
+
 /* Mail client */
 .mail-grid { display: grid; grid-template-columns: 180px 320px 1fr; gap: 12px; margin-top: 12px; }
 @media (max-width: 900px) { .mail-grid { grid-template-columns: 1fr; } }

@@ -447,7 +447,20 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   received_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ── BotBlock firewall (integrated from botblock-firewall, §4.3) ──────────────
+-- ── chat_messages (Virtual Con live chat, §11) ───────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room       TEXT NOT NULL DEFAULT 'virtual',
+  handle     TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  role       TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer','staff')),
+  ip         INET,
+  is_hidden  BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_chat_room ON chat_messages(room, created_at DESC);
+
+-- ── BotBlock firewall (integrated from botblock-firewall, §4.3) ───────────────
 -- Quoted CamelCase identifiers MUST match infra/botblock-firewall/{database.sql,
 -- botblock-sync.sh}. The app writes here; the root watcher applies iptables DROP
 -- rules and the sync cron reconciles the firewall with these rows.

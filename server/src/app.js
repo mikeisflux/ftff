@@ -21,6 +21,7 @@ import { inboundRouter } from './routes/inbound.js';
 import { adminEmailRouter } from './routes/adminEmail.js';
 import { virtualRouter } from './routes/virtual.js';
 import { adminStreamRouter } from './routes/adminStream.js';
+import { adminChatRouter } from './routes/adminChat.js';
 import { adminUsersRouter } from './routes/adminUsers.js';
 import { adminAuditRouter, adminSubmissionsRouter, adminNewsletterRouter, adminApplicationsRouter } from './routes/adminMisc.js';
 import { adminSlidesRouter, adminFaqsRouter, adminShowInfoRouter, adminTicketTypesRouter } from './routes/adminContent.js';
@@ -99,6 +100,7 @@ export function createApp() {
   api.use('/admin/orders', csrfProtection, adminOrdersRouter);
   api.use('/admin/email', csrfProtection, adminEmailRouter);
   api.use('/admin/stream', csrfProtection, adminStreamRouter);
+  api.use('/admin/chat', csrfProtection, adminChatRouter);
   api.use('/admin/users', csrfProtection, adminUsersRouter);
   api.use('/admin/audit', csrfProtection, adminAuditRouter);
   api.use('/admin/submissions', csrfProtection, adminSubmissionsRouter);

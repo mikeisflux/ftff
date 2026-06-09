@@ -40,6 +40,7 @@ import Products from './pages/admin/Products.jsx';
 import Orders from './pages/admin/Orders.jsx';
 import Mail from './pages/admin/Mail.jsx';
 import Stream from './pages/admin/Stream.jsx';
+import Chat from './pages/admin/Chat.jsx';
 import Users from './pages/admin/Users.jsx';
 import Audit from './pages/admin/Audit.jsx';
 import Submissions from './pages/admin/Submissions.jsx';
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />
           <Route path="/admin/stream" element={<Stream />} />
+          <Route path="/admin/chat" element={<Chat />} />
           <Route path="/admin/submissions" element={<Submissions />} />
           <Route path="/admin/users" element={<Users />} />
           <Route path="/admin/audit" element={<Audit />} />
