@@ -106,6 +106,9 @@ export default function App() {
 
   return (
     <>
+      <div className="announce-bar" role="alert">
+        THIS SITE IS NOT LIVE YET — PLEASE DO NOT MAKE ANY PURCHASES
+      </div>
       <Header />
       <main>
         <Routes>
