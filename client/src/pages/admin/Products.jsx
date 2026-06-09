@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '../../lib/api.js';
+import { api, uploadFile } from '../../lib/api.js';
 
 const money = (cents) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((cents || 0) / 100);
-const blankProduct = { slug: '', title: '', description: '', price_cents: 2500, images: '', is_active: true };
+const toCents = (d) => Math.round(Number(d || 0) * 100);
+const toDollars = (c) => (Number(c || 0) / 100).toFixed(2);
+const blankProduct = { slug: '', title: '', description: '', price: '25.00', images: [], is_active: true };
 
 // Admin store manager (§10): product CRUD + per-product variants/inventory.
 export default function Products() {
@@ -22,8 +24,8 @@ export default function Products() {
     setMsg('');
     const body = {
       slug: form.slug, title: form.title, description: form.description || null,
-      price_cents: Number(form.price_cents), is_active: form.is_active,
-      images: form.images ? form.images.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      price_cents: toCents(form.price), is_active: form.is_active,
+      images: form.images || [],
     };
     try {
       if (editingId) await api(`/admin/products/${editingId}`, { method: 'PUT', body });
@@ -31,6 +33,15 @@ export default function Products() {
       setForm(blankProduct); setEditingId(null); await load();
     } catch (err) { setMsg(err.data?.details?.[0]?.message || err.message); }
   }
+
+  async function onUploadImage(file) {
+    setMsg('');
+    try {
+      const { url } = await uploadFile('/admin/uploads', file);
+      setForm((f) => ({ ...f, images: [...(f.images || []), url] }));
+    } catch (err) { setMsg(err.message); }
+  }
+  const removeImage = (url) => setForm((f) => ({ ...f, images: f.images.filter((u) => u !== url) }));
 
   async function delProduct(id) {
     await api(`/admin/products/${id}`, { method: 'DELETE' }).catch((e) => setMsg(e.message));
@@ -60,12 +71,25 @@ export default function Products() {
         <div className="grid cols-3">
           <div><label>Slug</label><input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} required /></div>
           <div><label>Title</label><input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required /></div>
-          <div><label>Price (cents)</label><input type="number" value={form.price_cents} onChange={(e) => setForm((f) => ({ ...f, price_cents: e.target.value }))} /></div>
+          <div><label>Price ($)</label><input type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} /></div>
         </div>
         <label>Description</label>
         <textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-        <label>Image URLs (comma-separated)</label>
-        <input value={form.images} onChange={(e) => setForm((f) => ({ ...f, images: e.target.value }))} />
+        <label>Images</label>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {(form.images || []).map((url) => (
+            <div key={url} style={{ position: 'relative' }}>
+              <img src={url} alt="" style={{ height: 64, width: 64, objectFit: 'cover', borderRadius: 8 }} />
+              <button type="button" onClick={() => removeImage(url)} title="Remove"
+                style={{ position: 'absolute', top: -8, right: -8, background: 'var(--color-danger)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+          ))}
+          <label className="btn secondary" style={{ cursor: 'pointer' }}>
+            + Upload image
+            <input type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files[0]) onUploadImage(e.target.files[0]); e.target.value = ''; }} />
+          </label>
+        </div>
         <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
           <input type="checkbox" style={{ width: 'auto' }} checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} /> Active
         </label>
@@ -80,7 +104,7 @@ export default function Products() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <h3 style={{ margin: 0 }}>{p.title} <span className="muted" style={{ fontSize: '.8rem' }}>/{p.slug} · {money(p.price_cents)}{!p.is_active ? ' · inactive' : ''}</span></h3>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn secondary" onClick={() => { setEditingId(p.id); setForm({ slug: p.slug, title: p.title, description: p.description || '', price_cents: p.price_cents, images: (p.images || []).join(', '), is_active: p.is_active }); }}>Edit</button>
+              <button className="btn secondary" onClick={() => { setEditingId(p.id); setForm({ slug: p.slug, title: p.title, description: p.description || '', price: toDollars(p.price_cents), images: p.images || [], is_active: p.is_active }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
               <button className="btn secondary" onClick={() => delProduct(p.id)}>Delete</button>
             </div>
           </div>

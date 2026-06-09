@@ -57,6 +57,18 @@ async function main() {
   assert.equal(bad.status, 400, 'invalid color rejected (no CSS injection)');
   console.log('  ✓ theme studio rejects invalid color (CSS-injection guard)');
 
+  // Ticket types CRUD: create + delete unused; in-use type can't be deleted.
+  const ttA = (await (await POST('/admin/ticket-types', { code: `vip_${Date.now()}`, name: 'VIP', price_cents: 15000 })).json()).ticketType;
+  assert.ok(ttA?.id, 'ticket type created');
+  const delA = await fetch(`${BASE}/admin/ticket-types/${ttA.id}`, { method: 'DELETE', headers: H });
+  assert.equal(delA.status, 200, 'unused ticket type deleted');
+  const ttB = (await (await POST('/admin/ticket-types', { code: `vip2_${Date.now()}`, name: 'VIP2', price_cents: 15000 })).json()).ticketType;
+  const ord = (await pool.query(`INSERT INTO orders (order_number, kind, total_cents, status) VALUES ($1,'ticket',15000,'paid') RETURNING id`, [`FFF-TT-${Date.now().toString(36)}`])).rows[0];
+  await pool.query(`INSERT INTO tickets (order_id, ticket_type_id, qr_token) VALUES ($1,$2,$3)`, [ord.id, ttB.id, `tt_${Date.now()}`]);
+  const delB = await fetch(`${BASE}/admin/ticket-types/${ttB.id}`, { method: 'DELETE', headers: H });
+  assert.equal(delB.status, 409, 'in-use ticket type delete blocked');
+  console.log('  ✓ ticket types CRUD (create, unused delete, in-use delete blocked)');
+
   console.log('\nALL CONTENT-FLOW ASSERTIONS PASSED');
   await pool.end();
 }

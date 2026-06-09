@@ -228,9 +228,14 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
   background: color-mix(in srgb, var(--color-surface) 80%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
+.admin-group { margin-bottom: 12px; }
+.admin-group-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--color-muted); padding: 8px 12px 4px; font-weight: 700;
+}
 .admin-link {
-  display: block; padding: 10px 12px; border-radius: var(--radius);
-  color: var(--color-text); font-weight: 600;
+  display: block; padding: 9px 12px; border-radius: var(--radius);
+  color: var(--color-text); font-weight: 600; font-size: .95rem;
 }
 .admin-link:hover { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
 .admin-link.active {

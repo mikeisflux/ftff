@@ -165,11 +165,10 @@ CREATE TRIGGER trg_guests_updated BEFORE UPDATE ON guests
 CREATE INDEX IF NOT EXISTS idx_guests_category ON guests(category);
 CREATE INDEX IF NOT EXISTS idx_guests_featured ON guests(is_featured) WHERE is_featured;
 
--- ── ticket_types (five fixed types, §8) ──────────────────────────────────────
+-- ── ticket_types (admin-managed; five are seeded by default) ─────────────────
 CREATE TABLE IF NOT EXISTS ticket_types (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code           TEXT UNIQUE NOT NULL
-                   CHECK (code IN ('friday','saturday','sunday','three_day','digital')),
+  code           TEXT UNIQUE NOT NULL,
   name           TEXT NOT NULL,
   description    TEXT,
   price_cents    INTEGER NOT NULL CHECK (price_cents >= 0),
@@ -186,6 +185,8 @@ CREATE TABLE IF NOT EXISTS ticket_types (
 DROP TRIGGER IF EXISTS trg_ticket_types_updated ON ticket_types;
 CREATE TRIGGER trg_ticket_types_updated BEFORE UPDATE ON ticket_types
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Existing DBs: drop the old fixed-five enum constraint so admins can add types.
+ALTER TABLE ticket_types DROP CONSTRAINT IF EXISTS ticket_types_code_check;
 
 -- ── orders ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (

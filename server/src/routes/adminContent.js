@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, withTransaction } from '../db/pool.js';
-import { asyncHandler, notFound } from '../lib/http.js';
+import { asyncHandler, notFound, conflict, badRequest } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 
@@ -117,24 +117,65 @@ adminShowInfoRouter.put('/', asyncHandler(async (req, res) => {
   res.json({ showInfo: rows[0] });
 }));
 
-// ── ticket_types (edit pricing/inventory; the five are fixed) ─────────────────
+// ── ticket_types (full CRUD; five seeded by default) ─────────────────────────
 export const adminTicketTypesRouter = Router();
 adminTicketTypesRouter.use(...guard);
-const ttSchema = z.object({
+
+const ttBase = {
   name: z.string().min(1).max(120),
   description: z.string().max(2000).optional().nullable(),
   price_cents: z.number().int().min(0),
   quantity_total: z.number().int().min(0).optional().nullable(),
+  is_digital: z.boolean().optional(),
   is_active: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+};
+const ttUpdate = z.object(ttBase);
+const ttCreate = z.object({
+  code: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'lowercase letters, digits, underscores'),
+  ...ttBase,
 });
-adminTicketTypesRouter.get('/', asyncHandler(async (_q, res) => res.json({ ticketTypes: (await query(`SELECT * FROM ticket_types ORDER BY sort_order`)).rows })));
-adminTicketTypesRouter.put('/:id', asyncHandler(async (req, res) => {
-  const t = ttSchema.parse(req.body);
+
+adminTicketTypesRouter.get('/', asyncHandler(async (_q, res) =>
+  res.json({ ticketTypes: (await query(`SELECT * FROM ticket_types ORDER BY sort_order`)).rows })));
+
+adminTicketTypesRouter.post('/', asyncHandler(async (req, res) => {
+  const t = ttCreate.parse(req.body);
   const { rows } = await query(
-    `UPDATE ticket_types SET name=$2, description=$3, price_cents=$4, quantity_total=$5, is_active=$6 WHERE id=$1 RETURNING *`,
-    [req.params.id, t.name, t.description ?? null, t.price_cents, t.quantity_total ?? null, t.is_active ?? true],
+    `INSERT INTO ticket_types (code, name, description, price_cents, quantity_total, is_digital, is_active, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8,(SELECT COALESCE(MAX(sort_order)+1,0) FROM ticket_types)))
+     RETURNING *`,
+    [t.code, t.name, t.description ?? null, t.price_cents, t.quantity_total ?? null,
+      t.is_digital ?? false, t.is_active ?? true, t.sort_order ?? null],
+  ).catch((e) => { if (e.code === '23505') throw badRequest('A ticket type with that code already exists'); throw e; });
+  await audit(req.user.id, 'ticket_type.create', { entity: 'ticket_type', entityId: rows[0].id });
+  res.status(201).json({ ticketType: rows[0] });
+}));
+
+adminTicketTypesRouter.put('/:id', asyncHandler(async (req, res) => {
+  const t = ttUpdate.parse(req.body);
+  const { rows } = await query(
+    `UPDATE ticket_types SET name=$2, description=$3, price_cents=$4, quantity_total=$5,
+            is_digital=COALESCE($6,is_digital), is_active=$7, sort_order=COALESCE($8,sort_order)
+      WHERE id=$1 RETURNING *`,
+    [req.params.id, t.name, t.description ?? null, t.price_cents, t.quantity_total ?? null,
+      t.is_digital ?? null, t.is_active ?? true, t.sort_order ?? null],
   );
   if (!rows[0]) throw notFound('Ticket type not found');
   await audit(req.user.id, 'ticket_type.update', { entity: 'ticket_type', entityId: req.params.id });
   res.json({ ticketType: rows[0] });
+}));
+
+adminTicketTypesRouter.delete('/:id', asyncHandler(async (req, res) => {
+  // Don't hard-delete a type that has issued tickets / order history.
+  const refs = (await query(
+    `SELECT (SELECT count(*) FROM tickets WHERE ticket_type_id=$1)
+          + (SELECT count(*) FROM order_items WHERE ticket_type_id=$1) AS n`,
+    [req.params.id],
+  )).rows[0];
+  if (Number(refs.n) > 0) throw conflict('This ticket type has orders — deactivate it instead of deleting.', 'in_use');
+  const { rowCount } = await query(`DELETE FROM ticket_types WHERE id=$1`, [req.params.id]);
+  if (rowCount === 0) throw notFound('Ticket type not found');
+  await audit(req.user.id, 'ticket_type.delete', { entity: 'ticket_type', entityId: req.params.id });
+  res.json({ ok: true });
 }));
