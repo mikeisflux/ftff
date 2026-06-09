@@ -44,9 +44,19 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 
-/* Alternating image/text rows on exhibitor/industry pages. Stacks on mobile. */
+/* Alternating image/text rows on industry / plan-your-visit pages. */
 .info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; margin-bottom: 36px; }
 @media (max-width: 760px) { .info-row { grid-template-columns: 1fr; } }
+
+/* Black tier divider tiles in the guests grid (Featured / Special / Also
+   Appearing). Sit inline as a grid cell, matching the guest tiles' footprint. */
+.guest-divider {
+  background: #000; color: #fff; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 24px; min-height: 220px;
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 1.7rem; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase;
+}
 
 /* Pre-launch announcement bar (temporary): sits above the sticky header so it
    scrolls away with the page top. Red to read as a hard warning. */

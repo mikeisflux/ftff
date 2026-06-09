@@ -150,6 +150,8 @@ CREATE TABLE IF NOT EXISTS guests (
   headshot_url TEXT,
   category     TEXT NOT NULL DEFAULT 'celebrities'
                  CHECK (category IN ('celebrities','comic_creators','cosplayers','other')),
+  tier         TEXT NOT NULL DEFAULT 'featured'
+                 CHECK (tier IN ('featured','special','also_appearing')),
   socials      JSONB NOT NULL DEFAULT '{}'::jsonb,
   appearance_days JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_featured  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -168,6 +170,11 @@ UPDATE guests SET category='other' WHERE category IN ('animation_voices','anime'
 ALTER TABLE guests DROP CONSTRAINT IF EXISTS guests_category_check;
 ALTER TABLE guests ADD CONSTRAINT guests_category_check
   CHECK (category IN ('celebrities','comic_creators','cosplayers','other'));
+-- Guest tier (prominence) for grouped listings, for DBs predating this column.
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'featured';
+ALTER TABLE guests DROP CONSTRAINT IF EXISTS guests_tier_check;
+ALTER TABLE guests ADD CONSTRAINT guests_tier_check
+  CHECK (tier IN ('featured','special','also_appearing'));
 
 -- ── ticket_types (admin-managed; five are seeded by default) ─────────────────
 CREATE TABLE IF NOT EXISTS ticket_types (

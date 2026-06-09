@@ -23,6 +23,7 @@ const guestSchema = z.object({
   bio: z.string().max(8000).optional().nullable(),
   headshot_url: z.string().url().optional().nullable(),
   category: z.enum(CATEGORIES),
+  tier: z.enum(['featured', 'special', 'also_appearing']).optional(),
   socials: z.record(z.string()).optional(),
   appearance_days: z.array(z.string()).optional(),
   is_featured: z.boolean().optional(),
@@ -45,9 +46,9 @@ adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
   const { rows } = await query(
-    `INSERT INTO guests (name, known_for, bio, headshot_url, category, socials, appearance_days, is_featured, is_active, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
-    [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.headshot_url ?? null, g.category,
+    `INSERT INTO guests (name, known_for, bio, headshot_url, category, tier, socials, appearance_days, is_featured, is_active, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
+    [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
       JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
@@ -60,10 +61,10 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
   const { rows } = await query(
-    `UPDATE guests SET name=$2, known_for=$3, bio=$4, headshot_url=$5, category=$6, socials=$7,
-            appearance_days=$8, is_featured=$9, is_active=$10 WHERE id=$1 RETURNING *`,
+    `UPDATE guests SET name=$2, known_for=$3, bio=$4, headshot_url=$5, category=$6, tier=$7, socials=$8,
+            appearance_days=$9, is_featured=$10, is_active=$11 WHERE id=$1 RETURNING *`,
     [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.headshot_url ?? null,
-      g.category, JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true],
+      g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true],
   );
   if (!rows[0]) throw notFound('Guest not found');
   res.json({ guest: rows[0] });

@@ -3,7 +3,8 @@ import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
 const CATEGORIES = ['celebrities', 'comic_creators', 'cosplayers', 'other'];
-const blank = { name: '', known_for: '', bio: '', headshot_url: '', category: 'celebrities', is_featured: false, is_active: true };
+const TIERS = [['featured', 'Featured Guests'], ['special', 'Special Guests'], ['also_appearing', 'Also Appearing']];
+const blank = { name: '', known_for: '', bio: '', headshot_url: '', category: 'celebrities', tier: 'featured', is_featured: false, is_active: true };
 
 // Guest Tile Manager (§13.2): upload a photo + write a bio -> it appears as a
 // tile. Featured controls the 8 homepage tiles (server enforces the cap).
@@ -65,6 +66,8 @@ export default function GuestsAdmin() {
             <label>Known for</label><input value={form.known_for} onChange={(e) => setForm((f) => ({ ...f, known_for: e.target.value }))} />
             <label>Category</label>
             <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
+            <label>Tier (listing group)</label>
+            <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value }))}>{TIERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             <label>Bio</label><textarea rows={3} value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} />
             <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
               <input type="checkbox" style={{ width: 'auto' }} checked={form.is_featured} onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))} /> Featured (homepage)
@@ -89,7 +92,7 @@ export default function GuestsAdmin() {
           {g.headshot_url && <img src={g.headshot_url} alt="" style={{ height: 44, width: 44, objectFit: 'cover', borderRadius: 6 }} />}
           <div style={{ flex: 1 }}><strong>{g.name}</strong> <span className="muted">· {g.category}{!g.is_active ? ' · inactive' : ''}</span></div>
           <button className="btn secondary" onClick={() => toggleFeatured(g)}>{g.is_featured ? '★ Featured' : '☆ Feature'}</button>
-          <button className="btn secondary" onClick={() => { setEditingId(g.id); setForm({ name: g.name, known_for: g.known_for || '', bio: g.bio || '', headshot_url: g.headshot_url || '', category: g.category, is_featured: g.is_featured, is_active: g.is_active }); }}>Edit</button>
+          <button className="btn secondary" onClick={() => { setEditingId(g.id); setForm({ name: g.name, known_for: g.known_for || '', bio: g.bio || '', headshot_url: g.headshot_url || '', category: g.category, tier: g.tier || 'featured', is_featured: g.is_featured, is_active: g.is_active }); }}>Edit</button>
           <button className="btn secondary" onClick={() => del(g.id)}>✕</button>
         </div>
       )} />
