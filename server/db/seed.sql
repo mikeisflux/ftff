@@ -270,3 +270,9 @@ INSERT INTO faqs (question, answer, sort_order) VALUES
   ('Where is the convention held?', 'At the Donald E. Stephens Convention Center in Rosemont, IL.', 1),
   ('Are tickets refundable?', 'All sales are final unless the event is cancelled.', 2)
 ON CONFLICT DO NOTHING;
+
+-- Extra-table inventory pool for exhibitors (oversell-safe). Admin can adjust
+-- the total in the admin panel. Default 20 additional tables available.
+INSERT INTO inventory_pools (key, label, total)
+VALUES ('extra_tables', 'Additional vendor tables', 20)
+ON CONFLICT (key) DO NOTHING;

@@ -501,3 +501,87 @@ CREATE TABLE IF NOT EXISTS "SuspiciousActivity" (
 );
 CREATE INDEX IF NOT EXISTS "SuspiciousActivity_ipAddress_idx" ON "SuspiciousActivity"("ipAddress");
 CREATE INDEX IF NOT EXISTS "SuspiciousActivity_createdAt_idx" ON "SuspiciousActivity"("createdAt");
+
+-- ── inventory_pools (oversell-safe add-on inventory) ─────────────────────────
+-- Generic capacity pools for finite add-ons (extra tables, banquet seats, …).
+-- available = total - reserved - sold. Reservations are made atomically at
+-- checkout so two vendors can never buy the same table; confirmed on payment,
+-- released on abandonment/cancellation.
+CREATE TABLE IF NOT EXISTS inventory_pools (
+  key        TEXT PRIMARY KEY,
+  label      TEXT,
+  total      INTEGER NOT NULL DEFAULT 0 CHECK (total >= 0),
+  reserved   INTEGER NOT NULL DEFAULT 0 CHECK (reserved >= 0),
+  sold       INTEGER NOT NULL DEFAULT 0 CHECK (sold >= 0),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_inventory_pools_updated ON inventory_pools;
+CREATE TRIGGER trg_inventory_pools_updated BEFORE UPDATE ON inventory_pools
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ── exhibitor_applications (Become an Exhibitor flow) ────────────────────────
+-- Full structured application + agreement + pricing snapshot + payment state.
+-- Money lives here (not orders) because line items (hotel/banquet/tables) don't
+-- map to order_items kinds. Deposit = 50% of booth (incl. extra tables) + 60%
+-- of add-ons (hotel, banquet); balance billed later.
+CREATE TABLE IF NOT EXISTS exhibitor_applications (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference          TEXT UNIQUE NOT NULL,
+  -- vendor / company / contact
+  vendor_name        TEXT NOT NULL,
+  product_desc       TEXT,
+  num_attendees      INTEGER,
+  company_name       TEXT,
+  address            TEXT,
+  contact_name       TEXT,
+  contact_email      CITEXT NOT NULL,
+  contact_phone      TEXT,
+  website            TEXT,
+  category           TEXT,
+  -- hotel (per night)
+  hotel_night1       BOOLEAN NOT NULL DEFAULT FALSE,
+  hotel_night2       BOOLEAN NOT NULL DEFAULT FALSE,
+  hotel_night3       BOOLEAN NOT NULL DEFAULT FALSE,
+  -- booth / tables
+  extra_tables       INTEGER NOT NULL DEFAULT 0 CHECK (extra_tables >= 0),
+  additional_request TEXT,
+  -- live streaming
+  livestreaming      BOOLEAN NOT NULL DEFAULT FALSE,
+  livestream_panel   BOOLEAN NOT NULL DEFAULT FALSE,
+  panel_name         TEXT,
+  panel_day          TEXT,
+  -- banquet
+  banquet            BOOLEAN NOT NULL DEFAULT FALSE,
+  banquet_chicken    INTEGER NOT NULL DEFAULT 0 CHECK (banquet_chicken >= 0),
+  banquet_beef       INTEGER NOT NULL DEFAULT 0 CHECK (banquet_beef >= 0),
+  banquet_vegan      INTEGER NOT NULL DEFAULT 0 CHECK (banquet_vegan >= 0),
+  dietary            TEXT,
+  -- agreement
+  signature          TEXT,
+  agreed_at          TIMESTAMPTZ,
+  -- pricing snapshot (cents)
+  total_cents        INTEGER NOT NULL DEFAULT 0,
+  deposit_cents      INTEGER NOT NULL DEFAULT 0,
+  amount_paid_cents  INTEGER NOT NULL DEFAULT 0,
+  balance_cents      INTEGER NOT NULL DEFAULT 0,
+  breakdown          JSONB NOT NULL DEFAULT '[]'::jsonb,   -- line items snapshot
+  -- booth selection + payment
+  booth_id           UUID REFERENCES booths(id),
+  reserved_tables    INTEGER NOT NULL DEFAULT 0,           -- tables held/sold for release accounting
+  payment_method     TEXT CHECK (payment_method IN ('card','check')),
+  payment_choice     TEXT CHECK (payment_choice IN ('deposit','full')),
+  stripe_session_id  TEXT,
+  balance_session_id TEXT,
+  balance_request_sent_at TIMESTAMPTZ,
+  hold_until         TIMESTAMPTZ,
+  status             TEXT NOT NULL DEFAULT 'draft'
+                       CHECK (status IN ('draft','awaiting_payment','check_pending',
+                                         'deposit_paid','paid_in_full','cancelled')),
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_exhibitor_apps_updated ON exhibitor_applications;
+CREATE TRIGGER trg_exhibitor_apps_updated BEFORE UPDATE ON exhibitor_applications
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_status ON exhibitor_applications(status);
+CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_email ON exhibitor_applications(contact_email);

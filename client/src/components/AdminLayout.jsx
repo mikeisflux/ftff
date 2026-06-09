@@ -21,6 +21,7 @@ const NAV_GROUPS = [
     { to: '/admin/photo-ops', label: 'Photo Ops', roles: ['admin', 'editor'] },
     { to: '/admin/discounts', label: 'Discounts', roles: ['admin', 'editor'] },
     { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
+    { to: '/admin/exhibitors', label: 'Exhibitors', roles: ['admin', 'editor'] },
   ] },
   { label: 'Content', items: [
     { to: '/admin/pages', label: 'Page Builder', roles: ['admin', 'editor'] },

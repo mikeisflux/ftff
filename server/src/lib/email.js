@@ -95,6 +95,77 @@ export async function sendBoothConfirmation(order) {
   });
 }
 
+// ── Exhibitor (Become an Exhibitor) emails ──────────────────────────────────
+const CHECK_PAYEE = 'Undeniable Ventures';
+const CHECK_ADDRESS = '6 Pilgrim Drive, Succasunna, NJ 07876';
+
+function exhibitorBreakdownHtml(app) {
+  const items = Array.isArray(app.breakdown) ? app.breakdown : [];
+  if (items.length === 0) return '';
+  const rows = items
+    .map((l) => `<li>${l.qty} × ${l.label} — ${money(l.amountCents)}</li>`)
+    .join('');
+  return `<ul>${rows}</ul>`;
+}
+
+// Vendor chose to pay by check — application is held pending the check arriving.
+export async function sendExhibitorCheckReceived(app, { choice, booth, amountCents }) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const due = choice === 'deposit' ? 'deposit' : 'full amount';
+  const html =
+    `<h1>We received your exhibitor application</h1>` +
+    `<p>Reference <strong>${app.reference}</strong>${booth ? ` · Booth <strong>${booth.label}</strong>` : ''}</p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Order total: <strong>${money(app.total_cents)}</strong>. You chose to pay the ${due} by check: ` +
+    `<strong>${money(amountCents)}</strong>.</p>` +
+    `<p>Please make your check or money order payable to <strong>${CHECK_PAYEE}</strong> and mail to:<br>${CHECK_ADDRESS}</p>` +
+    `<p>Your booth is held for you. We'll confirm your space once payment is received.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Exhibitor application received — ${app.reference}`, html });
+}
+
+// Notify the admin inbox of a new exhibitor application reaching checkout.
+export async function notifyAdminOfExhibitor(app, { choice, method, booth }) {
+  const to = await getSettingValue('sendgrid.from_address');
+  if (!to) return { skipped: true, reason: 'sendgrid_unconfigured' };
+  const html =
+    `<h2>New exhibitor checkout (${method}, ${choice})</h2>` +
+    `<p><strong>${app.vendor_name}</strong> &lt;${app.contact_email}&gt;${booth ? ` · Booth ${booth.label}` : ''}</p>` +
+    `<p>Total ${money(app.total_cents)} · Deposit ${money(app.deposit_cents)}</p>` +
+    exhibitorBreakdownHtml(app);
+  return sendEmail({ to, subject: `Exhibitor: ${app.vendor_name} (${app.reference})`, html });
+}
+
+// Card payment confirmed (deposit or full).
+export async function sendExhibitorPaymentConfirmation(app, _phase) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const balanceNote =
+    app.balance_cents > 0
+      ? `<p>You paid a deposit of <strong>${money(app.amount_paid_cents)}</strong>. A balance of ` +
+        `<strong>${money(app.balance_cents)}</strong> will be due before the show — we'll email you a payment link in advance.</p>`
+      : `<p>Paid in full: <strong>${money(app.amount_paid_cents)}</strong>. You're all set!</p>`;
+  const html =
+    `<h1>Payment received — you're confirmed</h1>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Order total: ${money(app.total_cents)}</p>` +
+    balanceNote +
+    `<p>Our exhibitor team will follow up with move-in details.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Exhibitor payment confirmed — ${app.reference}`, html });
+}
+
+// Balance-due request with a pay link (sent manually by admin or automatically
+// ~30 days before set-up).
+export async function sendExhibitorBalanceRequest(app, { url }) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const html =
+    `<h1>Your exhibitor balance is due</h1>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    `<p>Balance due: <strong>${money(app.balance_cents)}</strong></p>` +
+    `<p><a href="${url}" style="display:inline-block;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none">Pay balance</a></p>` +
+    `<p>Or pay by check payable to ${CHECK_PAYEE}, mailed to ${CHECK_ADDRESS}.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Balance due — ${app.reference}`, html });
+}
+
 // Form submissions: notify the admin inbox + confirm to the submitter (§7.2).
 export async function notifyAdminOfSubmission({ kind, name, email, subject, message }) {
   const to = await getSettingValue('sendgrid.from_address');

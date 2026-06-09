@@ -11,6 +11,8 @@ import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
 import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
+import BecomeExhibitor from './pages/BecomeExhibitor.jsx';
+import ExhibitorSuccess from './pages/ExhibitorSuccess.jsx';
 import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
@@ -18,7 +20,6 @@ import Virtual from './pages/Virtual.jsx';
 import {
   Contact,
   MediaInquiries,
-  Exhibitor,
   SuggestGuest,
   Newsletter,
   PanelSubmission,
@@ -53,6 +54,7 @@ import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
 import NavBuilder from './pages/admin/NavBuilder.jsx';
 import PageBuilder from './pages/admin/PageBuilder.jsx';
 import ThemeStudio from './pages/admin/ThemeStudio.jsx';
+import Exhibitors from './pages/admin/Exhibitors.jsx';
 
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
@@ -77,6 +79,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/tickets" element={<TicketsAdmin />} />
           <Route path="/admin/booths" element={<Booths />} />
+          <Route path="/admin/exhibitors" element={<Exhibitors />} />
           <Route path="/admin/slides" element={<Slides />} />
           <Route path="/admin/guests" element={<GuestsAdmin />} />
           <Route path="/admin/faqs" element={<FaqsAdmin />} />
@@ -140,7 +143,8 @@ export default function App() {
           <Route path="/contact-us" element={<Contact />} />
           <Route path="/sign-up" element={<Newsletter />} />
           <Route path="/media-inquiries" element={<MediaInquiries />} />
-          <Route path="/become-an-exhibitor" element={<Exhibitor />} />
+          <Route path="/become-an-exhibitor" element={<BecomeExhibitor />} />
+          <Route path="/become-an-exhibitor/success" element={<ExhibitorSuccess />} />
           <Route path="/suggest-a-guest" element={<SuggestGuest />} />
 
           {/* Apply-section application forms */}

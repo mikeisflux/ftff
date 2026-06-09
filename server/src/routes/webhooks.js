@@ -2,8 +2,8 @@ import express from 'express';
 import { query } from '../db/pool.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
-import { fulfillCheckoutSession } from '../lib/fulfillment.js';
-import { sendTicketDelivery, sendBoothConfirmation, sendOrderConfirmation } from '../lib/email.js';
+import { fulfillCheckoutSession, fulfillExhibitorSession } from '../lib/fulfillment.js';
+import { sendTicketDelivery, sendBoothConfirmation, sendOrderConfirmation, sendExhibitorPaymentConfirmation } from '../lib/email.js';
 
 // Stripe webhook (§15, §4.3). MUST receive the raw body for signature
 // verification, so this router is mounted BEFORE the global JSON parser.
@@ -42,7 +42,19 @@ webhookRouter.post(
       switch (event.type) {
         case 'checkout.session.completed':
         case 'checkout.session.async_payment_succeeded': {
-          const result = await fulfillCheckoutSession(event.data.object);
+          const session = event.data.object;
+          // Exhibitor (Become an Exhibitor) sessions are tracked separately from
+          // the orders table — route them to their own fulfillment.
+          if (session.metadata?.kind === 'exhibitor') {
+            const exh = await fulfillExhibitorSession(session);
+            if (exh?.application && !exh.alreadyPaid) {
+              await sendExhibitorPaymentConfirmation(exh.application, exh.phase).catch((err) =>
+                console.error('Exhibitor email failed:', err.message),
+              );
+            }
+            break;
+          }
+          const result = await fulfillCheckoutSession(session);
           // Send the confirmation email AFTER the fulfillment transaction
           // commits, routed by order kind. Non-fatal: an email failure must not
           // fail the webhook (the order is already fulfilled).

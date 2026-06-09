@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
 import { startHoldReleaseJob } from './jobs/releaseHolds.js';
+import { startExhibitorJobs } from './jobs/exhibitorJobs.js';
 import { startBotblock } from './lib/botblock.js';
 import { attachChat } from './lib/chat.js';
 
@@ -13,6 +14,7 @@ const server = app.listen(env.PORT, () => {
 
 // Background: release expired booth holds (§9) + refresh the BotBlock cache.
 startHoldReleaseJob();
+startExhibitorJobs();
 startBotblock();
 // Virtual Con live chat over WebSocket (§11).
 attachChat(server);
