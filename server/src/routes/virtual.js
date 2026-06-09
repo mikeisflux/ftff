@@ -5,6 +5,7 @@ import { query } from '../db/pool.js';
 import { env } from '../config/env.js';
 import { asyncHandler, unauthorized } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import { getCloudflareConfig, getLiveInput, liveHlsUrl, listVideos } from '../lib/cloudflare.js';
 import { getSettingValue } from '../lib/settings.js';
 
@@ -56,6 +57,30 @@ virtualRouter.post(
       entitled: true,
       token,
       hls, // null until Cloudflare is configured; page shows "offline" gracefully
+      expiresIn: STREAM_TTL_SECONDS,
+      streamConfigured: Boolean(hls),
+      chatEnabled,
+    });
+  }),
+);
+
+// GET /virtual/admin-preview — admins bypass the purchase gate so they can review
+// the LIVE page layout without a Digital order. Mints the same short-lived stream
+// token as a real holder. Server-side role check (never trusts the client).
+virtualRouter.get(
+  '/admin-preview',
+  requireAuth,
+  requireRole('admin'),
+  asyncHandler(async (_req, res) => {
+    const token = jwt.sign({ typ: 'stream', ent: 'admin' }, env.JWT_SECRET, { expiresIn: STREAM_TTL_SECONDS });
+    const cfg = await getCloudflareConfig();
+    const hls = cfg ? liveHlsUrl(cfg) : null;
+    const chatEnabled = (await getSettingValue('virtual.chat_enabled')) !== 'false';
+    res.json({
+      entitled: true,
+      preview: true,
+      token,
+      hls,
       expiresIn: STREAM_TTL_SECONDS,
       streamConfigured: Boolean(hls),
       chatEnabled,

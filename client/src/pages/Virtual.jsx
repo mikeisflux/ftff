@@ -18,6 +18,25 @@ export default function Virtual() {
 
   useEffect(() => { api('/virtual/status').then(setStatus).catch(() => {}); }, []);
 
+  // Admins bypass the purchase gate to preview the page layout. We check the
+  // current session, and if they're an admin, unlock with a preview token.
+  useEffect(() => {
+    let cancelled = false;
+    api('/auth/me')
+      .then(({ user }) => {
+        if (cancelled || user?.role !== 'admin') return;
+        return api('/virtual/admin-preview').then((res) => {
+          if (cancelled) return;
+          setAccess(res);
+          api(`/virtual/vod?token=${encodeURIComponent(res.token)}`)
+            .then((v) => !cancelled && setVod(v.vod || []))
+            .catch(() => {});
+        });
+      })
+      .catch(() => {}); // not logged in → normal purchase gate
+    return () => { cancelled = true; };
+  }, []);
+
   async function unlock(e) {
     e?.preventDefault();
     setBusy(true);
@@ -76,6 +95,11 @@ export default function Virtual() {
         </form>
       ) : (
         <>
+          {access.preview && (
+            <p className="card" style={{ borderColor: 'var(--color-secondary)', color: 'var(--color-secondary)', fontWeight: 600 }}>
+              Admin preview — you’re viewing this page without a Digital ticket. Regular visitors must enter a confirmation number and email.
+            </p>
+          )}
           <div className="virtual-stage">
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               {access.hls ? (
