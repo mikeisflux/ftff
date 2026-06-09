@@ -61,3 +61,70 @@ validateRouter.post(
     return res.json({ result: 'void', ticket });
   }),
 );
+
+// GET /validate/manifest — download valid/checked-in tickets for OFFLINE
+// validation (§8). The door app caches this and validates locally when the
+// venue wifi is flaky, queuing check-ins to sync later.
+validateRouter.get(
+  '/manifest',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
+      `SELECT t.qr_token, t.status, t.checked_in_at, t.attendee_name,
+              tt.name AS ticket_name, o.order_number, o.customer_name
+         FROM tickets t
+         JOIN ticket_types tt ON tt.id = t.ticket_type_id
+         JOIN orders o ON o.id = t.order_id
+        WHERE t.status IN ('valid','checked_in')
+        ORDER BY t.created_at`,
+    );
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      generatedAt: new Date().toISOString(),
+      tickets: rows.map((r) => ({
+        qr_token: r.qr_token,
+        status: r.status,
+        checkedInAt: r.checked_in_at,
+        ticketName: r.ticket_name,
+        attendeeName: r.attendee_name || r.customer_name,
+        orderNumber: r.order_number,
+      })),
+    });
+  }),
+);
+
+// POST /validate/batch — sync queued offline check-ins (§8). Each is applied
+// atomically (single-use); the client-supplied scan time is preserved. Returns
+// a per-token result so the device can surface conflicts.
+const batchSchema = z.object({
+  checkins: z
+    .array(z.object({ qr_token: z.string().min(8).max(128), at: z.string().datetime().optional() }))
+    .max(5000),
+});
+validateRouter.post(
+  '/batch',
+  asyncHandler(async (req, res) => {
+    const { checkins } = batchSchema.parse(req.body);
+    const results = [];
+    for (const c of checkins) {
+      // eslint-disable-next-line no-await-in-loop
+      const claim = await query(
+        `UPDATE tickets SET status='checked_in',
+                checked_in_at = COALESCE($2::timestamptz, now()), checked_in_by=$3
+          WHERE qr_token=$1 AND status='valid'
+          RETURNING checked_in_at`,
+        [c.qr_token, c.at ?? null, req.user.id],
+      );
+      if (claim.rowCount === 1) {
+        results.push({ qr_token: c.qr_token, result: 'checked_in', checkedInAt: claim.rows[0].checked_in_at });
+        continue;
+      }
+      // eslint-disable-next-line no-await-in-loop
+      const cur = await query(`SELECT status, checked_in_at FROM tickets WHERE qr_token=$1`, [c.qr_token]);
+      if (!cur.rows[0]) results.push({ qr_token: c.qr_token, result: 'not_found' });
+      else if (cur.rows[0].status === 'checked_in') results.push({ qr_token: c.qr_token, result: 'already_checked_in', checkedInAt: cur.rows[0].checked_in_at });
+      else results.push({ qr_token: c.qr_token, result: 'void' });
+    }
+    await audit(req.user.id, 'ticket.checkin.batch', { entity: 'ticket', meta: { count: checkins.length } });
+    res.json({ results });
+  }),
+);

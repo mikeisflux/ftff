@@ -19,6 +19,7 @@ const testFiles = [
   path.resolve(here, './botblock-flow.test.mjs'),
   path.resolve(here, './forms-flow.test.mjs'),
   path.resolve(here, './chat-flow.test.mjs'),
+  path.resolve(here, './offline-scan.test.mjs'),
 ];
 const BASE = 'http://localhost:4000/api/v1';
 
