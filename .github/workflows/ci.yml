@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Production targets PostgreSQL 18.4; the schema is compatible with 16+.
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: convention
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PORT: '4000'
+      CLIENT_ORIGIN: http://localhost:5173
+      PUBLIC_URL: http://localhost:4000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/convention
+      JWT_SECRET: ci_only_jwt_secret_0123456789abcdef0123456789abcdef
+      SETTINGS_MASTER_KEY: 00000000000000000000000000000000000000000000000000000000000000ff
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26.3.0'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Database schema + seed
+        run: |
+          npm run db:migrate --workspace server
+          npm run db:seed --workspace server
+
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+        continue-on-error: true
+
+      - name: Build client
+        run: npm run build --workspace client
+
+      - name: End-to-end tests
+        run: npm test --workspace server
+
+      - name: Dependency audit (high+)
+        run: npm audit --omit=dev --audit-level=high

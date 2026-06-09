@@ -53,7 +53,7 @@ webhookRouter.post(
               : order.kind === 'vendor' ? sendBoothConfirmation
               : sendOrderConfirmation;
             await send(order).catch((err) =>
-              // eslint-disable-next-line no-console
+               
               console.error('Confirmation email failed:', err.message),
             );
           }
@@ -65,7 +65,7 @@ webhookRouter.post(
     } catch (err) {
       // Let Stripe retry; remove the dedupe marker so the retry is processed.
       await query(`DELETE FROM webhook_events WHERE id = $1`, [event.id]).catch(() => {});
-      // eslint-disable-next-line no-console
+       
       console.error('Webhook handler error:', err.message);
       return res.status(500).send('Handler error');
     }

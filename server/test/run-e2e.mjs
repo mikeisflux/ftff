@@ -44,7 +44,7 @@ function cleanup(code) {
 
 const ok = await waitForHealth();
 if (!ok) {
-  // eslint-disable-next-line no-console
+   
   console.error('Server did not start.\n', serverLog);
   cleanup(1);
 }
@@ -58,9 +58,9 @@ function runTest(file) {
 
 let failures = 0;
 for (const file of testFiles) {
-  // eslint-disable-next-line no-console
+   
   console.log(`\n── ${path.basename(file)} ──`);
-  // eslint-disable-next-line no-await-in-loop
+   
   const code = await runTest(file);
   if (code !== 0) failures += 1;
 }

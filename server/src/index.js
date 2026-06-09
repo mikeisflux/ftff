@@ -5,7 +5,7 @@ import { startHoldReleaseJob } from './jobs/releaseHolds.js';
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {
-  // eslint-disable-next-line no-console
+   
   console.log(`🚀 API listening on ${env.PUBLIC_URL} (port ${env.PORT}, ${env.NODE_ENV})`);
 });
 
@@ -13,7 +13,7 @@ const server = app.listen(env.PORT, () => {
 startHoldReleaseJob();
 
 async function shutdown(signal) {
-  // eslint-disable-next-line no-console
+   
   console.log(`\n${signal} received — shutting down…`);
   server.close(async () => {
     await pool.end().catch(() => {});

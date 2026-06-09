@@ -95,7 +95,7 @@ export default function Settings() {
     }
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
   // Group by category; unsaved-edit warnings are handled per-field.
   const cats = [...new Set(settings.map((s) => s.category))];

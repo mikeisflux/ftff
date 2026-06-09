@@ -11,6 +11,16 @@ export function cspNonce(req, res, next) {
   next();
 }
 
+// Lock down powerful browser features we don't use (§4.2). Camera is allowed on
+// same-origin only for the door-staff QR scanner.
+export function permissionsPolicy(_req, res, next) {
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), camera=(self)',
+  );
+  next();
+}
+
 export function securityHeaders() {
   return helmet({
     contentSecurityPolicy: {

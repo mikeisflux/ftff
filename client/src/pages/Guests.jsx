@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 
 // Public guests grid + category filter pages (§7 Guests). Category pages are

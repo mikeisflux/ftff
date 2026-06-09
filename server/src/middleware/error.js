@@ -7,7 +7,7 @@ export function notFoundHandler(_req, res) {
 }
 
 // Centralized error handler. Never leak stack traces, SQL, or secrets (§4.1).
-// eslint-disable-next-line no-unused-vars
+ 
 export function errorHandler(err, _req, res, _next) {
   if (err instanceof ZodError) {
     return res.status(400).json({
@@ -19,7 +19,7 @@ export function errorHandler(err, _req, res, _next) {
     return res.status(err.status).json({ error: err.message, code: err.code });
   }
   // Unexpected: log server-side, return opaque message client-side.
-  // eslint-disable-next-line no-console
+   
   console.error('Unhandled error:', err);
   res.status(500).json({
     error: 'Internal server error',

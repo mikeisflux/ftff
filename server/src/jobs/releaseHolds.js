@@ -22,7 +22,7 @@ export async function releaseExpiredHolds() {
         [orderIds],
       );
     }
-    // eslint-disable-next-line no-console
+     
     console.log(`Released ${rows.length} expired booth hold(s).`);
   }
   return rows.length;
@@ -33,7 +33,7 @@ export function startHoldReleaseJob(intervalMs = 60_000) {
   if (timer) return;
   timer = setInterval(() => {
     releaseExpiredHolds().catch((err) =>
-      // eslint-disable-next-line no-console
+       
       console.error('releaseExpiredHolds failed:', err.message),
     );
   }, intervalMs);

@@ -11,10 +11,10 @@ const dbDir = path.resolve(here, '../../db');
 
 async function runFile(name) {
   const sql = await readFile(path.join(dbDir, name), 'utf8');
-  // eslint-disable-next-line no-console
+   
   console.log(`→ applying ${name} …`);
   await pool.query(sql);
-  // eslint-disable-next-line no-console
+   
   console.log(`  ✓ ${name}`);
 }
 
@@ -23,10 +23,10 @@ async function main() {
   try {
     await runFile('schema.sql');
     if (withSeed) await runFile('seed.sql');
-    // eslint-disable-next-line no-console
+     
     console.log('Done.');
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error('Migration failed:', err.message);
     process.exitCode = 1;
   } finally {

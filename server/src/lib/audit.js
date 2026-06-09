@@ -11,7 +11,7 @@ export async function audit(actorId, action, { entity, entityId, meta } = {}) {
     );
   } catch (err) {
     // Auditing must never break the request, but failures should be visible.
-    // eslint-disable-next-line no-console
+     
     console.error('audit log failed:', err.message);
   }
 }

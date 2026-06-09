@@ -12,7 +12,7 @@ export const adminThemeRouter = Router();
 
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const colorToken = z.string().regex(HEX, 'Must be a hex color');
-const fontName = z.string().regex(/^[\w \-]{1,48}$/, 'Invalid font name');
+const fontName = z.string().regex(/^[\w -]{1,48}$/, 'Invalid font name');
 
 const paletteSchema = z.object({
   primary: colorToken,

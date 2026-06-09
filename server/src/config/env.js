@@ -21,10 +21,10 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
-  // eslint-disable-next-line no-console
+   
   console.error('❌ Invalid environment configuration:');
   for (const issue of parsed.error.issues) {
-    // eslint-disable-next-line no-console
+     
     console.error(`   - ${issue.path.join('.')}: ${issue.message}`);
   }
   process.exit(1);

@@ -23,7 +23,8 @@ async function main() {
   const ro = await POST('/admin/slides/reorder', { orderedIds: [s2.id, s1.id] });
   assert.equal(ro.status, 200, 'reorder ok');
   const order = (await GET('/admin/slides')).slides.map((s) => s.id);
-  assert.equal(order[0], s2.id, 'reorder persisted');
+  // Robust to pre-existing slides: assert s2 now sorts before s1.
+  assert.ok(order.indexOf(s2.id) < order.indexOf(s1.id), 'reorder persisted (s2 before s1)');
   console.log('  ✓ slides CRUD + drag-reorder');
 
   // Guests featured cap (8).

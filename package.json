@@ -18,7 +18,12 @@
     "build": "npm run build --workspace client",
     "db:migrate": "npm run db:migrate --workspace server",
     "db:seed": "npm run db:seed --workspace server",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "lint": "eslint .",
+    "test": "npm run test --workspace server"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0"
   }
 }

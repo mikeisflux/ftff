@@ -42,10 +42,10 @@ async function main() {
        RETURNING id, email, role`,
       [input.email, input.name, hash],
     );
-    // eslint-disable-next-line no-console
+     
     console.log('✓ Admin ready:', rows[0]);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error('Failed:', err.message);
     process.exitCode = 1;
   } finally {

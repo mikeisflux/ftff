@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { query } from '../db/pool.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { setSetting } from '../lib/settings.js';

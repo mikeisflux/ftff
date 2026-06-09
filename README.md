@@ -3,67 +3,32 @@
 Production-grade convention website + admin suite (FAN EXPO-style). Built from
 [`convention-platform-spec.md`](./convention-platform-spec.md) in phases (§17).
 
-## Status
+## Status — all §17 build phases complete
 
-**Phase 1 — Foundation (in progress).** Implemented so far:
+| # | Phase (§17) | Highlights |
+|---|---|---|
+| 1 | Foundation | monorepo, full §6 Postgres schema + seed, argon2 auth (JWT cookies + rotating refresh, role guards), Helmet/CSP/CSRF/rate-limit, audit log |
+| 2 | Settings + secrets | Settings panel API, **AES-256-GCM** secret encryption at rest, click-to-set → confirm-to-save; secrets never returned to the browser |
+| 3 | Public main page | mega-menu, hero carousel, show info + **embedded map**, ticket cards, 8 featured guests, footer/CMS pages, forms; dark-by-default + persisted toggle |
+| 4 | Payments core | Stripe-hosted Checkout (SAQ A), server-side pricing, signature-verified webhook with idempotent fulfillment |
+| 5 | Ticketing + QR | one unguessable `qr_token` per seat, mobile ticket page, **atomic single-use** door-staff validation app + admin ticket dashboard |
+| 6 | Vendor floor | floor-plan booth picker, atomic soft-holds + expiry job, booth checkout, admin booth editor |
+| 7 | Store | products/variants, storefront + cart, store checkout, oversell-safe inventory, shipping capture, admin product + order mgmt (refunds) |
+| 8 | Email | SendGrid outbound + **Inbound Parse**, three-pane **Gmail-style** admin client (compose/reply/star/move/trash), form notifications |
+| 9 | Cloudflare Stream | Digital-ticket-**gated** HLS playback (hls.js), live-input control (RTMPS ingest), VOD |
+| 10 | Admin | dashboard, users & roles (last-admin protection), audit viewer, submissions inbox + newsletter export |
+| 13 | Content mgmt | **Page Builder** (blocks + publish + versions), **Guest Tile Manager**, **Theme & Branding studio**, slides/FAQ/nav/show-info CRUD with drag-to-reorder; validated upload pipeline |
+| 11 | Hardening | strict headers incl. Permissions-Policy, CI (audit + e2e), Dependabot, encrypted backups + restore, runbook, pen-test checklist |
 
-- Monorepo layout (`/client`, `/server`, `/server/db`, `/infra`).
-- Postgres schema (`server/db/schema.sql`) covering the full §6 data model, plus
-  idempotent seed (`server/db/seed.sql`): theme, show info, settings catalog,
-  five ticket types, the default mega-menu, footer pages, FAQs.
-- Auth: argon2id passwords, short-lived JWT access token + rotating refresh
-  token in httpOnly/Secure/SameSite=Strict cookies, login lockout/backoff,
-  role guards (`admin` / `editor` / `door_staff`).
-- Security middleware: Helmet + strict CSP (script nonces), CSRF double-submit
-  on admin writes, global/auth/form rate limits, append-only audit log.
-- Settings panel API with **AES-256-GCM secret encryption at rest** and the
-  click-to-set → confirm-to-save UX; secrets never returned to the browser.
-- Theme & Branding token API driving sitewide CSS variables; dark-by-default
-  with a persisted light/dark toggle and pre-paint flash avoidance.
-- Public read endpoints (slides, show-info, guests, ticket-types, faqs, nav,
-  pages/:slug) + guest form posts (newsletter/contact/media/exhibitor).
-- React client shell, fully wired (no dead links/placeholders):
-  - Header with a working two-level mega-menu (desktop dropdowns + mobile
-    accordion drawer), theme toggle, one-click share; brand/logo from live data.
-  - Home: real hero carousel (autoplay/pause/swipe/arrows/dots), show info +
-    directions, ticket cards, featured guests.
-  - Data-driven pages: Tickets (real types; checkout arrives in the payments
-    phase), Guests grid + 6 category filters, FAQs, Show Hours.
-  - Public forms wired to their endpoints: Contact, Newsletter, Media
-    Inquiries, Exhibitor Application, Suggest a Guest.
-  - CMS renderer: authored content for About/Policies/Accessibility; honest
-    "in preparation" state for not-yet-authored pages.
-  - Admin login + Settings panel (identity + logout).
+**Ticket pricing:** single-day **$40**, 3-day **$80**, digital **$10**.
 
-**Phase 2 — Payments + Ticketing (done).**
-
-- Stripe client built from the encrypted `stripe.secret_key` setting; card data
-  never touches our servers (SAQ A). Currency from `stripe.currency`.
-- `POST /checkout/tickets`: prices the cart **server-side** from `ticket_types`
-  (client never sets prices), creates a pending order + items, opens a
-  Stripe-hosted Checkout Session, returns the redirect URL.
-- `POST /webhooks/stripe`: raw-body **signature verification**, event-ID dedupe
-  (idempotent), fulfills `checkout.session.completed` → marks order paid, issues
-  one ticket per seat with a unique unguessable `qr_token`, bumps inventory.
-- `GET /t/:token`: public mobile ticket page with an inline QR (encodes the
-  opaque validation URL).
-- Client: real **Buy Tickets** checkout (quantity + buyer contact → Stripe),
-  post-redirect **success** page (polls until paid, shows tickets), and a
-  wallet-style **mobile ticket** page.
-- Ticket pricing: single-day **$40**, 3-day **$80**, digital **$10**.
-- Tested end-to-end (`npm test` in `/server`): server boots, a signed webhook
-  drives order→paid + 3 unique tickets, replays are deduped, tampered
-  signatures are rejected (400), and the ticket QR renders. (Live Checkout
-  Session creation requires real Stripe keys + network and is exercised once
-  keys are entered in the Settings panel.)
-
-> Phase boundary: remaining commerce flows (store, vendor floor, livestream,
-> full email client) are later phases (§17) and are presented honestly — never
-> as working features — until their phase lands.
-
-**Next phases:** vendor floor → store → email (SendGrid + Inbound Parse +
-Gmail-style client) → Cloudflare Stream → door-staff validation app + admin
-polish → hardening. See spec §17.
+### Tested end-to-end
+`npm test` (in `/server`) boots the API and runs 8 flow suites covering payments
+→ fulfillment, QR validation, booth holds, store inventory, email, the Virtual
+Con gate, admin/users, and content management — all green. The only paths that
+require live third-party network (Stripe Checkout *creation*, real SendGrid
+delivery, Cloudflare API) activate automatically once those keys are entered in
+the Settings panel; until then they're config-gated and skip gracefully.
 
 ## Toolchain (pinned, §2)
 

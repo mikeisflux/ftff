@@ -2,7 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { env } from './config/env.js';
-import { securityHeaders, cspNonce } from './middleware/security.js';
+import { securityHeaders, cspNonce, permissionsPolicy } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimit.js';
 import { csrfProtection } from './middleware/auth.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
@@ -38,6 +38,7 @@ export function createApp() {
 
   app.use(cspNonce);
   app.use(securityHeaders());
+  app.use(permissionsPolicy);
   app.use(
     cors({
       origin: env.CLIENT_ORIGIN,
