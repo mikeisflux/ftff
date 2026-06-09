@@ -13,6 +13,9 @@ const NAV = [
   { to: '/admin/products', label: 'Products', roles: ['admin', 'editor'] },
   { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
   { to: '/admin/scan', label: 'Scan / Check-in', roles: ['admin', 'door_staff'] },
+  { to: '/admin/submissions', label: 'Submissions', roles: ['admin', 'editor'] },
+  { to: '/admin/users', label: 'Users & Roles', roles: ['admin'] },
+  { to: '/admin/audit', label: 'Audit Log', roles: ['admin'] },
   { to: '/admin/settings', label: 'Settings', roles: ['admin'] },
 ];
 
