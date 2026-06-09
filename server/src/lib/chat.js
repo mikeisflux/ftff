@@ -19,6 +19,7 @@ const PROFANITY = [/fuck\w*/gi, /shit\w*/gi, /bitch\w*/gi, /\bcunt\w*/gi, /nigg\
 const clients = new Set(); // { ws, role, handle, ip, times: [] }
 
 function clean(s, max) {
+  // eslint-disable-next-line no-control-regex
   return String(s ?? "").replace(/[<>\x00-\x1f]/g, "").trim().slice(0, max);
 }
 function maskProfanity(s) {
@@ -36,10 +37,7 @@ function broadcast(obj) {
 
 /** Authenticate an upgrade: returns { role } or null. */
 function authenticate(req) {
-  // Staff via session cookie.
-  try {
-    const cookies = cookie.JSONCookie ? null : null; // noop; parse manually below
-  } catch { /* noop */ }
+  // Staff via the session access-token cookie (sent on the same-origin upgrade).
   const rawCookie = req.headers.cookie || '';
   const access = rawCookie.match(/(?:^|;\s*)access_token=([^;]+)/);
   if (access) {
