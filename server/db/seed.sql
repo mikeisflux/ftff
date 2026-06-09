@@ -38,6 +38,15 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Brand assets (header logo + favicon). COALESCE keeps any admin-set values,
+-- but fills them in on re-seed when still empty.
+UPDATE theme SET
+  logo_url      = COALESCE(logo_url,      '/ftfflogo.png'),
+  logo_dark_url = COALESCE(logo_dark_url, '/ftfflogo.png'),
+  logo_light_url= COALESCE(logo_light_url,'/ftfflogo.png'),
+  favicon_url   = COALESCE(favicon_url,   '/favicon.ico')
+WHERE id = 1;
+
 -- ── show_info (single row) ───────────────────────────────────────────────────
 INSERT INTO show_info (id, name, tagline, starts_on, ends_on, venue, address, lat, lng, hours_json)
 VALUES (
@@ -94,6 +103,7 @@ ON CONFLICT (key) DO NOTHING;
 UPDATE settings SET value = 'usd', is_set = TRUE WHERE key = 'stripe.currency' AND NOT is_set;
 UPDATE settings SET value = '15',  is_set = TRUE WHERE key = 'vendor.hold_minutes' AND NOT is_set;
 UPDATE settings SET value = 'For The Fans Fest', is_set = TRUE WHERE key = 'site.name' AND NOT is_set;
+UPDATE settings SET value = '/og-default.png', is_set = TRUE WHERE key = 'social.default_og_image_url' AND NOT is_set;
 UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'virtual.chat_enabled' AND NOT is_set;
 
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────

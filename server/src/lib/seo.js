@@ -40,6 +40,10 @@ export async function getMetaForPath(pathname) {
     }
   }
 
+  // Resolve a relative OG image (e.g. /og-default.png) to an absolute URL —
+  // social crawlers require absolute og:image.
+  if (image && image.startsWith('/')) image = `${shareBase}${image}`;
+
   return { title, description, image, url: `${shareBase}${clean}`, type: 'website', siteName, xHandle, fbAppId };
 }
 
