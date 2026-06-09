@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
-const CATEGORIES = ['celebrities', 'animation_voices', 'anime', 'gaming_stars', 'comic_creators', 'cosplayers', 'other'];
+const CATEGORIES = ['celebrities', 'comic_creators', 'cosplayers', 'other'];
 const blank = { name: '', known_for: '', bio: '', headshot_url: '', category: 'celebrities', is_featured: false, is_active: true };
 
 // Guest Tile Manager (§13.2): upload a photo + write a bio -> it appears as a

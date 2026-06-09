@@ -57,9 +57,6 @@ import ThemeStudio from './pages/admin/ThemeStudio.jsx';
 // Guest category routes map to a fixed `guests.category` value (§7 Guests).
 const GUEST_CATEGORY_ROUTES = {
   celebrities: 'celebrities',
-  'animation-voices': 'animation_voices',
-  'anime-guests': 'anime',
-  'gaming-stars': 'gaming_stars',
   'comic-creators': 'comic_creators',
   cosplayers: 'cosplayers',
 };

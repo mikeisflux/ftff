@@ -149,8 +149,7 @@ CREATE TABLE IF NOT EXISTS guests (
   bio          TEXT,
   headshot_url TEXT,
   category     TEXT NOT NULL DEFAULT 'celebrities'
-                 CHECK (category IN ('celebrities','animation_voices','anime',
-                                     'gaming_stars','comic_creators','cosplayers','other')),
+                 CHECK (category IN ('celebrities','comic_creators','cosplayers','other')),
   socials      JSONB NOT NULL DEFAULT '{}'::jsonb,
   appearance_days JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_featured  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -164,6 +163,11 @@ CREATE TRIGGER trg_guests_updated BEFORE UPDATE ON guests
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_guests_category ON guests(category);
 CREATE INDEX IF NOT EXISTS idx_guests_featured ON guests(is_featured) WHERE is_featured;
+-- Removed categories: reassign any existing guests, then tighten the constraint.
+UPDATE guests SET category='other' WHERE category IN ('animation_voices','anime','gaming_stars');
+ALTER TABLE guests DROP CONSTRAINT IF EXISTS guests_category_check;
+ALTER TABLE guests ADD CONSTRAINT guests_category_check
+  CHECK (category IN ('celebrities','comic_creators','cosplayers','other'));
 
 -- ── ticket_types (admin-managed; five are seeded by default) ─────────────────
 CREATE TABLE IF NOT EXISTS ticket_types (

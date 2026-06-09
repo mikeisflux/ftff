@@ -6,9 +6,6 @@ import { api } from '../lib/api.js';
 // state rather than placeholder tiles.
 const CATEGORY_LABELS = {
   celebrities: 'Celebrities',
-  animation_voices: 'Animation Voices',
-  anime: 'Anime Guests',
-  gaming_stars: 'Gaming Stars',
   comic_creators: 'Comic Creators',
   cosplayers: 'Cosplayers',
 };
