@@ -13,6 +13,10 @@ import Guests from './pages/Guests.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
 import BecomeExhibitor from './pages/BecomeExhibitor.jsx';
 import ExhibitorSuccess from './pages/ExhibitorSuccess.jsx';
+import Retailers from './pages/Retailers.jsx';
+import ArtistAlley from './pages/ArtistAlley.jsx';
+import Corporate from './pages/Corporate.jsx';
+import Advertise from './pages/Advertise.jsx';
 import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
@@ -145,6 +149,10 @@ export default function App() {
           <Route path="/media-inquiries" element={<MediaInquiries />} />
           <Route path="/become-an-exhibitor" element={<BecomeExhibitor />} />
           <Route path="/become-an-exhibitor/success" element={<ExhibitorSuccess />} />
+          <Route path="/retailers" element={<Retailers />} />
+          <Route path="/artist-alley" element={<ArtistAlley />} />
+          <Route path="/corporate" element={<Corporate />} />
+          <Route path="/advertise" element={<Advertise />} />
           <Route path="/suggest-a-guest" element={<SuggestGuest />} />
 
           {/* Apply-section application forms */}

@@ -44,6 +44,10 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 
+/* Alternating image/text rows on exhibitor/industry pages. Stacks on mobile. */
+.info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; margin-bottom: 36px; }
+@media (max-width: 760px) { .info-row { grid-template-columns: 1fr; } }
+
 /* Pre-launch announcement bar (temporary): sits above the sticky header so it
    scrolls away with the page top. Red to read as a hard warning. */
 .announce-bar {
