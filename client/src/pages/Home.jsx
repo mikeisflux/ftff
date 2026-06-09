@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { formatDateRange } from '../lib/dates.js';
+import { formatDateRange, formatTime } from '../lib/dates.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
 
 const money = (cents, cur = 'USD') =>
@@ -48,7 +48,7 @@ export default function Home() {
               {Array.isArray(show.hours_json) && show.hours_json.length > 0 && (
                 <ul>
                   {show.hours_json.map((h) => (
-                    <li key={h.day}>{h.day}: {h.open}–{h.close}</li>
+                    <li key={h.day}>{h.day}: {formatTime(h.open)}–{formatTime(h.close)}</li>
                   ))}
                 </ul>
               )}

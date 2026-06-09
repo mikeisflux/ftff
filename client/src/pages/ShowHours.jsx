@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { formatTime } from '../lib/dates.js';
 
 export default function ShowHours() {
   const { data } = useQuery({ queryKey: ['show-info'], queryFn: () => api('/show-info') });
@@ -19,7 +20,7 @@ export default function ShowHours() {
                 {hours.map((h) => (
                   <tr key={h.day}>
                     <td><strong>{h.day}</strong></td>
-                    <td style={{ textAlign: 'right' }}>{h.open} – {h.close}</td>
+                    <td style={{ textAlign: 'right' }}>{formatTime(h.open)} – {formatTime(h.close)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -27,3 +27,18 @@ export function formatDateRange(start, end) {
   if (a.y === b.y) return `${MONTHS[a.m - 1]} ${a.d} – ${MONTHS[b.m - 1]} ${b.d}, ${a.y}`;
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
+
+/** "16:00" -> "4:00 PM". Accepts "H:MM" / "HH:MM" (24h) and passes through
+ *  anything it can't parse (e.g. already-formatted or "Closed"). */
+export function formatTime(s) {
+  if (s == null) return '';
+  const str = String(s).trim();
+  const m = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return str;
+  let h = Number(m[1]);
+  const min = m[2];
+  if (h < 0 || h > 23) return str;
+  const period = h < 12 ? 'AM' : 'PM';
+  h = h % 12 || 12;
+  return `${h}:${min} ${period}`;
+}

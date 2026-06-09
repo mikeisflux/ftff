@@ -72,7 +72,7 @@ export default function Virtual() {
   }, [access]);
 
   return (
-    <div className="section container" style={{ maxWidth: 900 }}>
+    <div className="section container" style={{ maxWidth: 1320 }}>
       <h1 className="glow">Virtual Con Experience</h1>
 
       {!access ? (
