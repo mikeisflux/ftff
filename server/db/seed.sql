@@ -147,12 +147,9 @@ BEGIN
   INSERT INTO nav_menu (parent_id, label, route, sort_order) VALUES
     (guests_id, 'All Guests', '/all-guests', 1),
     (guests_id, 'Celebrities', '/celebrities', 2),
-    (guests_id, 'Animation Voices', '/animation-voices', 3),
-    (guests_id, 'Anime Guests', '/anime-guests', 4),
-    (guests_id, 'Gaming Stars', '/gaming-stars', 5),
-    (guests_id, 'Comic Creators', '/comic-creators', 6),
-    (guests_id, 'Cosplayers', '/cosplayers', 7),
-    (guests_id, 'Suggest a Guest', '/suggest-a-guest', 8);
+    (guests_id, 'Comic Creators', '/comic-creators', 3),
+    (guests_id, 'Cosplayers', '/cosplayers', 4),
+    (guests_id, 'Suggest a Guest', '/suggest-a-guest', 5);
 
   -- Attractions children
   INSERT INTO nav_menu (parent_id, label, route, sort_order) VALUES
