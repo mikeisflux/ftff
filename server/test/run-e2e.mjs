@@ -15,6 +15,7 @@ const testFiles = [
   path.resolve(here, './virtual-flow.test.mjs'),
   path.resolve(here, './admin-flow.test.mjs'),
   path.resolve(here, './content-flow.test.mjs'),
+  path.resolve(here, './recaptcha-flow.test.mjs'),
 ];
 const BASE = 'http://localhost:4000/api/v1';
 

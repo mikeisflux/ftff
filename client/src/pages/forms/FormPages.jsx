@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ContactForm from '../../components/ContactForm.jsx';
 import { api } from '../../lib/api.js';
+import { useConfig } from '../../store/ConfigContext.jsx';
 
 // Thin wrappers around the reusable ContactForm, one per public endpoint (§7.2).
 function Page({ title, children }) {
@@ -65,6 +66,7 @@ export function SuggestGuest() {
 }
 
 export function Newsletter() {
+  const { getRecaptchaToken } = useConfig();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
@@ -74,7 +76,8 @@ export function Newsletter() {
     setStatus('sending');
     setError('');
     try {
-      await api('/newsletter', { method: 'POST', body: { email } });
+      const recaptchaToken = await getRecaptchaToken('newsletter');
+      await api('/newsletter', { method: 'POST', body: { email, ...(recaptchaToken ? { recaptchaToken } : {}) } });
       setStatus('sent');
     } catch (err) {
       setStatus('error');

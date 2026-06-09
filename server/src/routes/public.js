@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query } from '../db/pool.js';
 import { asyncHandler, notFound } from '../lib/http.js';
 import { formLimiter } from '../middleware/rateLimit.js';
+import { requireRecaptcha } from '../middleware/recaptcha.js';
 import { sanitizeHtml } from '../lib/sanitize.js';
 import { notifyAdminOfSubmission, confirmSubmission } from '../lib/email.js';
 
@@ -166,6 +167,7 @@ const emailSchema = z.object({ email: z.string().email() });
 publicRouter.post(
   '/newsletter',
   formLimiter,
+  requireRecaptcha,
   asyncHandler(async (req, res) => {
     const { email } = emailSchema.parse(req.body);
     await query(
@@ -209,6 +211,6 @@ function contactHandler(kind) {
   });
 }
 
-publicRouter.post('/contact', formLimiter, contactHandler('contact'));
-publicRouter.post('/media-inquiry', formLimiter, contactHandler('media'));
-publicRouter.post('/exhibitor-application', formLimiter, contactHandler('exhibitor'));
+publicRouter.post('/contact', formLimiter, requireRecaptcha, contactHandler('contact'));
+publicRouter.post('/media-inquiry', formLimiter, requireRecaptcha, contactHandler('media'));
+publicRouter.post('/exhibitor-application', formLimiter, requireRecaptcha, contactHandler('exhibitor'));

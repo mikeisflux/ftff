@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '../theme/ThemeProvider.jsx';
 import { useCart } from '../store/CartContext.jsx';
+import { useConfig } from '../store/ConfigContext.jsx';
 import { api } from '../lib/api.js';
 
 // Persistent header with a two-level mega-menu (§7.0): desktop dropdowns,
@@ -12,6 +13,7 @@ import { api } from '../lib/api.js';
 export default function Header() {
   const { mode, toggle, allowToggle, theme } = useTheme();
   const cart = useCart();
+  const { config } = useConfig();
   const { pathname } = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null); // desktop dropdown id
@@ -42,8 +44,8 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const shareUrl = window.location.origin;
-  const title = brandName;
+  const shareUrl = config?.social?.shareUrl || window.location.origin;
+  const title = config?.siteName || brandName;
 
   async function onShare() {
     if (navigator.share) {
