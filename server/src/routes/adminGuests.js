@@ -9,13 +9,13 @@ import { storeImage } from '../lib/uploads.js';
 import { audit } from '../lib/audit.js';
 
 // Guest Tile Manager (§13.2): upload-a-photo + write-a-bio CRUD, drag-to-reorder,
-// featured cap of 8 (homepage), bulk actions, headshot upload.
+// featured cap of 10 (homepage), bulk actions, headshot upload.
 export const adminGuestsRouter = Router();
 adminGuestsRouter.use(requireAuth, requireRole('admin', 'editor'));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024 } });
 const CATEGORIES = ['celebrities', 'animation_voices', 'anime', 'gaming_stars', 'comic_creators', 'cosplayers', 'other'];
-const MAX_FEATURED = 8;
+const MAX_FEATURED = 10;
 
 const guestSchema = z.object({
   name: z.string().min(1).max(200),

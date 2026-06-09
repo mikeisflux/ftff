@@ -7,7 +7,7 @@ const TIERS = [['featured', 'Featured Guests'], ['special', 'Special Guests'], [
 const blank = { name: '', known_for: '', bio: '', headshot_url: '', category: 'celebrities', tier: 'featured', is_featured: false, is_active: true };
 
 // Guest Tile Manager (§13.2): upload a photo + write a bio -> it appears as a
-// tile. Featured controls the 8 homepage tiles (server enforces the cap).
+// tile. Featured controls the 10 homepage tiles (server enforces the cap).
 export default function GuestsAdmin() {
   const [guests, setGuests] = useState([]);
   const [form, setForm] = useState(blank);
@@ -46,7 +46,7 @@ export default function GuestsAdmin() {
   return (
     <div>
       <h1 className="glow">Guest Tile Manager</h1>
-      <p className="muted">Featured on homepage: {featuredCount}/8</p>
+      <p className="muted">Featured on homepage: {featuredCount}/10</p>
       {msg && <p style={{ color: 'var(--color-danger)' }}>{msg}</p>}
 
       <form className="card" onSubmit={save} style={{ marginBottom: 16 }}>

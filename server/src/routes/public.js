@@ -46,8 +46,8 @@ publicRouter.get(
       params.push(category);
       where.push(`category = $${params.length}`);
     }
-    // Homepage shows exactly 8 featured (§7.1).
-    const limit = featured ? 8 : 500;
+    // Homepage shows up to 10 featured; the rest overflow to All Guests (§7.1).
+    const limit = featured ? 10 : 500;
     const { rows } = await query(
       `SELECT id, name, known_for, bio, headshot_url, category, tier, appearance_days, is_featured, sort_order
          FROM guests WHERE ${where.join(' AND ')}

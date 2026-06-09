@@ -96,7 +96,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* Featured guests — up to 8 (§7.1.4) */}
+      {/* Featured guests — up to 10; the rest overflow to All Guests (§7.1.4) */}
       <section className="section container">
         <h2>Featured Guests</h2>
         {featured.length > 0 ? (

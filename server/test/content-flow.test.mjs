@@ -1,5 +1,5 @@
 // E2E for §13 content management: slides CRUD+reorder, FAQ, guests featured
-// cap (8), page builder publish + version restore, theme save validation.
+// cap (10), page builder publish + version restore, theme save validation.
 import assert from 'node:assert';
 import argon2 from 'argon2';
 import { pool } from '../src/db/pool.js';
@@ -27,14 +27,14 @@ async function main() {
   assert.ok(order.indexOf(s2.id) < order.indexOf(s1.id), 'reorder persisted (s2 before s1)');
   console.log('  ✓ slides CRUD + drag-reorder');
 
-  // Guests featured cap (8).
+  // Guests featured cap (10).
   await pool.query(`UPDATE guests SET is_featured=FALSE`); // reset
-  for (let i = 0; i < 8; i += 1) {
+  for (let i = 0; i < 10; i += 1) {
     await POST('/admin/guests', { name: `G${i}`, category: 'celebrities', is_featured: true });
   }
-  const ninth = await POST('/admin/guests', { name: 'G9', category: 'celebrities', is_featured: true });
-  assert.equal(ninth.status, 400, '9th featured rejected');
-  console.log('  ✓ guest featured cap enforced (max 8)');
+  const eleventh = await POST('/admin/guests', { name: 'G10', category: 'celebrities', is_featured: true });
+  assert.equal(eleventh.status, 400, '11th featured rejected');
+  console.log('  ✓ guest featured cap enforced (max 10)');
 
   // Page builder: create -> save blocks -> publish (renders html + version) -> restore.
   const slug = `pb-${Date.now()}`;
