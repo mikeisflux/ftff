@@ -261,6 +261,7 @@ CREATE INDEX IF NOT EXISTS idx_booths_status ON booths(status);
 CREATE TABLE IF NOT EXISTS products (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug        TEXT UNIQUE NOT NULL,
+  section     TEXT NOT NULL DEFAULT 'shop',  -- shop|special_experiences|autographs|photo_ops|discounts
   title       TEXT NOT NULL,
   description TEXT,
   images      JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -271,6 +272,9 @@ CREATE TABLE IF NOT EXISTS products (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- For existing databases predating product sections:
+ALTER TABLE products ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'shop';
+CREATE INDEX IF NOT EXISTS idx_products_section ON products(section);
 DROP TRIGGER IF EXISTS trg_products_updated ON products;
 CREATE TRIGGER trg_products_updated BEFORE UPDATE ON products
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

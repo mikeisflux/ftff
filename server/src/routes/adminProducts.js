@@ -12,6 +12,7 @@ adminProductsRouter.use(requireAuth, requireRole('admin', 'editor'));
 
 const productSchema = z.object({
   slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/, 'lowercase, digits, hyphens'),
+  section: z.enum(['shop', 'special_experiences', 'autographs', 'photo_ops', 'discounts']).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(8000).optional().nullable(),
   images: z.array(z.string().url()).max(12).optional(),
@@ -30,8 +31,14 @@ const variantSchema = z.object({
 
 adminProductsRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    const products = (await query(`SELECT * FROM products ORDER BY sort_order, title`)).rows;
+  asyncHandler(async (req, res) => {
+    const params = [];
+    let where = '';
+    if (typeof req.query.section === 'string' && req.query.section) {
+      params.push(req.query.section);
+      where = `WHERE section = $1`;
+    }
+    const products = (await query(`SELECT * FROM products ${where} ORDER BY sort_order, title`, params)).rows;
     const variants = (await query(`SELECT * FROM product_variants ORDER BY created_at`)).rows;
     const byProduct = {};
     for (const v of variants) (byProduct[v.product_id] ||= []).push(v);
@@ -44,9 +51,9 @@ adminProductsRouter.post(
   asyncHandler(async (req, res) => {
     const p = productSchema.parse(req.body);
     const { rows } = await query(
-      `INSERT INTO products (slug, title, description, images, price_cents, is_active, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [p.slug, p.title, p.description ? sanitizeHtml(p.description) : null,
+      `INSERT INTO products (slug, section, title, description, images, price_cents, is_active, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [p.slug, p.section ?? 'shop', p.title, p.description ? sanitizeHtml(p.description) : null,
         JSON.stringify(p.images || []), p.price_cents, p.is_active ?? true, p.sort_order ?? 0],
     );
     await audit(req.user.id, 'product.create', { entity: 'product', entityId: rows[0].id });
@@ -59,9 +66,9 @@ adminProductsRouter.put(
   asyncHandler(async (req, res) => {
     const p = productSchema.parse(req.body);
     const { rows } = await query(
-      `UPDATE products SET slug=$2, title=$3, description=$4, images=$5, price_cents=$6,
-              is_active=$7, sort_order=$8 WHERE id=$1 RETURNING *`,
-      [req.params.id, p.slug, p.title, p.description ? sanitizeHtml(p.description) : null,
+      `UPDATE products SET slug=$2, section=COALESCE($3,section), title=$4, description=$5,
+              images=$6, price_cents=$7, is_active=$8, sort_order=$9 WHERE id=$1 RETURNING *`,
+      [req.params.id, p.slug, p.section ?? null, p.title, p.description ? sanitizeHtml(p.description) : null,
         JSON.stringify(p.images || []), p.price_cents, p.is_active ?? true, p.sort_order ?? 0],
     );
     if (!rows[0]) throw notFound('Product not found');

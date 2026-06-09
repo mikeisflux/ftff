@@ -11,7 +11,7 @@ import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
 import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
-import Shop from './pages/Shop.jsx';
+import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
 import Virtual from './pages/Virtual.jsx';
@@ -85,7 +85,11 @@ export default function App() {
           <Route path="/admin/nav" element={<NavBuilder />} />
           <Route path="/admin/pages" element={<PageBuilder />} />
           <Route path="/admin/theme" element={<ThemeStudio />} />
-          <Route path="/admin/products" element={<Products />} />
+          <Route path="/admin/products" element={<Products section="shop" title="Shop" />} />
+          <Route path="/admin/special-experiences" element={<Products section="special_experiences" title="Special Experiences" />} />
+          <Route path="/admin/autographs" element={<Products section="autographs" title="Autographs" />} />
+          <Route path="/admin/photo-ops" element={<Products section="photo_ops" title="Photo Ops" />} />
+          <Route path="/admin/discounts" element={<Products section="discounts" title="Discounts & Coupons" />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />
           <Route path="/admin/stream" element={<Stream />} />
@@ -115,6 +119,10 @@ export default function App() {
           <Route path="/floor-plan" element={<FloorPlan />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/shop/:slug" element={<Product />} />
+          <Route path="/special-experiences" element={<SpecialExperiences />} />
+          <Route path="/autographs" element={<Autographs />} />
+          <Route path="/photo-ops" element={<PhotoOps />} />
+          <Route path="/discounts-coupons" element={<Discounts />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/virtual" element={<Virtual />} />
           <Route path="/faqs" element={<Faqs />} />

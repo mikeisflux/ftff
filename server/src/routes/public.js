@@ -71,13 +71,20 @@ publicRouter.get(
   }),
 );
 
-// GET /products — store listing (active products) (§10).
+// GET /products?section= — store/section listing (active products) (§10).
 publicRouter.get(
   '/products',
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    const params = [];
+    let extra = '';
+    if (typeof req.query.section === 'string' && req.query.section) {
+      params.push(req.query.section);
+      extra = `AND section = $1`;
+    }
     const { rows } = await query(
-      `SELECT id, slug, title, description, images, price_cents, currency
-         FROM products WHERE is_active = TRUE ORDER BY sort_order, title`,
+      `SELECT id, slug, section, title, description, images, price_cents, currency
+         FROM products WHERE is_active = TRUE ${extra} ORDER BY sort_order, title`,
+      params,
     );
     res.json({ products: rows });
   }),

@@ -16,7 +16,11 @@ const NAV_GROUPS = [
     { to: '/admin/scan', label: 'Scan / Check-in', roles: ['admin', 'door_staff'] },
   ] },
   { label: 'Store & Vendors', items: [
-    { to: '/admin/products', label: 'Products', roles: ['admin', 'editor'] },
+    { to: '/admin/products', label: 'Shop', roles: ['admin', 'editor'] },
+    { to: '/admin/special-experiences', label: 'Special Experiences', roles: ['admin', 'editor'] },
+    { to: '/admin/autographs', label: 'Autographs', roles: ['admin', 'editor'] },
+    { to: '/admin/photo-ops', label: 'Photo Ops', roles: ['admin', 'editor'] },
+    { to: '/admin/discounts', label: 'Discounts', roles: ['admin', 'editor'] },
     { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
   ] },
   { label: 'Content', items: [

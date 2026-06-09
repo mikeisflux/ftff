@@ -6,24 +6,25 @@ const toCents = (d) => Math.round(Number(d || 0) * 100);
 const toDollars = (c) => (Number(c || 0) / 100).toFixed(2);
 const blankProduct = { slug: '', title: '', description: '', price: '25.00', images: [], is_active: true };
 
-// Admin store manager (§10): product CRUD + per-product variants/inventory.
-export default function Products() {
+// Admin product manager (§10): product CRUD + per-product variants/inventory.
+// Reused per storefront section (Shop, Special Experiences, Autographs, etc.).
+export default function Products({ section = 'shop', title = 'Shop' }) {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(blankProduct);
   const [editingId, setEditingId] = useState(null);
   const [msg, setMsg] = useState('');
 
   const load = useCallback(async () => {
-    const { products } = await api('/admin/products');
+    const { products } = await api(`/admin/products?section=${encodeURIComponent(section)}`);
     setProducts(products);
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  }, [section]);
+  useEffect(() => { load(); setForm(blankProduct); setEditingId(null); }, [load]);
 
   async function saveProduct(e) {
     e.preventDefault();
     setMsg('');
     const body = {
-      slug: form.slug, title: form.title, description: form.description || null,
+      slug: form.slug, section, title: form.title, description: form.description || null,
       price_cents: toCents(form.price), is_active: form.is_active,
       images: form.images || [],
     };
@@ -63,7 +64,7 @@ export default function Products() {
 
   return (
     <div>
-      <h1 className="glow">Products</h1>
+      <h1 className="glow">{title}</h1>
       {msg && <p style={{ color: 'var(--color-danger)' }}>{msg}</p>}
 
       <form className="card" onSubmit={saveProduct} style={{ marginBottom: 20 }}>
