@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
+import { formatDateRange } from '../lib/dates.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
 
 const money = (cents, cur = 'USD') =>
@@ -37,7 +38,7 @@ export default function Home() {
             <div className="card">
               <p><strong>{show.venue}</strong></p>
               <p className="muted">{show.address}</p>
-              {show.starts_on && <p>{show.starts_on} – {show.ends_on}</p>}
+              {show.starts_on && <p>{formatDateRange(show.starts_on, show.ends_on)}</p>}
               {Array.isArray(show.hours_json) && show.hours_json.length > 0 && (
                 <ul>
                   {show.hours_json.map((h) => (
