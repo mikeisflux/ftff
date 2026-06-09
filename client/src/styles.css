@@ -72,8 +72,11 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 }
 .caret { font-size: .7em; opacity: .8; }
 .dropdown {
-  position: absolute; top: 100%; left: 0; margin-top: 6px;
-  min-width: 220px; display: grid; gap: 2px; padding: 8px;
+  /* Contiguous with the trigger (no margin gap) so moving the mouse down into
+     the menu doesn't cross a hover dead-zone and close it. The visual spacing
+     lives as top padding INSIDE the hover area instead. */
+  position: absolute; top: 100%; left: 0; margin-top: 0;
+  min-width: 220px; display: grid; gap: 2px; padding: 14px 8px 8px;
   background: var(--color-surface);
   border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
   border-radius: var(--radius);

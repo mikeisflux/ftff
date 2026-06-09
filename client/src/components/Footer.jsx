@@ -16,7 +16,7 @@ const LINKS = [
 
 export default function Footer() {
   const infoQ = useQuery({ queryKey: ['show-info'], queryFn: () => api('/show-info') });
-  const brand = infoQ.data?.showInfo?.name ?? 'FAN EXPO Chicago';
+  const brand = infoQ.data?.showInfo?.name ?? 'For The Fans Fest';
 
   return (
     <footer className="section" style={{ borderTop: '1px solid rgba(255,255,255,.08)', marginTop: 48 }}>

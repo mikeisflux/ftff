@@ -10,7 +10,7 @@ const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;'
 const titleize = (slug) => slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 export async function getMetaForPath(pathname) {
-  const siteName = (await getSettingValue('site.name')) || 'FAN EXPO Chicago';
+  const siteName = (await getSettingValue('site.name')) || 'For The Fans Fest';
   const shareBase = ((await getSettingValue('social.share_url')) || env.PUBLIC_URL).replace(/\/$/, '');
   const defaultImage = await getSettingValue('social.default_og_image_url');
   const xHandle = await getSettingValue('social.x_handle');

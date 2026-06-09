@@ -25,7 +25,7 @@ export default function Home() {
       {/* Hero carousel (§7.1.1) */}
       <HeroCarousel
         slides={slides.data?.slides ?? []}
-        fallbackTitle={show?.name ?? 'FAN EXPO Chicago'}
+        fallbackTitle={show?.name ?? 'For The Fans Fest'}
         fallbackSubtitle={show?.tagline}
       />
 

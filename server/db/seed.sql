@@ -42,12 +42,12 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO show_info (id, name, tagline, starts_on, ends_on, venue, address, lat, lng, hours_json)
 VALUES (
   1,
-  'FAN EXPO Chicago',
+  'For The Fans Fest',
   'The ultimate fan experience.',
-  '2026-08-21', '2026-08-23',
-  'Donald E. Stephens Convention Center',
-  '5555 N River Rd, Rosemont, IL 60018',
-  41.9803, -87.8612,
+  '2026-10-16', '2026-10-18',
+  'Harrah''s Resort Atlantic City',
+  '777 Harrah''s Blvd, Atlantic City, NJ 08401',
+  39.3793, -74.4366,
   '[{"day":"Friday","open":"16:00","close":"21:00"},{"day":"Saturday","open":"10:00","close":"19:00"},{"day":"Sunday","open":"10:00","close":"17:00"}]'::jsonb
 )
 ON CONFLICT (id) DO NOTHING;
@@ -79,7 +79,7 @@ INSERT INTO settings (key, category, label, description, is_secret) VALUES
 
   ('social.share_url',               'Social',        'Canonical Share URL',        'Canonical URL used by the share button.', FALSE),
   ('social.default_og_image_url',    'Social',        'Default OG Image',           '≥1200×630 fallback share image.', FALSE),
-  ('social.x_handle',                'Social',        'X / Twitter Handle',         'e.g. @fanexpo', FALSE),
+  ('social.x_handle',                'Social',        'X / Twitter Handle',         'e.g. @forfansfest', FALSE),
   ('social.facebook_app_id',         'Social',        'Facebook App ID',            'fb:app_id meta tag.', FALSE),
   ('social.facebook_url',            'Social',        'Facebook URL',               NULL, FALSE),
   ('social.instagram_url',           'Social',        'Instagram URL',              NULL, FALSE),
@@ -93,7 +93,7 @@ ON CONFLICT (key) DO NOTHING;
 -- sensible non-secret defaults
 UPDATE settings SET value = 'usd', is_set = TRUE WHERE key = 'stripe.currency' AND NOT is_set;
 UPDATE settings SET value = '15',  is_set = TRUE WHERE key = 'vendor.hold_minutes' AND NOT is_set;
-UPDATE settings SET value = 'FAN EXPO Chicago', is_set = TRUE WHERE key = 'site.name' AND NOT is_set;
+UPDATE settings SET value = 'For The Fans Fest', is_set = TRUE WHERE key = 'site.name' AND NOT is_set;
 UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'virtual.chat_enabled' AND NOT is_set;
 
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────
@@ -201,19 +201,19 @@ END $$;
 -- block-based Page Builder; the JSON blocks here are the source of truth.
 INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, is_published, published_at) VALUES
   ('about-us', 'About Us',
-   '[{"type":"heading","data":{"text":"About FAN EXPO Chicago"}},{"type":"richtext","data":{"html":"<p>FAN EXPO Chicago is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by FAN EXPO HQ, the largest producer of comic conventions in North America.</p>"}}]'::jsonb,
-   '<h2>About FAN EXPO Chicago</h2><p>FAN EXPO Chicago is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by FAN EXPO HQ, the largest producer of comic conventions in North America.</p>',
-   'About Us | FAN EXPO Chicago', 'Learn about FAN EXPO Chicago, the city''s premier pop-culture convention.', TRUE, now()),
+   '[{"type":"heading","data":{"text":"About For The Fans Fest"}},{"type":"richtext","data":{"html":"<p>For The Fans Fest is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by the For The Fans Fest team — by fans, for fans.</p>"}}]'::jsonb,
+   '<h2>About For The Fans Fest</h2><p>For The Fans Fest is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by the For The Fans Fest team — by fans, for fans.</p>',
+   'About Us | For The Fans Fest', 'Learn about For The Fans Fest, the city''s premier pop-culture convention.', TRUE, now()),
 
   ('policies', 'Policies',
-   '[{"type":"heading","data":{"text":"Policies"}},{"type":"richtext","data":{"html":"<p>By attending FAN EXPO Chicago you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>"}}]'::jsonb,
-   '<h2>Policies</h2><p>By attending FAN EXPO Chicago you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>',
-   'Policies | FAN EXPO Chicago', 'Ticket, refund, conduct, and prop policies for FAN EXPO Chicago.', TRUE, now()),
+   '[{"type":"heading","data":{"text":"Policies"}},{"type":"richtext","data":{"html":"<p>By attending For The Fans Fest you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>"}}]'::jsonb,
+   '<h2>Policies</h2><p>By attending For The Fans Fest you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>',
+   'Policies | For The Fans Fest', 'Ticket, refund, conduct, and prop policies for For The Fans Fest.', TRUE, now()),
 
   ('accessibility', 'Accessibility',
-   '[{"type":"heading","data":{"text":"Accessibility"}},{"type":"richtext","data":{"html":"<p>FAN EXPO Chicago is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>"}}]'::jsonb,
-   '<h2>Accessibility</h2><p>FAN EXPO Chicago is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>',
-   'Accessibility | FAN EXPO Chicago', 'Accessibility services and accommodations at FAN EXPO Chicago.', TRUE, now())
+   '[{"type":"heading","data":{"text":"Accessibility"}},{"type":"richtext","data":{"html":"<p>For The Fans Fest is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>"}}]'::jsonb,
+   '<h2>Accessibility</h2><p>For The Fans Fest is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>',
+   'Accessibility | For The Fans Fest', 'Accessibility services and accommodations at For The Fans Fest.', TRUE, now())
 ON CONFLICT (slug) DO UPDATE
   SET title = EXCLUDED.title, blocks = EXCLUDED.blocks, body_html = EXCLUDED.body_html,
       seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,

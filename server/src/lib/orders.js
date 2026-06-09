@@ -6,13 +6,13 @@ import { HttpError, badRequest } from './http.js';
 // server-side from the database — the client never sets prices.
 
 /**
- * Human-friendly, collision-resistant order number, e.g. FX-LZ4K9P-A1B2.
+ * Human-friendly, collision-resistant order number, e.g. FFF-LZ4K9P-A1B2.
  * Time component keeps numbers roughly sortable; the random suffix makes
  * same-millisecond collisions astronomically unlikely (UNIQUE enforces it).
  */
 function makeOrderNumber() {
   const time = Date.now().toString(36).toUpperCase();
-  return `FX-${time}-${randomToken(2).toUpperCase()}`;
+  return `FFF-${time}-${randomToken(2).toUpperCase()}`;
 }
 
 /**

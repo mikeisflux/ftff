@@ -24,7 +24,7 @@ export default function Header() {
   const navQ = useQuery({ queryKey: ['nav'], queryFn: () => api('/nav') });
   const infoQ = useQuery({ queryKey: ['show-info'], queryFn: () => api('/show-info') });
   const nav = navQ.data?.nav ?? [];
-  const brandName = infoQ.data?.showInfo?.name ?? 'FAN EXPO';
+  const brandName = infoQ.data?.showInfo?.name ?? 'For The Fans Fest';
   const logo = mode === 'light' ? theme?.logo_light_url : theme?.logo_dark_url;
   const logoUrl = logo || theme?.logo_url;
 

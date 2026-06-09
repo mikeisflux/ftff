@@ -149,7 +149,7 @@ checkoutRouter.post(
           `INSERT INTO orders (order_number, customer_name, customer_email, customer_phone,
                                kind, subtotal_cents, total_cents, currency, status)
            VALUES ($1,$2,$3,$4,'vendor',$5,$5,$6,'pending') RETURNING *`,
-          [`FX-${Date.now().toString(36).toUpperCase()}-${randomToken(2).toUpperCase()}`,
+          [`FFF-${Date.now().toString(36).toUpperCase()}-${randomToken(2).toUpperCase()}`,
             vendor.name, vendor.email, vendor.phone ?? null, b.price_cents, currency],
         )
       ).rows[0];

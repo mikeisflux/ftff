@@ -21,6 +21,16 @@ const cuid = (p) => `${p}_${crypto.randomBytes(12).toString('hex')}`;
 
 const IPV4 = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
+// Legitimate search-engine + social-preview crawlers are never flagged or
+// blocked, so SEO and link previews are never impacted. (UA-based allowlist —
+// search-engine traffic comes from dedicated ranges, so this is low risk.)
+const CRAWLER_UA = /(googlebot|google-inspectiontool|storebot-google|google-extended|adsbot-google|mediapartners-google|apis-google|feedfetcher-google|bingbot|bingpreview|msnbot|adidxbot|slurp|duckduckbot|duckduckgo|baiduspider|yandex(bot|images|video|media|webmaster)?|sogou|exabot|facebookexternalhit|facebookcatalog|facebot|twitterbot|linkedinbot|pinterest(bot)?|redditbot|applebot|discordbot|whatsapp|telegrambot|slackbot|slack-imgproxy|embedly|skypeuripreview|google-site-verification|ia_archiver|ahrefsbot|semrushbot|petalbot)/i;
+
+/** Is this request from a known good search / social crawler? */
+export function isAllowedCrawler(ua) {
+  return Boolean(ua && CRAWLER_UA.test(ua));
+}
+
 /** Normalize Express req.ip to a bare IPv4, or null if not a public IPv4. */
 export function normalizeIp(raw) {
   if (!raw) return null;
@@ -71,6 +81,7 @@ export async function recordSuspicious(reqOrIp, reason, meta = {}, strikes = 1) 
   if (!ip) return; // ignore private/loopback/non-IPv4
   const ua = meta.userAgent ?? (typeof reqOrIp === 'object' ? reqOrIp.get?.('user-agent') : null);
   const path = meta.path ?? (typeof reqOrIp === 'object' ? reqOrIp.originalUrl : null);
+  if (isAllowedCrawler(ua)) return; // never flag/block Google, Bing, social previews, etc.
   try {
     for (let i = 0; i < Math.min(strikes, 10); i += 1) {
       await query(

@@ -20,7 +20,7 @@ publicConfigRouter.get(
     const cfg = Object.fromEntries(entries);
     res.set('Cache-Control', 'public, max-age=60');
     res.json({
-      siteName: cfg['site.name'] || 'FAN EXPO Chicago',
+      siteName: cfg['site.name'] || 'For The Fans Fest',
       recaptchaSiteKey: cfg['recaptcha.site_key'] || null,
       social: {
         shareUrl: cfg['social.share_url'] || env.PUBLIC_URL,
