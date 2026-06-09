@@ -5,6 +5,7 @@ import { query } from '../db/pool.js';
 import { asyncHandler, unauthorized } from '../lib/http.js';
 import { randomToken, sha256 } from '../lib/crypto.js';
 import { audit } from '../lib/audit.js';
+import { recordSuspicious } from '../lib/botblock.js';
 import {
   signAccessToken,
   setAuthCookies,
@@ -72,6 +73,8 @@ authRouter.post(
         `UPDATE users SET failed_logins = $2, locked_until = $3 WHERE id = $1`,
         [user.id, failed, lock],
       );
+      // Feed the BotBlock firewall: credential-stuffing looks like many failures.
+      recordSuspicious(req, 'login_failed', { path: '/auth/login', userAgent: req.get('user-agent') });
       return fail();
     }
 

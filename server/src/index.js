@@ -2,15 +2,17 @@ import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
 import { startHoldReleaseJob } from './jobs/releaseHolds.js';
+import { startBotblock } from './lib/botblock.js';
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {
-   
+
   console.log(`🚀 API listening on ${env.PUBLIC_URL} (port ${env.PORT}, ${env.NODE_ENV})`);
 });
 
-// Background: release expired booth holds (§9).
+// Background: release expired booth holds (§9) + refresh the BotBlock cache.
 startHoldReleaseJob();
+startBotblock();
 
 async function shutdown(signal) {
    

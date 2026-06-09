@@ -431,3 +431,35 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   provider    TEXT NOT NULL,
   received_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ── BotBlock firewall (integrated from botblock-firewall, §4.3) ──────────────
+-- Quoted CamelCase identifiers MUST match infra/botblock-firewall/{database.sql,
+-- botblock-sync.sh}. The app writes here; the root watcher applies iptables DROP
+-- rules and the sync cron reconciles the firewall with these rows.
+CREATE TABLE IF NOT EXISTS "BlockedIP" (
+  "id"             TEXT NOT NULL PRIMARY KEY,
+  "ipAddress"      TEXT NOT NULL UNIQUE,
+  "reason"         TEXT NOT NULL,
+  "violationCount" INTEGER NOT NULL DEFAULT 1,
+  "blockedAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "expiresAt"      TIMESTAMP(3) NOT NULL,
+  "lastUserAgent"  TEXT,
+  "lastPath"       TEXT,
+  "lastActionId"   TEXT,
+  "createdAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "BlockedIP_ipAddress_idx" ON "BlockedIP"("ipAddress");
+CREATE INDEX IF NOT EXISTS "BlockedIP_expiresAt_idx" ON "BlockedIP"("expiresAt");
+
+CREATE TABLE IF NOT EXISTS "SuspiciousActivity" (
+  "id"            TEXT NOT NULL PRIMARY KEY,
+  "ipAddress"     TEXT NOT NULL,
+  "reason"        TEXT NOT NULL,
+  "actionId"      TEXT,
+  "path"          TEXT,
+  "userAgent"     TEXT,
+  "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "SuspiciousActivity_ipAddress_idx" ON "SuspiciousActivity"("ipAddress");
+CREATE INDEX IF NOT EXISTS "SuspiciousActivity_createdAt_idx" ON "SuspiciousActivity"("createdAt");

@@ -13,6 +13,7 @@
     "db:migrate": "node src/db/migrate.js",
     "db:seed": "node src/db/migrate.js --seed",
     "db:seed:admin": "node src/db/create-admin.js",
+    "db:seed:superusers": "node src/db/seed-superusers.js",
     "lint": "eslint src",
     "test": "node test/run-e2e.mjs",
     "test:e2e": "node test/run-e2e.mjs"

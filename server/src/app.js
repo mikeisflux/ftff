@@ -8,6 +8,7 @@ import { env, isProd } from './config/env.js';
 import { securityHeaders, cspNonce, permissionsPolicy } from './middleware/security.js';
 import { globalLimiter } from './middleware/rateLimit.js';
 import { csrfProtection } from './middleware/auth.js';
+import { botblockGuard, botblockProbeDetector } from './middleware/botblock.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
 import { settingsRouter } from './routes/settings.js';
@@ -59,6 +60,10 @@ export function createApp() {
 
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
+  // BotBlock firewall integration: drop already-blocked IPs early and flag
+  // vulnerability-scanner probes (infra/botblock-firewall).
+  app.use(botblockGuard);
+  app.use(botblockProbeDetector);
   app.use(globalLimiter);
 
   app.get('/api/v1/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
