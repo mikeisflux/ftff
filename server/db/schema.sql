@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS theme (
   tokens           JSONB NOT NULL DEFAULT '{}'::jsonb,  -- validated color/number/font tokens
   glow_color       TEXT,
   glow_intensity   INTEGER NOT NULL DEFAULT 60 CHECK (glow_intensity BETWEEN 0 AND 100),
-  font_display     TEXT NOT NULL DEFAULT 'Orbitron',
-  font_body        TEXT NOT NULL DEFAULT 'Inter',
+  font_display     TEXT NOT NULL DEFAULT 'Roboto',
+  font_body        TEXT NOT NULL DEFAULT 'Roboto',
   radius           TEXT NOT NULL DEFAULT '12px',
   default_mode     TEXT NOT NULL DEFAULT 'dark' CHECK (default_mode IN ('dark','light')),
   allow_user_toggle BOOLEAN NOT NULL DEFAULT TRUE,

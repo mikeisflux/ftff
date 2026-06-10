@@ -18,8 +18,8 @@ function applyTokens(theme, mode) {
   root.style.setProperty('--glow-color', theme.glow_color || palette.primary || '#7c3aed');
   root.style.setProperty('--glow-intensity', String((theme.glow_intensity ?? 60) / 100));
   root.style.setProperty('--radius', theme.radius || '12px');
-  root.style.setProperty('--font-display', theme.font_display || 'Orbitron');
-  root.style.setProperty('--font-body', theme.font_body || 'Inter');
+  root.style.setProperty('--font-display', theme.font_display || 'Roboto');
+  root.style.setProperty('--font-body', theme.font_body || 'Roboto');
 }
 
 export function ThemeProvider({ children }) {

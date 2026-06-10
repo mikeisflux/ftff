@@ -34,7 +34,7 @@ VALUES (
       'danger',    '#dc2626'
     )
   ),
-  '#2dd4bf', 65, 'Orbitron', 'Inter', '12px', 'dark', TRUE
+  '#2dd4bf', 65, 'Roboto', 'Roboto', '12px', 'dark', TRUE
 )
 ON CONFLICT (id) DO NOTHING;
 
