@@ -35,6 +35,12 @@ export default function Header() {
     setShare(false);
   }, [pathname]);
 
+  // Lock page scroll behind the full-screen mobile drawer.
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawerOpen]);
+
   // Close share popover on outside click.
   useEffect(() => {
     function onDoc(e) {
@@ -77,6 +83,7 @@ export default function Header() {
   }
 
   return (
+    <>
     <header className="site-header">
       <Link to="/" className="brand glow" aria-label={brandName}>
         {logoUrl ? <img src={logoUrl} alt={brandName} className="brand-logo" /> : brandName}
@@ -166,9 +173,18 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile full-screen accordion drawer */}
+    </header>
+
+      {/* Mobile full-screen accordion drawer. Rendered OUTSIDE the header: the
+          header's backdrop-filter makes it the containing block for fixed
+          descendants, which collapsed the drawer to a 0-height sliver. */}
       {drawerOpen && (
-        <div className="drawer">
+        <div className="drawer" role="dialog" aria-label="Menu">
+          <div className="drawer-top">
+            <span className="brand glow">{brandName}</span>
+            <button className="icon-btn" aria-label="Close menu" onClick={() => setDrawerOpen(false)}>✕</button>
+          </div>
+          <Link to="/buy-tickets" className="btn drawer-cta" onClick={() => setDrawerOpen(false)}>Buy Tickets</Link>
           {nav.map((item) => {
             const hasChildren = item.children?.length > 0;
             return (
@@ -198,6 +214,6 @@ export default function Header() {
           })}
         </div>
       )}
-    </header>
+    </>
   );
 }

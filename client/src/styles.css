@@ -127,6 +127,12 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 
 /* Mobile drawer */
 .drawer { display: none; }
+.drawer-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 10px; margin-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+.drawer-cta { display: block; text-align: center; margin: 12px 0 6px; }
 .drawer-trigger {
   width: 100%; text-align: left; background: none; border: none; cursor: pointer;
   color: var(--color-text); font: inherit; font-weight: 700; padding: 14px 4px;
@@ -179,7 +185,10 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 .info-grid { grid-template-columns: 1fr 1fr; }
 @media (max-width: 820px) { .info-grid { grid-template-columns: 1fr; } }
 .muted { color: var(--color-muted); }
-.section { padding: 48px 0; }
+/* Vertical rhythm only — the shorthand `padding: 48px 0` was clobbering
+   .container's horizontal padding on every "section container" page, leaving
+   mobile content flush against the screen edges. */
+.section { padding-top: 48px; padding-bottom: 48px; }
 
 /* Hero */
 .hero {
@@ -233,10 +242,24 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
   .megamenu { display: none; }       /* desktop menu hidden on mobile */
   .cta-buy { display: none; }        /* CTA lives in the drawer on mobile */
   .hamburger { display: inline-flex; }
+  .site-header { gap: 10px; }
   .drawer {
-    display: block; position: fixed; inset: 64px 0 0 0; z-index: 55;
-    background: var(--color-background); padding: 16px; overflow-y: auto;
+    /* Full-screen overlay above the sticky header; it carries its own close
+       button (the header underneath is covered while open). */
+    display: block; position: fixed; inset: 0; z-index: 70;
+    background: var(--color-background); padding: 14px 16px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
+}
+
+/* Small phones: keep the brand + icon cluster on one comfortable row. */
+@media (max-width: 480px) {
+  .site-header { gap: 8px; padding: 10px 12px; }
+  .header-actions { gap: 6px; }
+  .icon-btn { width: 36px; height: 36px; font-size: 1rem; }
+  .brand { font-size: 1.05rem; }
+  .brand-logo { height: 30px; }
+  .section { padding-top: 32px; padding-bottom: 32px; }
 }
 
 @media (max-width: 720px) {
