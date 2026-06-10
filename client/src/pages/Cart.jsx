@@ -1,27 +1,36 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../store/CartContext.jsx';
+import { useConfig } from '../store/ConfigContext.jsx';
 import { api } from '../lib/api.js';
+import StripePayment from '../components/StripePayment.jsx';
 
 const money = (cents, cur = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format((cents || 0) / 100);
 
+// On-site (white-label) store checkout. Step 1 reviews the cart + contact; step
+// 2 renders the branded Payment Element (with a shipping Address Element) right
+// on our page — no redirect to stripe.com.
 export default function Cart() {
   const cart = useCart();
+  const { config } = useConfig();
   const [customer, setCustomer] = useState({ name: '', email: '' });
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
+  const [intent, setIntent] = useState(null);
 
-  async function checkout(e) {
+  async function continueToPayment(e) {
     e.preventDefault();
     setStatus('submitting');
     setError('');
     try {
-      const { url } = await api('/checkout/store', {
+      const res = await api('/checkout/store/intent', {
         method: 'POST',
         body: { items: cart.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })), customer },
       });
-      window.location.assign(url);
+      setIntent(res);
+      setStatus('idle');
+      window.scrollTo(0, 0);
     } catch (err) {
       setStatus('error');
       setError(
@@ -32,7 +41,7 @@ export default function Cart() {
     }
   }
 
-  if (cart.items.length === 0) {
+  if (cart.items.length === 0 && !intent) {
     return (
       <div className="section container">
         <h1 className="glow">Your Cart</h1>
@@ -42,6 +51,36 @@ export default function Cart() {
     );
   }
 
+  // Step 2 — branded on-site payment.
+  if (intent) {
+    return (
+      <div className="section container" style={{ maxWidth: 560 }}>
+        <h1 className="glow">Checkout</h1>
+        <div className="card" style={{ maxWidth: 520, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}>
+            <span>Total</span><strong>{money(cart.totalCents)}</strong>
+          </div>
+          <p className="muted" style={{ margin: '6px 0 0' }}>Order {intent.orderNumber} · receipt to {customer.email}</p>
+        </div>
+        {config?.stripePublishableKey ? (
+          <StripePayment
+            publishableKey={config.stripePublishableKey}
+            clientSecret={intent.clientSecret}
+            returnPath="/checkout/success"
+            amountLabel={money(cart.totalCents)}
+            collectShipping
+          />
+        ) : (
+          <p className="muted">Payments aren’t configured yet.</p>
+        )}
+        <p style={{ marginTop: 14 }}>
+          <button className="btn secondary" onClick={() => { setIntent(null); setStatus('idle'); }}>← Back to cart</button>
+        </p>
+      </div>
+    );
+  }
+
+  // Step 1 — review cart + contact.
   return (
     <div className="section container" style={{ maxWidth: 720 }}>
       <h1 className="glow">Your Cart</h1>
@@ -62,7 +101,7 @@ export default function Cart() {
         </div>
       </div>
 
-      <form className="card" style={{ marginTop: 16 }} onSubmit={checkout}>
+      <form className="card" style={{ marginTop: 16 }} onSubmit={continueToPayment}>
         <h3>Checkout</h3>
         <label>Full name</label>
         <input value={customer.name} onChange={(e) => setCustomer((c) => ({ ...c, name: e.target.value }))} required />
@@ -71,10 +110,10 @@ export default function Cart() {
         {status === 'error' && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
         <div style={{ marginTop: 14 }}>
           <button className="btn" disabled={status === 'submitting'}>
-            {status === 'submitting' ? 'Redirecting…' : `Pay ${money(cart.totalCents)}`}
+            {status === 'submitting' ? 'Loading…' : `Continue to payment · ${money(cart.totalCents)}`}
           </button>
         </div>
-        <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>Shipping is collected securely at Stripe checkout.</p>
+        <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>Payment and shipping are completed securely on our site.</p>
       </form>
     </div>
   );

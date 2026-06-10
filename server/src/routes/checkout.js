@@ -144,6 +144,36 @@ const storeSchema = z.object({
   }),
 });
 
+// POST /checkout/store/intent — on-site (white-label) store checkout. Creates a
+// PaymentIntent; the branded Payment Element collects payment + shipping on our
+// page. Shipping is attached client-side via the Address Element and lands on
+// pi.shipping, which fulfillment persists.
+checkoutRouter.post(
+  '/store/intent',
+  formLimiter,
+  asyncHandler(async (req, res) => {
+    const { items, customer } = storeSchema.parse(req.body);
+    const stripe = await getStripe();
+    const computed = await computeStoreOrder(items);
+    const order = await createPendingStoreOrder({ customer, computed });
+    const intent = await stripe.paymentIntents.create({
+      amount: computed.totalCents,
+      currency: computed.currency,
+      automatic_payment_methods: { enabled: true },
+      receipt_email: customer.email,
+      description: `Shop order — ${order.order_number}`,
+      metadata: { order_id: order.id, order_number: order.order_number, kind: 'store' },
+    });
+    await query(`UPDATE orders SET stripe_payment_intent = $2 WHERE id = $1`, [order.id, intent.id]);
+    res.json({
+      clientSecret: intent.client_secret,
+      orderNumber: order.order_number,
+      amountCents: computed.totalCents,
+      currency: computed.currency,
+    });
+  }),
+);
+
 // POST /checkout/store — store cart -> Stripe Checkout. Prices server-side,
 // checks inventory, and collects a shipping address for physical goods (§10).
 checkoutRouter.post(

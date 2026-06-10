@@ -5,8 +5,9 @@ import { getStripe, stripeAppearance } from '../lib/stripe.js';
 // our own page (no redirect to stripe.com) and confirms the PaymentIntent.
 // `automatic_payment_methods` on the server means every method enabled in the
 // Stripe account shows here (cards, wallets, Klarna, etc.).
-export default function StripePayment({ publishableKey, clientSecret, returnPath, amountLabel }) {
+export default function StripePayment({ publishableKey, clientSecret, returnPath, amountLabel, collectShipping = false }) {
   const mountRef = useRef(null);
+  const shipRef = useRef(null);
   const stripeRef = useRef(null);
   const elementsRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -16,11 +17,16 @@ export default function StripePayment({ publishableKey, clientSecret, returnPath
   useEffect(() => {
     let cancelled = false;
     let paymentElement = null;
+    let addressElement = null;
     (async () => {
       try {
         const stripe = await getStripe(publishableKey);
         if (cancelled) return;
         const elements = stripe.elements({ clientSecret, appearance: stripeAppearance });
+        if (collectShipping) {
+          addressElement = elements.create('address', { mode: 'shipping' });
+          addressElement.mount(shipRef.current);
+        }
         paymentElement = elements.create('payment', { layout: 'tabs' });
         paymentElement.mount(mountRef.current);
         paymentElement.on('ready', () => !cancelled && setReady(true));
@@ -33,8 +39,9 @@ export default function StripePayment({ publishableKey, clientSecret, returnPath
     return () => {
       cancelled = true;
       try { paymentElement?.unmount(); } catch { /* already gone */ }
+      try { addressElement?.unmount(); } catch { /* already gone */ }
     };
-  }, [publishableKey, clientSecret]);
+  }, [publishableKey, clientSecret, collectShipping]);
 
   async function pay(e) {
     e.preventDefault();
@@ -53,6 +60,12 @@ export default function StripePayment({ publishableKey, clientSecret, returnPath
 
   return (
     <form onSubmit={pay} className="card" style={{ maxWidth: 520 }}>
+      {collectShipping && (
+        <div style={{ marginBottom: 16 }}>
+          <h4 style={{ margin: '0 0 8px' }}>Shipping address</h4>
+          <div ref={shipRef} />
+        </div>
+      )}
       <div ref={mountRef} />
       {error && <p style={{ color: 'var(--color-danger)', marginTop: 12 }}>{error}</p>}
       <button className="btn" style={{ marginTop: 16, width: '100%' }} disabled={!ready || busy}>
