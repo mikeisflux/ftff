@@ -287,9 +287,25 @@ INSERT INTO inventory_pools (key, label, total)
 VALUES ('extra_tables', 'Additional vendor tables', 20)
 ON CONFLICT (key) DO NOTHING;
 
--- Default home hero slide so the homepage hero is admin-manageable out of the
--- box (instead of the hardcoded empty-state fallback). Logo-only (no title, no
--- image) reproduces the branded logo hero. Only inserted when no slides exist.
-INSERT INTO slides (subtitle, cta_label, cta_url, sort_order)
-SELECT 'The ultimate fan experience.', 'Buy Tickets', '/buy-tickets', 0
-WHERE NOT EXISTS (SELECT 1 FROM slides);
+-- Default home hero slider (§7.1.1). Uses the three committed background images
+-- (/retailers/hero-1..3.png) so the carousel works out of the box and survives
+-- container rebuilds — no admin uploads to lose. Idempotent: each slide is
+-- inserted only when its image isn't already present. Also repairs the old
+-- logo-only default slide (no title/image) in place so databases seeded during
+-- the logo-hero regression get the branded background slider back.
+UPDATE slides
+   SET title = 'For The Fans Fest', image_url = '/retailers/hero-2.png'
+ WHERE sort_order = 0 AND image_url IS NULL AND title IS NULL
+   AND subtitle = 'The ultimate fan experience.';
+
+INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, sort_order)
+SELECT 'For The Fans Fest', 'The ultimate fan experience.', '/retailers/hero-2.png', 'Buy Tickets', '/buy-tickets', 0
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-2.png');
+
+INSERT INTO slides (subtitle, image_url, cta_label, cta_url, sort_order)
+SELECT 'The ultimate fan experience.', '/retailers/hero-1.png', 'Buy Tickets', '/buy-tickets', 1
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-1.png');
+
+INSERT INTO slides (subtitle, image_url, cta_label, cta_url, sort_order)
+SELECT 'The ultimate fan experience.', '/retailers/hero-3.png', 'Buy Tickets', '/buy-tickets', 2
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-3.png');
