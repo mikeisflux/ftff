@@ -119,9 +119,77 @@ export async function computeStoreOrder(items) {
   return { lines, subtotalCents, totalCents: subtotalCents, currency: currency || 'usd' };
 }
 
+// How long a pending (unpaid) order reserves stock. Mirrors the 30-minute card
+// hold used for booths; older pending orders are treated as abandoned carts.
+const RESERVATION_WINDOW = '30 minutes';
+
+/**
+ * Authoritative, race-safe availability check, run INSIDE the order-creation
+ * transaction. The pre-checks in computeTicketOrder/computeStoreOrder read
+ * without locks (fine for UX, but two concurrent checkouts for the last unit
+ * would both pass — TOCTOU). Here we lock each ticket_type/variant row
+ * (in sorted order, to avoid deadlocks between concurrent carts) and count
+ * capacity already promised to other live pending orders, so only one of two
+ * racing checkouts can reserve the last unit.
+ */
+async function assertTicketAvailability(client, lines) {
+  const sorted = [...lines].sort((a, b) => String(a.ticketTypeId).localeCompare(String(b.ticketTypeId)));
+  for (const line of sorted) {
+    // Statement 1: take the row lock (the serialization point for this type).
+    // Statement 2: count pending — it MUST be a separate statement, because in
+    // READ COMMITTED a subquery in the locking statement keeps the snapshot
+    // from before the lock wait and never sees the racing order that just
+    // committed. A fresh statement gets a fresh snapshot.
+    const { rows } = await client.query(
+      `SELECT name, quantity_total, quantity_sold FROM ticket_types WHERE id = $1 FOR UPDATE`,
+      [line.ticketTypeId],
+    );
+    const t = rows[0];
+    if (!t) throw badRequest('Ticket type unavailable');
+    if (t.quantity_total == null) continue; // unlimited
+    const { rows: [{ pending }] } = await client.query(
+      `SELECT COALESCE(SUM(oi.quantity), 0) AS pending
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id
+        WHERE oi.ticket_type_id = $1 AND o.status = 'pending'
+          AND o.created_at > now() - $2::interval`,
+      [line.ticketTypeId, RESERVATION_WINDOW],
+    );
+    if (Number(t.quantity_sold) + Number(pending) + line.quantity > t.quantity_total) {
+      throw new HttpError(409, `Sold out: ${t.name}`, 'sold_out');
+    }
+  }
+}
+
+async function assertStoreAvailability(client, lines) {
+  const sorted = [...lines].sort((a, b) => String(a.variantId).localeCompare(String(b.variantId)));
+  for (const line of sorted) {
+    // Lock first, count in a separate statement — see assertTicketAvailability.
+    const { rows } = await client.query(
+      `SELECT v.inventory, p.title
+         FROM product_variants v JOIN products p ON p.id = v.product_id
+        WHERE v.id = $1 FOR UPDATE OF v`,
+      [line.variantId],
+    );
+    const v = rows[0];
+    if (!v) throw badRequest('Item unavailable');
+    const { rows: [{ pending }] } = await client.query(
+      `SELECT COALESCE(SUM(oi.quantity), 0) AS pending
+         FROM order_items oi JOIN orders o ON o.id = oi.order_id
+        WHERE oi.variant_id = $1 AND o.status = 'pending'
+          AND o.created_at > now() - $2::interval`,
+      [line.variantId, RESERVATION_WINDOW],
+    );
+    const available = v.inventory - Number(pending);
+    if (available < line.quantity) {
+      throw new HttpError(409, `Only ${Math.max(available, 0)} left of ${v.title}`, 'out_of_stock');
+    }
+  }
+}
+
 /** Create a pending store order + product order_items. Returns the order row. */
 export async function createPendingStoreOrder({ customer, computed }) {
   return withTransaction(async (client) => {
+    await assertStoreAvailability(client, computed.lines);
     const { rows } = await client.query(
       `INSERT INTO orders (order_number, customer_name, customer_email, customer_phone,
                            kind, subtotal_cents, total_cents, currency, status)
@@ -148,6 +216,7 @@ export async function createPendingStoreOrder({ customer, computed }) {
  */
 export async function createPendingTicketOrder({ customer, computed }) {
   return withTransaction(async (client) => {
+    await assertTicketAvailability(client, computed.lines);
     const { rows } = await client.query(
       `INSERT INTO orders (order_number, customer_name, customer_email, customer_phone,
                            kind, subtotal_cents, total_cents, currency, status)

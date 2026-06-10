@@ -9,7 +9,7 @@ import { randomToken } from '../lib/crypto.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { PRICES, computeExhibitorPricing } from '../lib/exhibitorPricing.js';
-import { getPool, reserve } from '../lib/inventory.js';
+import { getPool, reserve, release as releaseInventory } from '../lib/inventory.js';
 import { sendExhibitorCheckReceived, notifyAdminOfExhibitor } from '../lib/email.js';
 
 // Become an Exhibitor (§9 extended). A vendor fills the application + agrees to
@@ -144,19 +144,6 @@ exhibitorRouter.post(
   asyncHandler(async (req, res) => {
     const { applicationId, boothId, choice, method } = checkoutSchema.parse(req.body);
 
-    const { rows: appRows } = await query(
-      `SELECT * FROM exhibitor_applications WHERE id = $1`,
-      [applicationId],
-    );
-    const app = appRows[0];
-    if (!app) throw notFound('Application not found');
-    if (['deposit_paid', 'paid_in_full'].includes(app.status)) {
-      throw new HttpError(409, 'This application has already been paid.', 'already_paid');
-    }
-
-    const amountCents = choice === 'deposit' ? app.deposit_cents : app.total_cents;
-    if (amountCents <= 0) throw badRequest('Nothing to charge for this application.');
-
     const currency = (await getSettingValue('stripe.currency')) || 'usd';
     // Card needs Stripe configured before we reserve anything.
     let stripe = null;
@@ -165,9 +152,41 @@ exhibitorRouter.post(
     const holdMs = method === 'card' ? 30 * 60_000 : 30 * 24 * 60_000 * 60; // 30 min card / 30 days check
     const holdUntil = new Date(Date.now() + holdMs);
 
-    // Atomically claim the booth + reserve the extra tables. If tables run out,
-    // the whole transaction rolls back (booth released) — no overselling.
-    const booth = await withTransaction(async (client) => {
+    // Atomically claim the booth + reserve the extra tables. The application row
+    // is locked FOR UPDATE so concurrent/repeat checkouts for the same
+    // application serialize: the paid-status check can't go stale, and a repeat
+    // checkout (retry, or picking a different booth) returns its previous booth
+    // hold + table reservation before claiming anew instead of leaking them.
+    // If tables run out, the whole transaction rolls back — no overselling.
+    const { app, booth, amountCents } = await withTransaction(async (client) => {
+      const { rows: appRows } = await client.query(
+        `SELECT * FROM exhibitor_applications WHERE id = $1 FOR UPDATE`,
+        [applicationId],
+      );
+      const app = appRows[0];
+      if (!app) throw notFound('Application not found');
+      if (['deposit_paid', 'paid_in_full'].includes(app.status)) {
+        throw new HttpError(409, 'This application has already been paid.', 'already_paid');
+      }
+
+      const amountCents = choice === 'deposit' ? app.deposit_cents : app.total_cents;
+      if (amountCents <= 0) throw badRequest('Nothing to charge for this application.');
+
+      // Returning to checkout: release what THIS application holds. Guarded by
+      // status so a cancelled app's stale booth_id can't release someone else's
+      // hold.
+      if (['awaiting_payment', 'check_pending'].includes(app.status)) {
+        if (app.booth_id) {
+          await client.query(
+            `UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status='held'`,
+            [app.booth_id],
+          );
+        }
+        if (app.reserved_tables > 0) {
+          await releaseInventory(TABLE_POOL, app.reserved_tables, client);
+        }
+      }
+
       const claim = await client.query(
         `UPDATE booths SET status='held', held_until=$2
           WHERE id=$1 AND status='available'
@@ -191,7 +210,7 @@ exhibitorRouter.post(
         [applicationId, boothId, app.extra_tables, method, choice, holdUntil,
           method === 'check' ? 'check_pending' : 'awaiting_payment'],
       );
-      return claim.rows[0];
+      return { app, booth: claim.rows[0], amountCents };
     });
 
     if (method === 'check') {

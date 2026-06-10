@@ -1,4 +1,4 @@
-import { query } from '../db/pool.js';
+import { query, withTransaction } from '../db/pool.js';
 import { release as releaseInventory } from '../lib/inventory.js';
 import { sendBalanceInvoice } from '../lib/exhibitorBalance.js';
 
@@ -11,19 +11,45 @@ const BALANCE_LEAD_DAYS = 30;
 // never touched (their space is secured).
 export async function releaseExpiredExhibitorHolds() {
   const { rows } = await query(
-    `SELECT id, booth_id, reserved_tables FROM exhibitor_applications
+    `SELECT id FROM exhibitor_applications
       WHERE status IN ('awaiting_payment','check_pending')
         AND hold_until IS NOT NULL AND hold_until < now()`,
   );
-  for (const a of rows) {
-    if (a.reserved_tables > 0) await releaseInventory('extra_tables', a.reserved_tables).catch(() => {});
-    if (a.booth_id) {
-      await query(`UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status<>'sold'`, [a.booth_id]).catch(() => {});
-    }
-    await query(`UPDATE exhibitor_applications SET status='cancelled' WHERE id=$1`, [a.id]).catch(() => {});
+  let released = 0;
+  for (const { id } of rows) {
+    // Each release is one transaction with the app row locked FOR UPDATE — the
+    // payment webhook locks the same row, so a payment landing right at the
+    // hold boundary either commits first (re-check below skips the app) or
+    // waits until the release commits. Without this, the old code could mark a
+    // just-paid application 'cancelled' and double-release its tables.
+    await withTransaction(async (client) => {
+      const { rows: r } = await client.query(
+        `SELECT id, booth_id, reserved_tables, status, hold_until
+           FROM exhibitor_applications WHERE id = $1 FOR UPDATE`,
+        [id],
+      );
+      const a = r[0];
+      if (!a || !['awaiting_payment', 'check_pending'].includes(a.status)
+          || !a.hold_until || new Date(a.hold_until) > new Date()) {
+        return; // paid or otherwise changed since the scan — leave it alone
+      }
+      if (a.reserved_tables > 0) await releaseInventory('extra_tables', a.reserved_tables, client);
+      if (a.booth_id) {
+        await client.query(
+          `UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status<>'sold'`,
+          [a.booth_id],
+        );
+      }
+      await client.query(
+        `UPDATE exhibitor_applications SET status='cancelled', reserved_tables=0, hold_until=NULL
+          WHERE id=$1`,
+        [a.id],
+      );
+      released += 1;
+    }).catch((err) => console.error(`Hold release failed for ${id}:`, err.message));
   }
-  if (rows.length > 0) console.log(`Released ${rows.length} expired exhibitor hold(s).`);
-  return rows.length;
+  if (released > 0) console.log(`Released ${released} expired exhibitor hold(s).`);
+  return released;
 }
 
 // Automatically email a balance invoice to deposit-only exhibitors once the show
@@ -44,11 +70,25 @@ export async function autoSendExhibitorBalances() {
   );
   let sent = 0;
   for (const app of rows) {
+    // Claim the send BEFORE emailing (conditional update). Overlapping runs —
+    // or multiple workers, if this ever runs clustered — can't double-send: only
+    // one claim succeeds. On failure the claim is returned for the next run.
+    const claim = await query(
+      `UPDATE exhibitor_applications SET balance_request_sent_at = now()
+        WHERE id = $1 AND balance_request_sent_at IS NULL AND status = 'deposit_paid'
+        RETURNING id`,
+      [app.id],
+    );
+    if (claim.rowCount === 0) continue;
     try {
       await sendBalanceInvoice(app);
       sent += 1;
     } catch (err) {
-      // Stripe not configured yet, etc. — leave for the next run.
+      // Stripe not configured yet, etc. — release the claim for the next run.
+      await query(
+        `UPDATE exhibitor_applications SET balance_request_sent_at = NULL WHERE id = $1`,
+        [app.id],
+      ).catch(() => {});
       console.error(`Auto balance invoice skipped for ${app.reference}:`, err.message);
     }
   }

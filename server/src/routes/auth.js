@@ -67,11 +67,16 @@ authRouter.post(
 
     const ok = await argon2.verify(user.password_hash, password).catch(() => false);
     if (!ok) {
-      const failed = user.failed_logins + 1;
-      const lock = failed >= MAX_FAILED ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null;
+      // Atomic increment: concurrent failures can't read the same stale counter
+      // and under-count toward the lockout threshold.
       await query(
-        `UPDATE users SET failed_logins = $2, locked_until = $3 WHERE id = $1`,
-        [user.id, failed, lock],
+        `UPDATE users
+            SET failed_logins = failed_logins + 1,
+                locked_until = CASE WHEN failed_logins + 1 >= $2
+                                    THEN now() + make_interval(mins => $3)
+                                    ELSE locked_until END
+          WHERE id = $1`,
+        [user.id, MAX_FAILED, LOCK_MINUTES],
       );
       // Feed the BotBlock firewall: credential-stuffing looks like many failures.
       recordSuspicious(req, 'login_failed', { path: '/auth/login', userAgent: req.get('user-agent') });
@@ -114,9 +119,20 @@ authRouter.post(
       throw unauthorized('Invalid refresh token');
     }
 
-    // Rotate: revoke old, issue new.
+    // Rotate: atomically revoke the old token FIRST (compare-and-set on
+    // revoked_at), then issue the new one. Two concurrent refreshes with the
+    // same token can't both rotate — exactly one wins the revoke; the loser
+    // gets a 401 instead of a second live token. Revoking before issuing also
+    // means a crash mid-rotation can't leave two valid tokens.
+    const revoked = await query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
+      [rec.id],
+    );
+    if (revoked.rowCount === 0) {
+      clearAuthCookies(res);
+      throw unauthorized('Invalid refresh token');
+    }
     const newRaw = await issueRefreshToken(rec.user_id, req);
-    await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [rec.id]);
 
     const user = { id: rec.user_id, email: rec.email, role: rec.role };
     setAuthCookies(res, {

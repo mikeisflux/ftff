@@ -31,6 +31,12 @@ export async function enrollReward({ name, email }) {
       return rows[0];
     } catch (err) {
       if (err.code === '23505' && /code/.test(err.constraint || '')) continue; // dup code, retry
+      if (err.code === '23505' && /email/.test(err.constraint || '')) {
+        // Concurrent enroll for the same email lost the INSERT race — the
+        // account now exists, so return it instead of erroring.
+        const again = await query(`SELECT * FROM exhibitor_rewards WHERE email = $1`, [email]);
+        if (again.rows[0]) return again.rows[0];
+      }
       throw err;
     }
   }
