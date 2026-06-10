@@ -73,6 +73,68 @@ checkoutRouter.post(
   }),
 );
 
+// POST /checkout/tickets/intent — on-site (white-label) checkout. Creates a
+// PaymentIntent so the branded Stripe Payment Element can collect payment
+// directly on forfansfest.com. automatic_payment_methods surfaces every method
+// enabled on the Stripe account (cards, wallets, Klarna, etc.).
+checkoutRouter.post(
+  '/tickets/intent',
+  formLimiter,
+  asyncHandler(async (req, res) => {
+    const { items, customer, referralCode } = cartSchema.parse(req.body);
+    const stripe = await getStripe();
+    const computed = await computeTicketOrder(items);
+    const order = await createPendingTicketOrder({ customer, computed });
+    if (referralCode) {
+      await query(`UPDATE orders SET referral_code = $2 WHERE id = $1`, [order.id, referralCode.trim()]);
+    }
+    const intent = await stripe.paymentIntents.create({
+      amount: computed.totalCents,
+      currency: computed.currency,
+      automatic_payment_methods: { enabled: true },
+      receipt_email: customer.email,
+      description: `Tickets — ${order.order_number}`,
+      metadata: { order_id: order.id, order_number: order.order_number, kind: 'ticket' },
+    });
+    await query(`UPDATE orders SET stripe_payment_intent = $2 WHERE id = $1`, [order.id, intent.id]);
+    res.json({
+      clientSecret: intent.client_secret,
+      orderNumber: order.order_number,
+      amountCents: computed.totalCents,
+      currency: computed.currency,
+    });
+  }),
+);
+
+// GET /checkout/intent/:piId — post-payment confirmation lookup (Payment Element
+// flow). Mirrors /session/:sessionId but keyed by PaymentIntent id.
+checkoutRouter.get(
+  '/intent/:piId',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
+      `SELECT id, order_number, status, total_cents, currency FROM orders WHERE stripe_payment_intent = $1`,
+      [req.params.piId],
+    );
+    const order = rows[0];
+    if (!order) throw notFound('Order not found');
+    let tickets = [];
+    if (order.status === 'paid') {
+      tickets = (
+        await query(
+          `SELECT t.qr_token, t.attendee_name, tt.name AS ticket_name
+             FROM tickets t JOIN ticket_types tt ON tt.id = t.ticket_type_id
+            WHERE t.order_id = $1 ORDER BY t.created_at`,
+          [order.id],
+        )
+      ).rows;
+    }
+    res.json({
+      order: { orderNumber: order.order_number, status: order.status, totalCents: order.total_cents, currency: order.currency },
+      tickets,
+    });
+  }),
+);
+
 const storeSchema = z.object({
   items: z.array(z.object({ variantId: z.string().uuid(), quantity: z.number().int().min(1).max(50) })).min(1),
   customer: z.object({

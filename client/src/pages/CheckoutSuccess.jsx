@@ -12,19 +12,23 @@ const money = (cents, cur = 'USD') =>
 export default function CheckoutSuccess() {
   const [params] = useSearchParams();
   const sessionId = params.get('session_id');
+  const paymentIntent = params.get('payment_intent'); // on-site Payment Element flow
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!sessionId) {
-      setError('Missing session reference.');
+    if (!sessionId && !paymentIntent) {
+      setError('Missing order reference.');
       return undefined;
     }
+    const lookup = sessionId
+      ? `/checkout/session/${encodeURIComponent(sessionId)}`
+      : `/checkout/intent/${encodeURIComponent(paymentIntent)}`;
     let tries = 0;
     let timer;
     async function poll() {
       try {
-        const res = await api(`/checkout/session/${encodeURIComponent(sessionId)}`);
+        const res = await api(lookup);
         setData(res);
         if (res.order.status !== 'paid' && tries < 10) {
           tries += 1;
@@ -36,7 +40,7 @@ export default function CheckoutSuccess() {
     }
     poll();
     return () => clearTimeout(timer);
-  }, [sessionId]);
+  }, [sessionId, paymentIntent]);
 
   if (error) {
     return (

@@ -71,6 +71,29 @@ webhookRouter.post(
           }
           break;
         }
+        case 'payment_intent.succeeded': {
+          // On-site (Payment Element) checkout. Fulfil from the PaymentIntent via
+          // the same logic as Checkout Sessions. PaymentIntents created by a
+          // Checkout Session don't carry our order_id, so they're skipped here
+          // (those fulfil via checkout.session.completed instead).
+          const pi = event.data.object;
+          if (!pi.metadata?.order_id) break;
+          const result = await fulfillCheckoutSession({
+            metadata: pi.metadata,
+            payment_intent: pi.id,
+            id: null,
+            shipping_details: pi.shipping ?? null,
+          });
+          if (result?.order && !result.alreadyPaid) {
+            const order = result.order;
+            const send =
+              order.kind === 'ticket' ? sendTicketDelivery
+              : order.kind === 'vendor' ? sendBoothConfirmation
+              : sendOrderConfirmation;
+            await send(order).catch((err) => console.error('Confirmation email failed:', err.message));
+          }
+          break;
+        }
         default:
           break; // ignore unhandled event types
       }
