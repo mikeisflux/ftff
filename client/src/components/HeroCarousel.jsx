@@ -11,6 +11,7 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
   const logo = (mode === 'light' ? theme?.logo_light_url : theme?.logo_dark_url) || theme?.logo_url;
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [failed, setFailed] = useState({}); // slide image URLs that failed to load
   const touchX = useRef(null);
   const count = slides.length;
 
@@ -42,6 +43,9 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
   }
 
   const slide = slides[i];
+  // Use the slide image only if it hasn't failed to load. A missing image
+  // (e.g. an admin upload lost on container rebuild) falls back to the logo.
+  const bgUrl = slide.image_url && !failed[slide.image_url] ? slide.image_url : null;
 
   return (
     <section
@@ -56,12 +60,23 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
         touchX.current = null;
       }}
       style={{
-        background: slide.image_url
-          ? `linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6)), url(${slide.image_url}) center/cover`
+        background: bgUrl
+          ? `linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6)), url(${bgUrl}) center/cover`
           : undefined,
       }}
       aria-roledescription="carousel"
     >
+      {/* Probe the slide image; on error drop the background so the hero
+          degrades to the branded glowing logo instead of an empty frame. */}
+      {slide.image_url && !failed[slide.image_url] && (
+        <img
+          src={slide.image_url}
+          alt=""
+          aria-hidden="true"
+          style={{ display: 'none' }}
+          onError={() => setFailed((f) => ({ ...f, [slide.image_url]: true }))}
+        />
+      )}
       <div className="container">
         {slide.title
           ? <h1 className="glow">{slide.title}</h1>
