@@ -113,11 +113,21 @@ INSERT INTO ticket_types (code, name, description, price_cents, is_digital, sort
   ('friday',    'Friday',  'Single-day admission for Friday.',   4000, FALSE, 1, '/tickets/friday.png'),
   ('saturday',  'Saturday','Single-day admission for Saturday.', 4000, FALSE, 2, '/tickets/saturday.png'),
   ('sunday',    'Sunday',  'Single-day admission for Sunday.',   4000, FALSE, 3, '/tickets/sunday.png'),
-  ('three_day', '3-Day',   'All three days. Best value.',        8000, FALSE, 4, '/tickets/three_day.png'),
+  ('three_day', '2-Day',   'Any two days. Great value.',         8000, FALSE, 4, '/tickets/two_day.png'),
   ('digital',   'Digital', 'Virtual Con livestream access — login with your confirmation number.', 1000, TRUE, 5, '/tickets/digital.png')
 ON CONFLICT (code) DO UPDATE
   -- Re-seed refreshes copy + tile image but NEVER overwrites admin-set prices.
   SET image_url = COALESCE(ticket_types.image_url, EXCLUDED.image_url);
+
+-- Repoint the multi-day pass from the old "3-Day" tile to the "2-Day" tile on
+-- DBs seeded before this change. Guarded to the old default so an admin-set
+-- custom image is preserved; idempotent on re-run.
+UPDATE ticket_types
+   SET image_url   = '/tickets/two_day.png',
+       name        = '2-Day',
+       description = 'Any two days. Great value.'
+ WHERE code = 'three_day'
+   AND image_url = '/tickets/three_day.png';
 
 -- ── default mega-menu (§7.0) ─────────────────────────────────────────────────
 DO $$
