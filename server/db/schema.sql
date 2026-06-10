@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS slides (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title       TEXT,
   subtitle    TEXT,
-  image_url   TEXT NOT NULL,
+  image_url   TEXT,   -- optional: a slide with no image + no title shows the brand logo
   cta_label   TEXT,
   cta_url     TEXT,
   sort_order  INTEGER NOT NULL DEFAULT 0,
@@ -122,6 +122,8 @@ CREATE TABLE IF NOT EXISTS slides (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Allow logo-only slides (no background image) for existing databases.
+ALTER TABLE slides ALTER COLUMN image_url DROP NOT NULL;
 DROP TRIGGER IF EXISTS trg_slides_updated ON slides;
 CREATE TRIGGER trg_slides_updated BEFORE UPDATE ON slides
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

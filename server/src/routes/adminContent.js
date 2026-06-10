@@ -26,7 +26,7 @@ adminSlidesRouter.use(...guard);
 const slideSchema = z.object({
   title: z.string().max(200).optional().nullable(),
   subtitle: z.string().max(300).optional().nullable(),
-  image_url: z.string().url(),
+  image_url: z.string().max(500).optional().nullable(),
   cta_label: z.string().max(80).optional().nullable(),
   cta_url: z.string().max(300).optional().nullable(),
   is_active: z.boolean().optional(),
@@ -37,7 +37,7 @@ adminSlidesRouter.post('/', asyncHandler(async (req, res) => {
   const { rows } = await query(
     `INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, is_active, sort_order)
      VALUES ($1,$2,$3,$4,$5,$6,(SELECT COALESCE(MAX(sort_order)+1,0) FROM slides)) RETURNING *`,
-    [s.title ?? null, s.subtitle ?? null, s.image_url, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
+    [s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
   );
   await audit(req.user.id, 'slide.create', { entity: 'slide', entityId: rows[0].id });
   res.status(201).json({ slide: rows[0] });
@@ -46,7 +46,7 @@ adminSlidesRouter.put('/:id', asyncHandler(async (req, res) => {
   const s = slideSchema.parse(req.body);
   const { rows } = await query(
     `UPDATE slides SET title=$2, subtitle=$3, image_url=$4, cta_label=$5, cta_url=$6, is_active=$7 WHERE id=$1 RETURNING *`,
-    [req.params.id, s.title ?? null, s.subtitle ?? null, s.image_url, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
+    [req.params.id, s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
   );
   if (!rows[0]) throw notFound('Slide not found');
   res.json({ slide: rows[0] });

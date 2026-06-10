@@ -44,9 +44,9 @@ export default function Slides() {
         </div>
         <label>Subtitle</label>
         <input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
-        <label>Image</label>
+        <label>Image <span className="muted" style={{ fontWeight: 400 }}>(optional — leave blank, with no title, to show the logo)</span></label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://… or upload" required />
+          <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://… or upload (optional)" />
           <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} style={{ width: 'auto' }} />
         </div>
         {form.image_url && <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />}

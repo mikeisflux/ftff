@@ -63,7 +63,11 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
       aria-roledescription="carousel"
     >
       <div className="container">
-        <h1 className="glow">{slide.title || fallbackTitle}</h1>
+        {slide.title
+          ? <h1 className="glow">{slide.title}</h1>
+          : logo
+            ? <img src={logo} alt={fallbackTitle} className="hero-logo" />
+            : <h1 className="glow">{fallbackTitle}</h1>}
         {slide.subtitle && <p className="muted" style={{ fontSize: '1.2rem' }}>{slide.subtitle}</p>}
         {slide.cta_url ? (
           <Link to={slide.cta_url} className="btn">{slide.cta_label || 'Learn More'}</Link>

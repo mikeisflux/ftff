@@ -278,8 +278,8 @@ VALUES ('extra_tables', 'Additional vendor tables', 20)
 ON CONFLICT (key) DO NOTHING;
 
 -- Default home hero slide so the homepage hero is admin-manageable out of the
--- box (instead of the hardcoded empty-state fallback). Only inserted when no
--- slides exist yet — never overrides slides an admin has created.
-INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, sort_order)
-SELECT 'For The Fans Fest', 'The ultimate fan experience.', '/retailers/hero-2.png', 'Buy Tickets', '/buy-tickets', 0
+-- box (instead of the hardcoded empty-state fallback). Logo-only (no title, no
+-- image) reproduces the branded logo hero. Only inserted when no slides exist.
+INSERT INTO slides (subtitle, cta_label, cta_url, sort_order)
+SELECT 'The ultimate fan experience.', 'Buy Tickets', '/buy-tickets', 0
 WHERE NOT EXISTS (SELECT 1 FROM slides);
