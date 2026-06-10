@@ -77,6 +77,19 @@ webhookRouter.post(
           // Checkout Session don't carry our order_id, so they're skipped here
           // (those fulfil via checkout.session.completed instead).
           const pi = event.data.object;
+          // Exhibitor on-site payments are tracked separately from the orders table.
+          if (pi.metadata?.kind === 'exhibitor') {
+            const exh = await fulfillExhibitorSession({
+              metadata: pi.metadata,
+              amount_total: pi.amount_received ?? pi.amount,
+            });
+            if (exh?.application && !exh.alreadyPaid) {
+              await sendExhibitorPaymentConfirmation(exh.application, exh.phase).catch((err) =>
+                console.error('Exhibitor email failed:', err.message),
+              );
+            }
+            break;
+          }
           if (!pi.metadata?.order_id) break;
           const result = await fulfillCheckoutSession({
             metadata: pi.metadata,

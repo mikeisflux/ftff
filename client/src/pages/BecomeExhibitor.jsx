@@ -5,6 +5,7 @@ import { useConfig } from '../store/ConfigContext.jsx';
 import { computeExhibitorPricing, money, PRICES } from '../lib/exhibitorPricing.js';
 import { EXHIBITOR_TERMS, EXHIBITOR_TERMS_TITLE } from '../content/exhibitorTerms.js';
 import BoothPicker from '../components/BoothPicker.jsx';
+import StripePayment from '../components/StripePayment.jsx';
 
 const BLANK = {
   vendor_name: '', product_desc: '', num_attendees: '',
@@ -24,8 +25,9 @@ const MEALS = [
 ];
 
 export default function BecomeExhibitor() {
-  const { getRecaptchaToken } = useConfig();
-  const [step, setStep] = useState('form'); // form | pay | done
+  const { getRecaptchaToken, config } = useConfig();
+  const [step, setStep] = useState('form'); // form | pay | card | done
+  const [cardIntent, setCardIntent] = useState(null); // { clientSecret, amountCents }
   const [form, setForm] = useState(BLANK);
   const [agreed, setAgreed] = useState(false);
   const [result, setResult] = useState(null);
@@ -89,8 +91,8 @@ export default function BecomeExhibitor() {
         method: 'POST',
         body: { applicationId: result.applicationId, boothId: booth.id, choice, method },
       });
-      if (res.url) { window.location.assign(res.url); return; }
       if (res.method === 'check') { setStep('done'); return; }
+      if (res.clientSecret) { setCardIntent(res); setStep('card'); window.scrollTo(0, 0); return; }
     } catch (err) {
       setError(
         err.data?.code === 'booth_unavailable' ? 'That booth was just taken — pick another.'
@@ -112,6 +114,33 @@ export default function BecomeExhibitor() {
           <p style={{ color: 'var(--color-success)' }}>✓ Thanks! Your application <strong>{result?.reference}</strong> is in.</p>
           <p>You chose to pay by check. Make your check or money order payable to <strong>Undeniable Ventures</strong> and mail it to <strong>6 Pilgrim Drive, Succasunna NJ 07876</strong>. Your booth is held for you and we’ll confirm once payment is received.</p>
         </div>
+      </div>
+    );
+  }
+
+  // ── Card payment (on-site Payment Element) ──────────────────────────────────
+  if (step === 'card' && cardIntent) {
+    return (
+      <div className="section container" style={{ maxWidth: 560 }}>
+        <h1 className="glow">Payment</h1>
+        <div className="card" style={{ maxWidth: 520, marginBottom: 16 }}>
+          <p className="muted" style={{ margin: 0 }}>
+            Application {result.reference} · {choice === 'deposit' ? 'Deposit' : 'Full payment'} · Booth {booth?.label}
+          </p>
+        </div>
+        {config?.stripePublishableKey ? (
+          <StripePayment
+            publishableKey={config.stripePublishableKey}
+            clientSecret={cardIntent.clientSecret}
+            returnPath="/become-an-exhibitor/success"
+            amountLabel={money(cardIntent.amountCents)}
+          />
+        ) : (
+          <p className="muted">Card payments aren’t enabled yet.</p>
+        )}
+        <p style={{ marginTop: 14 }}>
+          <button className="btn secondary" onClick={() => { setCardIntent(null); setStep('pay'); }}>← Back</button>
+        </p>
       </div>
     );
   }

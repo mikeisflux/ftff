@@ -200,19 +200,15 @@ exhibitorRouter.post(
       return res.json({ ok: true, method: 'check', reference: app.reference });
     }
 
-    // Card → Stripe Checkout for the chosen amount.
+    // Card → on-site Payment Element. Create a PaymentIntent for the chosen
+    // amount; the branded Payment Element collects payment on our page.
     const phaseLabel = choice === 'deposit' ? 'Deposit' : 'Full payment';
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      customer_email: app.contact_email,
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency,
-          unit_amount: amountCents,
-          product_data: { name: `Exhibitor ${phaseLabel} — ${app.vendor_name} (Booth ${booth.label})` },
-        },
-      }],
+    const intent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency,
+      automatic_payment_methods: { enabled: true },
+      receipt_email: app.contact_email,
+      description: `Exhibitor ${phaseLabel} — ${app.vendor_name} (Booth ${booth.label})`,
       metadata: {
         kind: 'exhibitor',
         application_id: app.id,
@@ -220,11 +216,11 @@ exhibitorRouter.post(
         phase: choice, // 'deposit' | 'full'
         booth_id: boothId,
       },
-      success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor`,
     });
-    await query(`UPDATE exhibitor_applications SET stripe_session_id=$2 WHERE id=$1`, [app.id, session.id]);
-    res.json({ url: session.url, method: 'card', reference: app.reference });
+    // Reuse stripe_session_id to store the PaymentIntent id (our lookup key for
+    // the confirmation page).
+    await query(`UPDATE exhibitor_applications SET stripe_session_id=$2 WHERE id=$1`, [app.id, intent.id]);
+    res.json({ clientSecret: intent.client_secret, method: 'card', reference: app.reference, amountCents });
   }),
 );
 

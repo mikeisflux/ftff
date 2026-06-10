@@ -7,19 +7,20 @@ import { money } from '../lib/exhibitorPricing.js';
 // flip the application to paid (deposit or full).
 export default function ExhibitorSuccess() {
   const [params] = useSearchParams();
-  const sessionId = params.get('session_id');
+  // session_id (legacy hosted) or payment_intent (on-site Payment Element).
+  const ref = params.get('session_id') || params.get('payment_intent');
   const [app, setApp] = useState(null);
   const [tries, setTries] = useState(0);
 
   useEffect(() => {
-    if (!sessionId) return undefined;
+    if (!ref) return undefined;
     let active = true;
-    api(`/exhibitor/session/${sessionId}`)
+    api(`/exhibitor/session/${ref}`)
       .then((d) => active && setApp(d.application))
       .catch(() => {});
     const t = setTimeout(() => active && setTries((n) => n + 1), 2000);
     return () => { active = false; clearTimeout(t); };
-  }, [sessionId, tries]);
+  }, [ref, tries]);
 
   const paid = app && ['deposit_paid', 'paid_in_full'].includes(app.status);
 
@@ -27,8 +28,8 @@ export default function ExhibitorSuccess() {
     <div className="section container" style={{ maxWidth: 640 }}>
       <h1 className="glow">Exhibitor payment</h1>
       <div className="card">
-        {!sessionId ? (
-          <p className="muted">No payment session found.</p>
+        {!ref ? (
+          <p className="muted">No payment reference found.</p>
         ) : !paid ? (
           <p className="muted">Confirming your payment… this can take a few seconds.</p>
         ) : (
