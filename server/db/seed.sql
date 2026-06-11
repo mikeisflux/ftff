@@ -267,6 +267,19 @@ ON CONFLICT (slug) DO UPDATE
       seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,
       is_published = TRUE, published_at = COALESCE(pages.published_at, now());
 
+-- ── home hero ────────────────────────────────────────────────────────────────
+-- The home hero shows the centered brand logo by default (HeroCarousel renders
+-- the logo when there are no slides). Earlier versions auto-seeded background
+-- slides that turned it into a multi-image carousel; remove those so it returns
+-- to the single logo hero. Admins can still add their own slides in Hero Slides
+-- to make it a carousel again — only the auto-seeded defaults are removed here.
+DELETE FROM slides
+ WHERE cta_url = '/buy-tickets'
+   AND image_url IN ('/retailers/hero-1.png', '/retailers/hero-2.png', '/retailers/hero-3.png');
+DELETE FROM slides
+ WHERE image_url IS NULL AND title IS NULL
+   AND subtitle = 'The ultimate fan experience.';
+
 -- ── booths (default vendor floor inventory; admin replaces via the editor) ───
 INSERT INTO booths (label, zone, price_cents, pos_x, pos_y, width, height) VALUES
   ('A1', 'Artist Alley',  35000, 0.06, 0.10, 0.16, 0.16),
