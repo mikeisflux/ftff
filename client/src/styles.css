@@ -93,6 +93,10 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
   .ap-tiles { grid-template-columns: 1fr; }
 }
 
+/* Per-hotel photo gallery. */
+.hotel-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.hotel-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius); display: block; }
+
 /* Cookie / privacy consent banner (admin-togglable). */
 .consent-banner {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;

@@ -24,6 +24,7 @@ import SocialToolkit from './pages/SocialToolkit.jsx';
 import PastExhibitors from './pages/PastExhibitors.jsx';
 import GettingHere from './pages/GettingHere.jsx';
 import TravelHotels from './pages/TravelHotels.jsx';
+import HotelDetail from './pages/HotelDetail.jsx';
 import ShowGuides from './pages/ShowGuides.jsx';
 import FirstTimeGuide from './pages/FirstTimeGuide.jsx';
 import MeetingCelebsGuide from './pages/MeetingCelebsGuide.jsx';
@@ -152,6 +153,7 @@ export default function App() {
           {/* Guests grid + category filters */}
           <Route path="/all-guests" element={<Guests />} />
           <Route path="/guests/:id" element={<GuestDetail />} />
+          <Route path="/travel-hotels/:slug" element={<HotelDetail />} />
           {Object.entries(GUEST_CATEGORY_ROUTES).map(([route, category]) => (
             <Route key={route} path={`/${route}`} element={<Guests category={category} />} />
           ))}

@@ -1,53 +1,10 @@
 import { Link } from 'react-router-dom';
 import HeroCarousel from '../components/HeroCarousel.jsx';
+import { HOTELS } from '../content/hotels.js';
 
-// Nearby hotels for For The Fans Fest at Harrah's Resort Atlantic City. Rates
-// fluctuate by date, so we link straight to each hotel's booking page rather
-// than hardcoding prices.
-const HOTELS = [
-  {
-    name: "Harrah's Resort Atlantic City",
-    img: '/retailers/hero-gettinghere.png',
-    location: "777 Harrah's Blvd, Atlantic City, NJ 08401",
-    distance: 'Host hotel — the venue itself',
-    tel: '(609) 441-5000',
-    book: 'https://www.caesars.com/harrahs-atlantic-city',
-    host: true,
-  },
-  {
-    name: 'Borgata Hotel Casino & Spa',
-    img: '/retailers/hero-2.png',
-    location: '1 Borgata Way, Atlantic City, NJ 08401',
-    distance: 'About 0.5 miles — Marina District',
-    tel: '(609) 317-1000',
-    book: 'https://www.theborgata.com/',
-  },
-  {
-    name: 'Golden Nugget Atlantic City',
-    img: '/retailers/hero-3.png',
-    location: '600 Huron Ave, Atlantic City, NJ 08401',
-    distance: 'About 0.6 miles — Marina District',
-    tel: '(609) 441-2000',
-    book: 'https://www.goldennugget.com/atlantic-city/',
-  },
-  {
-    name: 'Ocean Casino Resort',
-    img: '/retailers/hero-1.png',
-    location: '500 Boardwalk, Atlantic City, NJ 08401',
-    distance: 'About 3 miles — Boardwalk',
-    tel: '(609) 783-8899',
-    book: 'https://www.theoceanac.com/',
-  },
-  {
-    name: 'Hard Rock Hotel & Casino Atlantic City',
-    img: '/retailers/hero-corporate.png',
-    location: '1000 Boardwalk, Atlantic City, NJ 08401',
-    distance: 'About 3 miles — Boardwalk',
-    tel: '(609) 449-1000',
-    book: 'https://casino.hardrock.com/atlantic-city',
-  },
-];
-
+// Nearby hotels for For The Fans Fest at Harrah's Resort Atlantic City. Each
+// tile links to a per-hotel page; rates fluctuate by date, so we link straight
+// to each hotel's booking page rather than hardcoding prices.
 export default function TravelHotels() {
   const slides = [{
     id: 0,
@@ -71,13 +28,21 @@ export default function TravelHotels() {
         {HOTELS.map((h, i) => (
           <div className="info-row" key={h.name} style={{ marginTop: i === 0 ? 24 : 36 }}>
             {/* alternate image side on wide screens */}
-            <img src={h.img} alt={h.name} style={{ width: '100%', borderRadius: 'var(--radius)', display: 'block', order: i % 2 ? 2 : 1 }} />
+            <Link to={`/travel-hotels/${h.slug}`} style={{ order: i % 2 ? 2 : 1, display: 'block' }}>
+              <img src={h.img} alt={h.name} style={{ width: '100%', borderRadius: 'var(--radius)', display: 'block' }} />
+            </Link>
             <div style={{ order: i % 2 ? 1 : 2 }}>
-              <h2 style={{ marginTop: 0 }}>{h.name}{h.host && <span className="menu-cta" style={{ marginLeft: 10, fontSize: '.7rem', padding: '2px 10px' }}>HOST</span>}</h2>
+              <h2 style={{ marginTop: 0 }}>
+                <Link to={`/travel-hotels/${h.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{h.name}</Link>
+                {h.host && <span className="menu-cta" style={{ marginLeft: 10, fontSize: '.7rem', padding: '2px 10px' }}>HOST</span>}
+              </h2>
               <p><strong>Location:</strong> {h.location}</p>
               <p><strong>Distance:</strong> {h.distance}</p>
               <p><strong>Tel:</strong> <a href={`tel:${h.tel.replace(/[^0-9]/g, '')}`}>{h.tel}</a></p>
-              <a className="btn" href={h.book} target="_blank" rel="noopener">Book Now</a>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Link className="btn" to={`/travel-hotels/${h.slug}`}>More Info &amp; Photos</Link>
+                <a className="btn secondary" href={h.book} target="_blank" rel="noopener">Book Now</a>
+              </div>
             </div>
           </div>
         ))}
