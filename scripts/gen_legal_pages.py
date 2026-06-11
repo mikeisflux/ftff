@@ -91,8 +91,8 @@ PAGES = [
              "<h3>Changes</h3>"
              "<p>We may update this policy and will revise the date above when we do.</p>"
              "<h3>Contact</h3>"
-             f"<p>{ORG} &mdash; [privacy@forthefansfest.com]. Mailing address: [insert business "
-             "mailing address].</p>"),
+             f"<p>{ORG} &mdash; [privacy@forthefansfest.com]. Mailing address: "
+             "777 Harrah's Blvd, Atlantic City, NJ 08401.</p>"),
         ],
         "Privacy Policy | For The Fans Fest",
         "How For The Fans Fest collects, uses, and protects your information.",

@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
+import ConsentBanner from './components/ConsentBanner.jsx';
 import Home from './pages/Home.jsx';
 import CmsPage from './pages/CmsPage.jsx';
 import NotFound from './pages/NotFound.jsx';
@@ -195,6 +196,7 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
+      <ConsentBanner />
     </>
   );
 }

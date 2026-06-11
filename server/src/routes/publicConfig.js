@@ -15,7 +15,7 @@ publicConfigRouter.get(
     const keys = [
       'site.name', 'social.share_url', 'social.default_og_image_url', 'social.x_handle',
       'social.facebook_app_id', 'social.facebook_url', 'social.instagram_url', 'recaptcha.site_key',
-      'stripe.publishable_key',
+      'stripe.publishable_key', 'privacy.consent_banner_enabled',
     ];
     const entries = await Promise.all(keys.map(async (k) => [k, await getSettingValue(k)]));
     const cfg = Object.fromEntries(entries);
@@ -24,6 +24,8 @@ publicConfigRouter.get(
       siteName: cfg['site.name'] || 'For The Fans Fest',
       recaptchaSiteKey: cfg['recaptcha.site_key'] || null,
       stripePublishableKey: cfg['stripe.publishable_key'] || null,
+      // Default ON for compliance; only hidden when explicitly set to 'false'.
+      consentBannerEnabled: cfg['privacy.consent_banner_enabled'] !== 'false',
       social: {
         shareUrl: cfg['social.share_url'] || env.PUBLIC_URL,
         ogImage: cfg['social.default_og_image_url'] || null,

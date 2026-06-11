@@ -12,6 +12,10 @@ const LINKS = [
   ['FAQs', '/faqs'],
   ['Policies', '/policies'],
   ['Accessibility', '/accessibility'],
+  ['Privacy Policy', '/privacy-policy'],
+  ['Terms of Sale', '/terms'],
+  ['Refunds', '/refund-policy'],
+  ['Cookie Notice', '/cookie-policy'],
 ];
 
 export default function Footer() {

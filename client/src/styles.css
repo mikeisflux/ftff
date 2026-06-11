@@ -93,6 +93,21 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
   .ap-tiles { grid-template-columns: 1fr; }
 }
 
+/* Cookie / privacy consent banner (admin-togglable). */
+.consent-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+  display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: center;
+  padding: 14px 20px;
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  box-shadow: 0 -6px 24px rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+}
+.consent-text { flex: 1 1 360px; min-width: 0; font-size: .9rem; }
+.consent-text a { color: var(--color-accent); }
+.consent-actions { display: flex; gap: 8px; flex-shrink: 0; }
+@media (max-width: 560px) { .consent-actions { width: 100%; } .consent-actions .btn { flex: 1; } }
+
 /* Pre-launch announcement bar (temporary): sits above the sticky header so it
    scrolls away with the page top. Red to read as a hard warning. */
 .announce-bar {
