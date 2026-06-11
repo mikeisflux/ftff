@@ -69,7 +69,7 @@ publicRouter.get(
     }
     const { rows } = await query(
       `SELECT id, name, known_for, bio, bio_url, headshot_url, category, tier, socials,
-              appearance_days, autograph_cents, autograph_premium_cents, photo_op_cents
+              appearance_days, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art
          FROM guests WHERE id = $1 AND is_active = TRUE`,
       [req.params.id],
     );

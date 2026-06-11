@@ -7,7 +7,7 @@ const TIERS = [['featured', 'Featured Guests'], ['special', 'Special Guests'], [
 const DAYS = ['Friday', 'Saturday', 'Sunday'];
 const blank = {
   name: '', known_for: '', bio: '', bio_url: '', headshot_url: '', category: 'celebrities', tier: 'featured',
-  is_featured: false, is_active: true, appearance_days: [],
+  is_featured: false, is_active: true, appearance_days: [], cover_art: [],
   autograph: '', autograph_premium: '', photo_op: '',
   imdb: '', website: '', twitter: '', instagram: '',
 };
@@ -27,6 +27,7 @@ function formFromGuest(g) {
     headshot_url: g.headshot_url || '', category: g.category, tier: g.tier || 'featured',
     is_featured: g.is_featured, is_active: g.is_active,
     appearance_days: Array.isArray(g.appearance_days) ? g.appearance_days : [],
+    cover_art: Array.isArray(g.cover_art) ? g.cover_art : [],
     autograph: centsToDollars(g.autograph_cents),
     autograph_premium: centsToDollars(g.autograph_premium_cents),
     photo_op: centsToDollars(g.photo_op_cents),
@@ -49,6 +50,7 @@ function bodyFromForm(f) {
     is_featured: f.is_featured,
     is_active: f.is_active,
     appearance_days: f.appearance_days,
+    cover_art: (f.cover_art || []).filter(Boolean),
     socials,
     autograph_cents: dollarsToCents(f.autograph),
     autograph_premium_cents: dollarsToCents(f.autograph_premium),
@@ -84,6 +86,15 @@ export default function GuestsAdmin() {
   async function onUpload(file) {
     try { const { url } = await uploadFile('/admin/uploads', file); setForm((f) => ({ ...f, headshot_url: url })); }
     catch (err) { setMsg(err.message); }
+  }
+  async function onUploadCover(file, index) {
+    try {
+      const { url } = await uploadFile('/admin/uploads', file);
+      setForm((f) => { const cover = [...f.cover_art]; cover[index] = url; return { ...f, cover_art: cover }; });
+    } catch (err) { setMsg(err.message); }
+  }
+  function removeCover(index) {
+    setForm((f) => ({ ...f, cover_art: f.cover_art.filter((_, i) => i !== index) }));
   }
   function toggleDay(d) {
     setForm((f) => ({
@@ -162,6 +173,25 @@ export default function GuestsAdmin() {
             <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginTop: 12 }}>
               <input type="checkbox" style={{ width: 'auto' }} checked={form.is_featured} onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))} /> Featured (homepage)
             </label>
+
+            <h4 style={{ margin: '16px 0 4px' }}>Cover art <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>— up to 3 images; shown as clickable tiles under the bio</span></h4>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} style={{ width: 120 }}>
+                  {form.cover_art[i] ? (
+                    <>
+                      <img src={form.cover_art[i]} alt={`Cover ${i + 1}`} style={{ width: '100%', borderRadius: 6, display: 'block' }} />
+                      <button type="button" className="btn secondary" style={{ marginTop: 4, width: '100%' }} onClick={() => removeCover(i)}>Remove</button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="muted" style={{ aspectRatio: '3 / 4', background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)', borderRadius: 6, display: 'grid', placeItems: 'center' }}>{i + 1}</div>
+                      <input type="file" accept="image/*" style={{ marginTop: 4, width: '100%' }} onChange={(e) => e.target.files[0] && onUploadCover(e.target.files[0], i)} />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>

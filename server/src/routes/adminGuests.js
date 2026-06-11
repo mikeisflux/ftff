@@ -34,6 +34,8 @@ const guestSchema = z.object({
   autograph_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
   autograph_premium_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
   photo_op_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
+  // Up to 3 cover-art image URLs shown in the guest's bio.
+  cover_art: z.array(z.string().url()).max(3).optional(),
 });
 
 async function featuredCount(excludeId) {
@@ -88,11 +90,11 @@ adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
   }
   const { rows } = await query(
     `INSERT INTO guests (name, known_for, bio, bio_url, headshot_url, category, tier, socials, appearance_days,
-                         is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
+                         is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
     [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
       JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
-      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? [])],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
   await syncGuestProducts(rows[0]);
@@ -107,10 +109,10 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
   const { rows } = await query(
     `UPDATE guests SET name=$2, known_for=$3, bio=$4, bio_url=$5, headshot_url=$6, category=$7, tier=$8, socials=$9,
             appearance_days=$10, is_featured=$11, is_active=$12,
-            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15 WHERE id=$1 RETURNING *`,
+            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15, cover_art=$16 WHERE id=$1 RETURNING *`,
     [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null,
       g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
-      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? [])],
   );
   if (!rows[0]) throw notFound('Guest not found');
   await syncGuestProducts(rows[0]);

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -5,8 +6,9 @@ import { useCart } from '../store/CartContext.jsx';
 
 // Per-guest detail page (§7). One template for every guest: celebrities get the
 // PRICING block + Autographs/Photo Ops tiles (shown only when pricing is set),
-// while comic creators and others lead with the bio + social links. Managed from
-// the admin Guest Tile Manager.
+// while comic creators and others lead with the bio + social links. The bio is
+// its own centered tile, with optional cover-art tiles below it that expand to
+// full screen. Managed from the admin Guest Tile Manager.
 
 const DISCLAIMER_LINES = [
   'Guests subject to cancellation or schedule change, due to professional commitments.',
@@ -26,6 +28,7 @@ export default function GuestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const cart = useCart();
+  const [lightbox, setLightbox] = useState(null);
   const { data, isLoading, error } = useQuery({
     queryKey: ['guest', id],
     queryFn: () => api(`/guests/${id}`),
@@ -50,6 +53,7 @@ export default function GuestDetail() {
     g.autograph_cents != null || g.autograph_premium_cents != null || g.photo_op_cents != null;
   const socials = g.socials && typeof g.socials === 'object' ? g.socials : {};
   const socialEntries = Object.entries(socials).filter(([, url]) => url);
+  const coverArt = Array.isArray(g.cover_art) ? g.cover_art.filter(Boolean) : [];
   const purchase = g.purchase || {};
 
   const buy = (item) => {
@@ -91,32 +95,50 @@ export default function GuestDetail() {
             </section>
           )}
 
-          <section className="guest-info">
-            <h2 className="glow">Guest Info</h2>
-            {g.bio_url && (
-              <p>
-                <a className="guest-bio-link" href={g.bio_url} target="_blank" rel="noreferrer">
-                  Check out their bio
-                </a>
-              </p>
-            )}
-            {g.bio && (
-              <div className="guest-bio">
-                {g.bio.split('\n').map((p) => p.trim()).filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
-              </div>
-            )}
-            {socialEntries.length > 0 && (
-              <div className="guest-socials">
-                {socialEntries.map(([k, url]) => (
-                  <a key={k} href={url} target="_blank" rel="noreferrer" className="btn secondary">
-                    {SOCIAL_LABELS[k] || k}
+          {(g.bio_url || socialEntries.length > 0) && (
+            <section className="guest-info">
+              <h2 className="glow">Guest Info</h2>
+              {g.bio_url && (
+                <p>
+                  <a className="guest-bio-link" href={g.bio_url} target="_blank" rel="noreferrer">
+                    Check out their bio
                   </a>
-                ))}
-              </div>
-            )}
-          </section>
+                </p>
+              )}
+              {socialEntries.length > 0 && (
+                <div className="guest-socials">
+                  {socialEntries.map(([k, url]) => (
+                    <a key={k} href={url} target="_blank" rel="noreferrer" className="btn secondary">
+                      {SOCIAL_LABELS[k] || k}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </div>
+
+      {/* Bio — its own centered tile */}
+      {g.bio && (
+        <section className="card guest-bio-tile">
+          <h2 className="glow">Bio</h2>
+          <div className="guest-bio">
+            {g.bio.split('\n').map((p) => p.trim()).filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
+          </div>
+        </section>
+      )}
+
+      {/* Cover art — centered, clickable tiles that expand full screen */}
+      {coverArt.length > 0 && (
+        <section className="guest-cover-art">
+          {coverArt.map((src, i) => (
+            <button type="button" key={i} className="cover-tile" onClick={() => setLightbox(src)} aria-label={`Expand cover art ${i + 1}`}>
+              <img src={src} alt={`${g.name} cover art ${i + 1}`} loading="lazy" />
+            </button>
+          ))}
+        </section>
+      )}
 
       <section className="guest-disclaimers">
         <h3>Disclaimers</h3>
@@ -155,6 +177,14 @@ export default function GuestDetail() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Full-screen cover-art lightbox */}
+      {lightbox && (
+        <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightbox(null)}>
+          <button type="button" className="lightbox-close" aria-label="Close" onClick={() => setLightbox(null)}>×</button>
+          <img src={lightbox} alt="" onClick={(e) => e.stopPropagation()} />
+        </div>
       )}
     </div>
   );

@@ -90,9 +90,37 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 }
 .ap-buy { display: inline-block; margin-top: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: .04em; }
 .ap-buy-btn { background: none; border: none; cursor: pointer; color: var(--color-text); text-decoration: underline; font-family: inherit; font-size: inherit; }
+
+/* Bio as its own centered tile. */
+.guest-bio-tile { max-width: 760px; margin: 32px auto 0; text-align: center; }
+.guest-bio-tile .guest-bio { text-align: left; }
+.guest-bio-tile .guest-bio p { margin: 0 0 12px; line-height: 1.6; }
+
+/* Cover-art tiles — centered row under the bio, click to expand. */
+.guest-cover-art { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 24px auto 0; max-width: 900px; }
+.cover-tile {
+  padding: 0; border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius); background: var(--color-surface); cursor: pointer; overflow: hidden;
+  width: 200px; transition: transform .12s ease, box-shadow .12s ease;
+}
+.cover-tile:hover { transform: translateY(-3px); box-shadow: 0 0 calc(18px * var(--glow-intensity)) var(--glow-color); }
+.cover-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* Full-screen cover-art lightbox. */
+.lightbox {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+  background: rgba(0,0,0,.9); padding: 24px; cursor: zoom-out;
+}
+.lightbox img { max-width: 95vw; max-height: 92vh; border-radius: 8px; cursor: default; }
+.lightbox-close {
+  position: fixed; top: 16px; right: 22px; font-size: 2.4rem; line-height: 1;
+  background: none; border: none; color: #fff; cursor: pointer;
+}
+
 @media (max-width: 720px) {
   .guest-detail-grid { grid-template-columns: 1fr; }
   .ap-tiles { grid-template-columns: 1fr; }
+  .cover-tile { width: 140px; }
 }
 
 /* Per-hotel photo gallery. */
