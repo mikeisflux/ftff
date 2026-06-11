@@ -58,6 +58,24 @@ publicRouter.get(
   }),
 );
 
+// GET /guests/:id — full guest detail for the per-guest page (§7).
+publicRouter.get(
+  '/guests/:id',
+  asyncHandler(async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+      throw notFound('Guest not found');
+    }
+    const { rows } = await query(
+      `SELECT id, name, known_for, bio, bio_url, headshot_url, category, tier, socials,
+              appearance_days, autograph_cents, autograph_premium_cents, photo_op_cents
+         FROM guests WHERE id = $1 AND is_active = TRUE`,
+      [req.params.id],
+    );
+    if (!rows[0]) throw notFound('Guest not found');
+    res.json({ guest: rows[0] });
+  }),
+);
+
 // GET /ticket-types
 publicRouter.get(
   '/ticket-types',

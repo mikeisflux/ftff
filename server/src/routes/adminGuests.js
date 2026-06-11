@@ -28,6 +28,12 @@ const guestSchema = z.object({
   appearance_days: z.array(z.string()).optional(),
   is_featured: z.boolean().optional(),
   is_active: z.boolean().optional(),
+  // Per-guest detail page extras. Pricing is in cents; null/omitted hides the
+  // PRICING block + Autographs/Photo Ops tiles for that guest.
+  bio_url: z.string().url().max(500).optional().nullable(),
+  autograph_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
+  autograph_premium_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
+  photo_op_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
 });
 
 async function featuredCount(excludeId) {
@@ -46,10 +52,12 @@ adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
   const { rows } = await query(
-    `INSERT INTO guests (name, known_for, bio, headshot_url, category, tier, socials, appearance_days, is_featured, is_active, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
-    [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
-      JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true],
+    `INSERT INTO guests (name, known_for, bio, bio_url, headshot_url, category, tier, socials, appearance_days,
+                         is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
+    [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
+      JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
   res.status(201).json({ guest: rows[0] });
@@ -61,10 +69,12 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
   const { rows } = await query(
-    `UPDATE guests SET name=$2, known_for=$3, bio=$4, headshot_url=$5, category=$6, tier=$7, socials=$8,
-            appearance_days=$9, is_featured=$10, is_active=$11 WHERE id=$1 RETURNING *`,
-    [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.headshot_url ?? null,
-      g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true],
+    `UPDATE guests SET name=$2, known_for=$3, bio=$4, bio_url=$5, headshot_url=$6, category=$7, tier=$8, socials=$9,
+            appearance_days=$10, is_featured=$11, is_active=$12,
+            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15 WHERE id=$1 RETURNING *`,
+    [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null,
+      g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
   );
   if (!rows[0]) throw notFound('Guest not found');
   res.json({ guest: rows[0] });

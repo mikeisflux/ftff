@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
@@ -27,12 +28,12 @@ function days(appearance) {
 function GuestTile({ g }) {
   const appearing = days(g.appearance_days);
   return (
-    <div className="card guest-tile">
+    <Link to={`/guests/${g.id}`} className="card guest-tile">
       {g.headshot_url && <img src={g.headshot_url} alt={g.name} style={{ width: '100%', borderRadius: 8 }} />}
       <h3 style={{ margin: '8px 0 0' }}>{g.name}</h3>
       {g.known_for && <p className="muted" style={{ margin: '4px 0 0' }}>{g.known_for}</p>}
       {appearing && <p className="muted" style={{ margin: '6px 0 0', fontSize: '.85rem' }}>Appearing: {appearing}</p>}
-    </div>
+    </Link>
   );
 }
 

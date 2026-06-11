@@ -165,6 +165,14 @@ CREATE TABLE IF NOT EXISTS guests (
 DROP TRIGGER IF EXISTS trg_guests_updated ON guests;
 CREATE TRIGGER trg_guests_updated BEFORE UPDATE ON guests
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- Per-guest detail page (§7) extras: appearance pricing + an external bio link.
+-- Nullable — when no pricing is set (e.g. comic creators) the detail page hides
+-- the PRICING block and the Autographs/Photo Ops tiles. Added via ALTER so
+-- existing databases pick them up on re-migrate.
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS autograph_cents         INTEGER;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS autograph_premium_cents INTEGER;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS photo_op_cents          INTEGER;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS bio_url                 TEXT;
 CREATE INDEX IF NOT EXISTS idx_guests_category ON guests(category);
 CREATE INDEX IF NOT EXISTS idx_guests_featured ON guests(is_featured) WHERE is_featured;
 -- Removed categories: reassign any existing guests, then tighten the constraint.

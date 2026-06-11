@@ -10,6 +10,7 @@ import Tickets from './pages/Tickets.jsx';
 import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
 import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
+import GuestDetail from './pages/GuestDetail.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
 import BecomeExhibitor from './pages/BecomeExhibitor.jsx';
 import ExhibitorSuccess from './pages/ExhibitorSuccess.jsx';
@@ -149,6 +150,7 @@ export default function App() {
 
           {/* Guests grid + category filters */}
           <Route path="/all-guests" element={<Guests />} />
+          <Route path="/guests/:id" element={<GuestDetail />} />
           {Object.entries(GUEST_CATEGORY_ROUTES).map(([route, category]) => (
             <Route key={route} path={`/${route}`} element={<Guests category={category} />} />
           ))}
