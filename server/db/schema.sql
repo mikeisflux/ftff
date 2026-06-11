@@ -297,6 +297,11 @@ CREATE TABLE IF NOT EXISTS products (
 -- For existing databases predating product sections:
 ALTER TABLE products ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'shop';
 CREATE INDEX IF NOT EXISTS idx_products_section ON products(section);
+-- Autograph/Photo-Op products auto-generated from a guest's pricing link back to
+-- the guest so their detail page can offer them for sale (deleting the guest
+-- removes the generated products).
+ALTER TABLE products ADD COLUMN IF NOT EXISTS guest_id UUID REFERENCES guests(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_products_guest ON products(guest_id);
 DROP TRIGGER IF EXISTS trg_products_updated ON products;
 CREATE TRIGGER trg_products_updated BEFORE UPDATE ON products
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

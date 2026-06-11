@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import HeroCarousel from '../components/HeroCarousel.jsx';
-import { hotelBySlug } from '../content/hotels.js';
+import { hotelBySlug, hotelImg } from '../content/hotels.js';
 
 // Per-hotel detail page for Travel & Hotels. Photo gallery + details + booking.
 export default function HotelDetail() {
@@ -18,7 +18,7 @@ export default function HotelDetail() {
 
   const slides = [{
     id: 0,
-    image_url: h.img,
+    image_url: hotelImg(h.img),
     title: h.name,
     subtitle: h.distance,
     cta_url: h.book,
@@ -61,7 +61,7 @@ export default function HotelDetail() {
             <h2>Photos</h2>
             <div className="hotel-gallery">
               {h.gallery.map((src, i) => (
-                <img key={i} src={src} alt={`${h.name} ${i + 1}`} loading="lazy" />
+                <img key={i} src={hotelImg(src)} alt={`${h.name} ${i + 1}`} loading="lazy" />
               ))}
             </div>
             <p className="muted" style={{ marginTop: 8, fontSize: '.85rem' }}>

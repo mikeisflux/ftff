@@ -74,7 +74,21 @@ publicRouter.get(
       [req.params.id],
     );
     if (!rows[0]) throw notFound('Guest not found');
-    res.json({ guest: rows[0] });
+
+    // Purchasable autograph / photo-op products auto-synced from the guest's
+    // pricing — gives the detail page real variant IDs to add to the cart.
+    const { rows: prods } = await query(
+      `SELECT p.section, v.id AS variant_id, COALESCE(v.price_cents, p.price_cents) AS price_cents, p.title
+         FROM products p JOIN product_variants v ON v.product_id = p.id
+        WHERE p.guest_id = $1 AND p.is_active = TRUE AND v.is_active = TRUE`,
+      [req.params.id],
+    );
+    const purchase = {};
+    for (const r of prods) {
+      const key = r.section === 'autographs' ? 'autograph' : r.section === 'photo_ops' ? 'photoOp' : null;
+      if (key) purchase[key] = { variantId: r.variant_id, priceCents: r.price_cents, title: r.title };
+    }
+    res.json({ guest: { ...rows[0], purchase } });
   }),
 );
 

@@ -1,6 +1,7 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { useCart } from '../store/CartContext.jsx';
 
 // Per-guest detail page (§7). One template for every guest: celebrities get the
 // PRICING block + Autographs/Photo Ops tiles (shown only when pricing is set),
@@ -23,6 +24,8 @@ const money = (cents) => `$${(cents / 100).toFixed(2)}`;
 
 export default function GuestDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const cart = useCart();
   const { data, isLoading, error } = useQuery({
     queryKey: ['guest', id],
     queryFn: () => api(`/guests/${id}`),
@@ -47,6 +50,12 @@ export default function GuestDetail() {
     g.autograph_cents != null || g.autograph_premium_cents != null || g.photo_op_cents != null;
   const socials = g.socials && typeof g.socials === 'object' ? g.socials : {};
   const socialEntries = Object.entries(socials).filter(([, url]) => url);
+  const purchase = g.purchase || {};
+
+  const buy = (item) => {
+    cart.add({ variantId: item.variantId, title: item.title, unitPriceCents: item.priceCents, image: g.headshot_url }, 1);
+    navigate('/cart');
+  };
 
   return (
     <div className="section container guest-detail">
@@ -119,12 +128,30 @@ export default function GuestDetail() {
           <h2 className="glow" style={{ textAlign: 'center' }}>Autographs and Photo Ops</h2>
           <div className="ap-tiles">
             <div className="ap-tile">
-              <Link to="/autographs" className="ap-tile-box">Autographs</Link>
-              <Link to="/autographs" className="ap-buy">Buy Now</Link>
+              {purchase.autograph ? (
+                <>
+                  <button type="button" className="ap-tile-box" onClick={() => buy(purchase.autograph)}>Autographs</button>
+                  <button type="button" className="ap-buy ap-buy-btn" onClick={() => buy(purchase.autograph)}>Buy Now</button>
+                </>
+              ) : (
+                <>
+                  <Link to="/autographs" className="ap-tile-box">Autographs</Link>
+                  <Link to="/autographs" className="ap-buy">Buy Now</Link>
+                </>
+              )}
             </div>
             <div className="ap-tile">
-              <Link to="/photo-ops" className="ap-tile-box">Photo Ops</Link>
-              <Link to="/photo-ops" className="ap-buy">Buy Now</Link>
+              {purchase.photoOp ? (
+                <>
+                  <button type="button" className="ap-tile-box" onClick={() => buy(purchase.photoOp)}>Photo Ops</button>
+                  <button type="button" className="ap-buy ap-buy-btn" onClick={() => buy(purchase.photoOp)}>Buy Now</button>
+                </>
+              ) : (
+                <>
+                  <Link to="/photo-ops" className="ap-tile-box">Photo Ops</Link>
+                  <Link to="/photo-ops" className="ap-buy">Buy Now</Link>
+                </>
+              )}
             </div>
           </div>
         </section>

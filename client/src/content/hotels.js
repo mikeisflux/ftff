@@ -100,3 +100,8 @@ export const HOTELS = [
 ];
 
 export const hotelBySlug = (slug) => HOTELS.find((h) => h.slug === slug);
+
+// Route external (CDN) image URLs through our same-origin proxy so hotlink-
+// protected hosts still load; leave local /paths untouched.
+export const hotelImg = (u) =>
+  (!u || u.startsWith('/')) ? u : `/img-proxy?u=${encodeURIComponent(u)}`;

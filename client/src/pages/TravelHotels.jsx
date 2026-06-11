@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import HeroCarousel from '../components/HeroCarousel.jsx';
-import { HOTELS } from '../content/hotels.js';
+import { HOTELS, hotelImg } from '../content/hotels.js';
 
 // Nearby hotels for For The Fans Fest at Harrah's Resort Atlantic City. Each
 // tile links to a per-hotel page; rates fluctuate by date, so we link straight
@@ -29,7 +29,7 @@ export default function TravelHotels() {
           <div className="info-row" key={h.name} style={{ marginTop: i === 0 ? 24 : 36 }}>
             {/* alternate image side on wide screens */}
             <Link to={`/travel-hotels/${h.slug}`} style={{ order: i % 2 ? 2 : 1, display: 'block' }}>
-              <img src={h.img} alt={h.name} style={{ width: '100%', borderRadius: 'var(--radius)', display: 'block' }} />
+              <img src={hotelImg(h.img)} alt={h.name} style={{ width: '100%', borderRadius: 'var(--radius)', display: 'block' }} />
             </Link>
             <div style={{ order: i % 2 ? 1 : 2 }}>
               <h2 style={{ marginTop: 0 }}>

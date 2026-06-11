@@ -44,6 +44,41 @@ async function featuredCount(excludeId) {
   return rows[0].n;
 }
 
+// Keep a guest's Autograph / Photo Op products in sync with their pricing so the
+// guest detail page can sell them through the normal store cart + checkout (no
+// changes to the payment path). Each type maps to one product (deterministic
+// slug) + one variant (deterministic sku). When the price is unset or the guest
+// is inactive, the product/variant is deactivated so it leaves listings and
+// can't be added to a cart. Effectively unlimited inventory (it's a service).
+async function syncGuestProducts(g) {
+  const images = g.headshot_url ? JSON.stringify([g.headshot_url]) : '[]';
+  const types = [
+    { section: 'autographs', label: 'Autograph', cents: g.autograph_cents, slug: `autograph-${g.id}`, sku: `AUTO-${g.id}` },
+    { section: 'photo_ops', label: 'Photo Op', cents: g.photo_op_cents, slug: `photo-op-${g.id}`, sku: `PHOTO-${g.id}` },
+  ];
+  for (const t of types) {
+    if (g.is_active && t.cents != null) {
+      const { rows } = await query(
+        `INSERT INTO products (slug, section, title, images, price_cents, guest_id, is_active, sort_order)
+         VALUES ($1,$2,$3,$4::jsonb,$5,$6,TRUE,0)
+         ON CONFLICT (slug) DO UPDATE SET section=EXCLUDED.section, title=EXCLUDED.title,
+           images=EXCLUDED.images, price_cents=EXCLUDED.price_cents, guest_id=EXCLUDED.guest_id, is_active=TRUE
+         RETURNING id`,
+        [t.slug, t.section, `${g.name} — ${t.label}`, images, t.cents, g.id],
+      );
+      await query(
+        `INSERT INTO product_variants (product_id, sku, options, price_cents, inventory, is_active)
+         VALUES ($1,$2,'{}'::jsonb,NULL,1000000,TRUE)
+         ON CONFLICT (sku) DO UPDATE SET product_id=EXCLUDED.product_id, inventory=1000000, is_active=TRUE`,
+        [rows[0].id, t.sku],
+      );
+    } else {
+      await query(`UPDATE products SET is_active=FALSE WHERE slug=$1`, [t.slug]);
+      await query(`UPDATE product_variants SET is_active=FALSE WHERE sku=$1`, [t.sku]);
+    }
+  }
+}
+
 adminGuestsRouter.get('/', asyncHandler(async (_q, res) => res.json({ guests: (await query(`SELECT * FROM guests ORDER BY sort_order, name`)).rows })));
 
 adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
@@ -60,6 +95,7 @@ adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
       g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
+  await syncGuestProducts(rows[0]);
   res.status(201).json({ guest: rows[0] });
 }));
 
@@ -77,6 +113,7 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
       g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null],
   );
   if (!rows[0]) throw notFound('Guest not found');
+  await syncGuestProducts(rows[0]);
   res.json({ guest: rows[0] });
 }));
 

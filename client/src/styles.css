@@ -82,12 +82,14 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0.5px; }
 .ap-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 760px; margin: 16px auto 0; }
 .ap-tile { text-align: center; }
 .ap-tile-box {
-  display: grid; place-items: center; aspect-ratio: 16/9; border-radius: 8px;
+  display: grid; place-items: center; aspect-ratio: 16/9; border-radius: 8px; width: 100%;
   background: var(--color-accent); color: #fff; font-weight: 800; font-size: 1.6rem;
   text-transform: uppercase; letter-spacing: .04em; text-decoration: none;
   box-shadow: inset 0 0 0 16px rgba(0,0,0,.85);
+  border: none; cursor: pointer; font-family: inherit;
 }
 .ap-buy { display: inline-block; margin-top: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: .04em; }
+.ap-buy-btn { background: none; border: none; cursor: pointer; color: var(--color-text); text-decoration: underline; font-family: inherit; font-size: inherit; }
 @media (max-width: 720px) {
   .guest-detail-grid { grid-template-columns: 1fr; }
   .ap-tiles { grid-template-columns: 1fr; }

@@ -31,6 +31,7 @@ import { adminPagesRouter } from './routes/adminPages.js';
 import { adminUploadsRouter } from './routes/adminUploads.js';
 import { UPLOAD_DIR } from './lib/uploads.js';
 import { publicConfigRouter, sitemapHandler, robotsHandler } from './routes/publicConfig.js';
+import { imgProxyRouter } from './routes/imgProxy.js';
 import { getMetaForPath, injectMeta } from './lib/seo.js';
 import { validateRouter } from './routes/validate.js';
 import { adminTicketsRouter } from './routes/adminTickets.js';
@@ -129,6 +130,9 @@ export function createApp() {
   app.get('/sitemap.xml', sitemapHandler);
   app.get('/robots.txt', robotsHandler);
 
+  // Same-origin proxy for licensed hotel photos on hotlink-protected CDNs.
+  app.use('/img-proxy', imgProxyRouter);
+
   // Serve the built SPA with per-route OG/Twitter meta injected at the origin
   // (§7.0b). Mounted only when a production build exists; in dev, Vite serves
   // the SPA and proxies /api here.
@@ -136,10 +140,15 @@ export function createApp() {
   const distDir = path.resolve(here, '../../client/dist');
   const indexPath = path.join(distDir, 'index.html');
   if (existsSync(indexPath)) {
-    const indexHtml = readFileSync(indexPath, 'utf8');
     app.use(express.static(distDir, { index: false, maxAge: '1y' }));
     app.get('*', async (req, res, next) => {
       if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+      // Read index.html fresh per request (it's tiny). A copy cached at boot
+      // would keep pointing at the previous build's hashed bundles after a new
+      // `npm run build`, so deploys wouldn't take effect until a full process
+      // restart. Reading fresh makes a rebuild visible immediately.
+      let indexHtml;
+      try { indexHtml = readFileSync(indexPath, 'utf8'); } catch { return next(); }
       try {
         const meta = await getMetaForPath(req.path);
         res
