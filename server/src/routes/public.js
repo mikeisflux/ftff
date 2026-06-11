@@ -48,8 +48,10 @@ publicRouter.get(
     }
     // Homepage shows up to 10 featured; the rest overflow to All Guests (§7.1).
     const limit = featured ? 10 : 500;
+    // Note: bio is intentionally NOT selected here — it only belongs on the
+    // individual guest detail page (/guests/:id), never in tile/grid listings.
     const { rows } = await query(
-      `SELECT id, name, known_for, bio, headshot_url, category, tier, appearance_days, is_featured, sort_order
+      `SELECT id, name, known_for, headshot_url, category, tier, appearance_days, is_featured, sort_order
          FROM guests WHERE ${where.join(' AND ')}
         ORDER BY sort_order, name LIMIT ${limit}`,
       params,
