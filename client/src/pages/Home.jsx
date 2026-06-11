@@ -103,13 +103,13 @@ export default function Home() {
           <>
             <div className="grid cols-4">
               {featured.map((g) => (
-                <div className="card" key={g.id}>
+                <Link className="card guest-tile" to={`/guests/${g.id}`} key={g.id}>
                   {g.headshot_url && (
                     <img src={g.headshot_url} alt={g.name} style={{ width: '100%', borderRadius: 8 }} />
                   )}
                   <h3 style={{ margin: '8px 0 0' }}>{g.name}</h3>
                   <p className="muted">{g.known_for}</p>
-                </div>
+                </Link>
               ))}
             </div>
             <p style={{ marginTop: 16 }}>
