@@ -26,6 +26,7 @@ import { adminUsersRouter } from './routes/adminUsers.js';
 import { adminAuditRouter, adminSubmissionsRouter, adminNewsletterRouter, adminApplicationsRouter } from './routes/adminMisc.js';
 import { adminSlidesRouter, adminFaqsRouter, adminShowInfoRouter, adminTicketTypesRouter } from './routes/adminContent.js';
 import { adminGuestsRouter } from './routes/adminGuests.js';
+import { adminVendorsRouter } from './routes/adminVendors.js';
 import { adminNavRouter } from './routes/adminNav.js';
 import { adminPagesRouter } from './routes/adminPages.js';
 import { adminUploadsRouter } from './routes/adminUploads.js';
@@ -120,6 +121,7 @@ export function createApp() {
   api.use('/admin/show-info', csrfProtection, adminShowInfoRouter);
   api.use('/admin/ticket-types', csrfProtection, adminTicketTypesRouter);
   api.use('/admin/guests', csrfProtection, adminGuestsRouter);
+  api.use('/admin/vendors', csrfProtection, adminVendorsRouter);
   api.use('/admin/nav', csrfProtection, adminNavRouter);
   api.use('/admin/pages', csrfProtection, adminPagesRouter);
   api.use('/admin/uploads', csrfProtection, adminUploadsRouter);

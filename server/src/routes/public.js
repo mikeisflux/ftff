@@ -92,6 +92,18 @@ publicRouter.get(
   }),
 );
 
+// GET /vendors — public approved-vendor directory (name + booth number).
+publicRouter.get(
+  '/vendors',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT id, name, booth_number, category, website
+         FROM vendors WHERE is_active = TRUE ORDER BY lower(name), name`,
+    );
+    res.json({ vendors: rows });
+  }),
+);
+
 // GET /ticket-types
 publicRouter.get(
   '/ticket-types',

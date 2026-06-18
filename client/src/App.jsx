@@ -12,6 +12,7 @@ import CheckoutSuccess from './pages/CheckoutSuccess.jsx';
 import TicketPage from './pages/TicketPage.jsx';
 import Guests from './pages/Guests.jsx';
 import GuestDetail from './pages/GuestDetail.jsx';
+import Vendors from './pages/Vendors.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
 import BecomeExhibitor from './pages/BecomeExhibitor.jsx';
 import ExhibitorSuccess from './pages/ExhibitorSuccess.jsx';
@@ -63,6 +64,7 @@ import Audit from './pages/admin/Audit.jsx';
 import Submissions from './pages/admin/Submissions.jsx';
 import Slides from './pages/admin/Slides.jsx';
 import GuestsAdmin from './pages/admin/GuestsAdmin.jsx';
+import VendorsAdmin from './pages/admin/VendorsAdmin.jsx';
 import FaqsAdmin from './pages/admin/FaqsAdmin.jsx';
 import ShowInfo from './pages/admin/ShowInfo.jsx';
 import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/admin/rewards" element={<Rewards />} />
           <Route path="/admin/slides" element={<Slides />} />
           <Route path="/admin/guests" element={<GuestsAdmin />} />
+          <Route path="/admin/vendors" element={<VendorsAdmin />} />
           <Route path="/admin/faqs" element={<FaqsAdmin />} />
           <Route path="/admin/show-info" element={<ShowInfo />} />
           <Route path="/admin/ticket-types" element={<TicketTypesAdmin />} />
@@ -153,6 +156,7 @@ export default function App() {
           {/* Guests grid + category filters */}
           <Route path="/all-guests" element={<Guests />} />
           <Route path="/guests/:id" element={<GuestDetail />} />
+          <Route path="/vendors" element={<Vendors />} />
           <Route path="/travel-hotels/:slug" element={<HotelDetail />} />
           {Object.entries(GUEST_CATEGORY_ROUTES).map(([route, category]) => (
             <Route key={route} path={`/${route}`} element={<Guests category={category} />} />

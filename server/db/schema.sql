@@ -281,6 +281,26 @@ CREATE TRIGGER trg_booths_updated BEFORE UPDATE ON booths
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_booths_status ON booths(status);
 
+-- ── vendors (public approved-exhibitor directory; admin CRUD + auto-added on
+--    application approval) ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS vendors (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name           TEXT NOT NULL,
+  booth_number   TEXT,
+  category       TEXT,
+  website        TEXT,
+  application_id UUID,                         -- set when created from an approved application
+  is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order     INTEGER NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_vendors_updated ON vendors;
+CREATE TRIGGER trg_vendors_updated BEFORE UPDATE ON vendors
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE INDEX IF NOT EXISTS idx_vendors_name ON vendors(lower(name));
+
+
 -- ── products / variants (store) ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

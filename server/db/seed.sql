@@ -215,6 +215,43 @@ BEGIN
     (exh_id, 'Past Exhibitors', '/past-exhibitors', 8);
 END $$;
 
+-- Reconcile the Shop + Attractions submenus to the requested items, and add the
+-- top-level Vendors item. Runs on every seed (the mega-menu block above only
+-- runs once) so the live nav matches. Shop/Attractions children are treated as
+-- seed-owned; admins manage other menus in the Navigation builder.
+DO $$
+DECLARE
+  shop_id UUID;
+  attr_id UUID;
+BEGIN
+  SELECT id INTO shop_id FROM nav_menu WHERE parent_id IS NULL AND label = 'Shop' LIMIT 1;
+  SELECT id INTO attr_id FROM nav_menu WHERE parent_id IS NULL AND label = 'Attractions' LIMIT 1;
+
+  IF shop_id IS NOT NULL THEN
+    DELETE FROM nav_menu WHERE parent_id = shop_id;
+    INSERT INTO nav_menu (parent_id, label, route, sort_order, is_cta) VALUES
+      (shop_id, 'Buy Tickets', '/buy-tickets', 1, TRUE),
+      (shop_id, 'Room Rate Guarantee', '/travel-hotels', 2, FALSE),
+      (shop_id, 'Discounts and Coupons', '/discounts-coupons', 3, FALSE),
+      (shop_id, 'Shop', '/shop', 4, FALSE);
+  END IF;
+
+  IF attr_id IS NOT NULL THEN
+    DELETE FROM nav_menu WHERE parent_id = attr_id;
+    INSERT INTO nav_menu (parent_id, label, route, sort_order) VALUES
+      (attr_id, 'Warlock Awards Banquet', '/warlock-awards-banquet', 1),
+      (attr_id, 'Graham Nolan''s Cigar Fest', '/graham-nolans-cigar-fest', 2),
+      (attr_id, 'Live Stream Panels', '/live-stream-panels', 3),
+      (attr_id, 'Gaming', '/gaming', 4);
+  END IF;
+
+  -- Top-level Vendors (inserted once, just before About Us).
+  IF NOT EXISTS (SELECT 1 FROM nav_menu WHERE parent_id IS NULL AND label = 'Vendors') THEN
+    UPDATE nav_menu SET sort_order = sort_order + 1 WHERE parent_id IS NULL AND sort_order >= 7;
+    INSERT INTO nav_menu (label, route, sort_order) VALUES ('Vendors', '/vendors', 7);
+  END IF;
+END $$;
+
 -- ── footer / CMS pages (§7.2) — seeded with real default content ─────────────
 -- Upsert so re-seeding refreshes the default copy. Admins edit these in the
 -- block-based Page Builder; the JSON blocks here are the source of truth.
