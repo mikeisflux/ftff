@@ -286,6 +286,18 @@ ALTER TABLE booths ADD COLUMN IF NOT EXISTS tier   TEXT;
 ALTER TABLE booths ADD COLUMN IF NOT EXISTS facing TEXT;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'booths_label_key') THEN
+    -- Databases seeded before `label` was unique can hold duplicate labels
+    -- (old sample booths re-inserted on each re-seed). Collapse duplicates to a
+    -- single row per label — preferring to keep a sold one — before adding the
+    -- unique constraint.
+    DELETE FROM booths a USING booths b
+     WHERE a.label = b.label
+       AND a.id <> b.id
+       AND (
+         (a.status <> 'sold' AND b.status = 'sold')
+         OR (a.status = b.status AND a.ctid < b.ctid)
+         OR (a.status <> 'sold' AND b.status <> 'sold' AND a.ctid < b.ctid)
+       );
     ALTER TABLE booths ADD CONSTRAINT booths_label_key UNIQUE (label);
   END IF;
 END $$;
