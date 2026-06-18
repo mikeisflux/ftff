@@ -421,3 +421,66 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
 @media (max-width: 720px) {
   .floormap-toolbar { flex-direction: column; align-items: flex-start; }
 }
+
+/* ============================================================================
+   Responsive layer — distinct tablet + phone layouts. Everything stays usable
+   (and reachable) on touch; nothing is desktop-only.
+   Breakpoints: tablet ≤1024, small-tablet/large-phone ≤768, phone ≤560.
+   ============================================================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .container { padding: 0 18px; }
+  .grid.cols-4 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .admin-main { padding: 22px; }
+  .guest-detail-grid { grid-template-columns: minmax(0, 300px) 1fr; }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 768px) {
+  .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: 1fr; }
+  .guest-detail-grid { grid-template-columns: 1fr; }
+  /* Two-column "content + sticky aside" layouts stack; aside un-sticks. */
+  .exh-grid { grid-template-columns: 1fr !important; }
+  .exh-aside { position: static !important; top: auto !important; }
+  /* Wide admin tables scroll within the content area instead of overflowing. */
+  .admin-main { overflow-x: auto; }
+  .admin-main table { min-width: 560px; }
+}
+
+/* Phone */
+@media (max-width: 560px) {
+  html { font-size: 15px; }
+  .container { padding: 0 14px; }
+  .grid.cols-4, .grid.cols-3 { grid-template-columns: 1fr; }
+  .section { padding-top: 28px; padding-bottom: 28px; }
+  .hero { min-height: 46vh; }
+  .guest-name { font-size: 1.9rem; }
+  .guest-detail-head { text-align: center; }
+  /* Comfortable tap targets */
+  .btn, .icon-btn, select, input, textarea { min-height: 44px; }
+  /* Full-width primary buttons inside cards/forms (not inline/nav buttons). */
+  .card > .btn, form .btn { width: 100%; }
+  .floormap-zoom { width: 100%; justify-content: space-between; }
+  .floormap-zoom .btn { width: auto; }
+  .vendor-azbar { gap: 2px; }
+  .vendor-azbar .az { padding: 4px 6px; }
+}
+
+/* Vendors A–Z bar wraps + stays tappable on every size. */
+.vendor-azbar { display: flex; flex-wrap: wrap; gap: 4px; margin: 14px 0; }
+.vendor-azbar .az {
+  min-width: 30px; min-height: 34px; border-radius: 8px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  background: var(--color-surface); color: var(--color-text); font-weight: 700;
+}
+.vendor-azbar .az:disabled { opacity: .35; cursor: default; }
+.vendor-search { max-width: 420px; }
+.vendor-list { list-style: none; padding: 0; margin: 0 0 18px; }
+.vendor-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.vendor-booth { color: var(--color-muted); white-space: nowrap; }
+
+/* Media (images/iframes) never force horizontal scroll. */
+img, svg, iframe, video { max-width: 100%; }

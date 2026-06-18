@@ -249,7 +249,7 @@ export default function BecomeExhibitor() {
       <p className="muted">Apply for exhibit space at For The Fans Fest — Harrah’s Resort Atlantic City, October 16–18, 2026.</p>
 
       <form onSubmit={submitApplication}>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+        <div className="grid exh-grid" style={{ gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
           <div style={{ display: 'grid', gap: 16 }}>
             {/* Vendor basics */}
             <section className="card">
@@ -379,7 +379,7 @@ export default function BecomeExhibitor() {
           </div>
 
           {/* Live total */}
-          <aside className="card" style={{ position: 'sticky', top: 90 }}>
+          <aside className="card exh-aside" style={{ position: 'sticky', top: 90 }}>
             <h3 style={{ marginTop: 0 }}>Your order</h3>
             <ul style={{ paddingLeft: 18 }}>
               {pricing.lineItems.map((l) => (
