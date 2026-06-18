@@ -165,7 +165,7 @@ publicRouter.get(
     const { getSettingValue } = await import('../lib/settings.js');
     const floorplanUrl = await getSettingValue('vendor.floorplan_url');
     const { rows } = await query(
-      `SELECT id, label, zone, price_cents, status, pos_x, pos_y, width, height
+      `SELECT id, label, zone, tier, price_cents, status, pos_x, pos_y, width, height
          FROM booths ORDER BY label`,
     );
     res.set('Cache-Control', 'no-store');

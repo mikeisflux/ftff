@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query } from '../db/pool.js';
+import { query, withTransaction } from '../db/pool.js';
 import { asyncHandler, notFound, badRequest, HttpError } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
@@ -43,7 +43,8 @@ adminExhibitorsRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
     const { rows } = await query(
-      `SELECT a.*, b.label AS booth_label
+      `SELECT a.*, b.label AS booth_label,
+              (SELECT array_agg(label ORDER BY label) FROM booths WHERE id = ANY(a.booth_ids)) AS booth_labels
          FROM exhibitor_applications a
          LEFT JOIN booths b ON b.id = a.booth_id
         WHERE a.status <> 'draft'
@@ -57,7 +58,8 @@ adminExhibitorsRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const { rows } = await query(
-      `SELECT a.*, b.label AS booth_label, b.zone AS booth_zone
+      `SELECT a.*, b.label AS booth_label, b.zone AS booth_zone,
+              (SELECT array_agg(label ORDER BY label) FROM booths WHERE id = ANY(a.booth_ids)) AS booth_labels
          FROM exhibitor_applications a
          LEFT JOIN booths b ON b.id = a.booth_id
         WHERE a.id = $1`,
@@ -136,6 +138,74 @@ adminExhibitorsRouter.post(
     }
     await query(`UPDATE exhibitor_applications SET status='cancelled' WHERE id=$1`, [app.id]);
     await audit(req.user.id, 'exhibitor.cancel', { entity: 'exhibitor', entityId: app.id });
+    res.json({ ok: true });
+  }),
+);
+
+// POST /:id/approve — approve a pending application: lock its held tables as
+// SOLD (permanent) and publish the vendor to the public directory.
+adminExhibitorsRouter.post(
+  '/:id/approve',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (app.status !== 'pending_approval') throw badRequest('Only pending applications can be approved.');
+    const boothIds = app.booth_ids || [];
+
+    const vendor = await withTransaction(async (client) => {
+      let labels = [];
+      if (boothIds.length) {
+        const r = await client.query(
+          `UPDATE booths SET status='sold', held_until=NULL WHERE id = ANY($1) RETURNING label`,
+          [boothIds],
+        );
+        labels = r.rows.map((x) => x.label.toUpperCase()).sort();
+      }
+      await client.query(
+        `UPDATE exhibitor_applications SET status='approved', approved_at=now() WHERE id=$1`,
+        [app.id],
+      );
+      // Publish to the public Vendors directory (idempotent per application).
+      const v = await client.query(
+        `INSERT INTO vendors (name, booth_number, category, website, application_id, is_active)
+         SELECT $1,$2,$3,$4,$5,TRUE
+          WHERE NOT EXISTS (SELECT 1 FROM vendors WHERE application_id=$5)
+         RETURNING *`,
+        [app.vendor_name, labels.join(', ') || null, app.category ?? null, app.website ?? null, app.id],
+      );
+      return v.rows[0] || null;
+    });
+
+    await audit(req.user.id, 'exhibitor.approve', { entity: 'exhibitor', entityId: app.id });
+    res.json({ ok: true, vendor });
+  }),
+);
+
+// POST /:id/reject — reject a pending application: release its held tables.
+adminExhibitorsRouter.post(
+  '/:id/reject',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (app.status !== 'pending_approval') throw badRequest('Only pending applications can be rejected.');
+    const boothIds = app.booth_ids || [];
+
+    await withTransaction(async (client) => {
+      if (boothIds.length) {
+        await client.query(
+          `UPDATE booths SET status='available', held_until=NULL WHERE id = ANY($1) AND status='held'`,
+          [boothIds],
+        );
+      }
+      await client.query(
+        `UPDATE exhibitor_applications SET status='rejected', rejected_at=now() WHERE id=$1`,
+        [app.id],
+      );
+    });
+
+    await audit(req.user.id, 'exhibitor.reject', { entity: 'exhibitor', entityId: app.id });
     res.json({ ok: true });
   }),
 );

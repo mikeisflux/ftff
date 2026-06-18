@@ -24,11 +24,12 @@ Status: ✅ done & pushed · 🔶 in progress · ⬜ todo
 - 🔶 `vendors` table (schema) + public `/vendors` + admin `/admin/vendors`
 
 ## To do (⬜)
-- ⬜ **Floor map / table picker** — integrate the 140-table Wildwood Ballroom SVG map from `files.zip` (`booths.json` + `FLOORMAP_SPEC.md`) INTO the existing `/floor-plan` (do not replace). Multi-select tables, live availability, server-authoritative, responsive pinch/zoom, a11y list fallback.
-- ⬜ Seed the 140 tables (from `booths.json`) into the `booths` table (tier/facing, feet→normalized coords).
-- ⬜ **Application-gated holds**: selecting a spot during the exhibitor application holds it; it stays held until the application is **approved** (→ table locked/sold permanently) or **rejected** (→ released). Replaces the short checkout-timer model.
-- ⬜ **Admin approve/reject** for exhibitor applications (sets tables sold/available); add `pending_approval`/`approved`/`rejected` statuses.
-- ⬜ Approved applications auto-create a **Vendors** directory entry (name + booth number).
+- ✅ **Floor map / table picker** — 140-table Wildwood SVG map (`FloorMap.jsx`) on the existing `/floor-plan` (view mode) + in the exhibitor application (select mode); live availability, zoom, a11y list fallback, Row A locked.
+- ✅ Seeded the 140 tables from `docs/floor-plan/booths.json` (tier/facing, normalized coords; unique label).
+- ✅ **Application-gated holds**: tables picked during the application are held (indefinitely) until admin **approves** (→ sold) or **rejects** (→ released).
+- ✅ **Admin approve/reject** in Exhibitors admin; statuses `pending_approval`/`approved`/`rejected`.
+- ✅ Approved applications auto-create a **Vendors** directory entry (name + booth numbers).
+- ⬜ **Payment after approval** — wire deposit/full payment once an application is approved (existing `/exhibitor/checkout` + Stripe code remains for this).
 - ⬜ **Slider dimensions** — document recommended image sizes (answered in chat; add to admin help text).
 - ⬜ **Full mobile compatibility** — every feature usable on mobile; no functionality desktop-only (esp. floor map, admin, nav).
 - ⬜ **Distinct phone and tablet layouts** — responsive breakpoints with tailored layouts for phone vs tablet across site + admin.

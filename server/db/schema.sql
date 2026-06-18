@@ -280,6 +280,15 @@ DROP TRIGGER IF EXISTS trg_booths_updated ON booths;
 CREATE TRIGGER trg_booths_updated BEFORE UPDATE ON booths
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_booths_status ON booths(status);
+-- Table-map extras (tier + which way the table faces) and a unique label so the
+-- 140-table floor map can be seeded idempotently.
+ALTER TABLE booths ADD COLUMN IF NOT EXISTS tier   TEXT;
+ALTER TABLE booths ADD COLUMN IF NOT EXISTS facing TEXT;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'booths_label_key') THEN
+    ALTER TABLE booths ADD CONSTRAINT booths_label_key UNIQUE (label);
+  END IF;
+END $$;
 
 -- ── vendors (public approved-exhibitor directory; admin CRUD + auto-added on
 --    application approval) ──────────────────────────────────────────────────
@@ -629,6 +638,15 @@ CREATE TRIGGER trg_exhibitor_apps_updated BEFORE UPDATE ON exhibitor_application
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_status ON exhibitor_applications(status);
 CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_email ON exhibitor_applications(contact_email);
+-- Floor-map table selection + admin approval lifecycle: applicants pick tables
+-- which are held until an admin approves (→ sold) or rejects (→ released).
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS booth_ids   UUID[] NOT NULL DEFAULT '{}';
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+ALTER TABLE exhibitor_applications DROP CONSTRAINT IF EXISTS exhibitor_applications_status_check;
+ALTER TABLE exhibitor_applications ADD CONSTRAINT exhibitor_applications_status_check
+  CHECK (status IN ('draft','pending_approval','approved','rejected',
+                    'awaiting_payment','check_pending','deposit_paid','paid_in_full','cancelled'));
 
 -- ── exhibitor_rewards (referral cash-back toward booth bookings) ─────────────
 -- Each exhibitor gets a unique referral code; when fans buy tickets via their

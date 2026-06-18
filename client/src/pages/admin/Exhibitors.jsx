@@ -3,6 +3,9 @@ import { api } from '../../lib/api.js';
 import { money } from '../../lib/exhibitorPricing.js';
 
 const STATUS_LABEL = {
+  pending_approval: 'Pending approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
   awaiting_payment: 'Awaiting payment',
   check_pending: 'Check pending',
   deposit_paid: 'Deposit paid',
@@ -94,7 +97,7 @@ export default function Exhibitors() {
           {apps.map((a) => (
             <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
               <td>{a.vendor_name}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{a.reference}</span></td>
-              <td>{a.booth_label || '—'}</td>
+              <td>{(a.booth_labels && a.booth_labels.length ? a.booth_labels.join(', ') : a.booth_label) || '—'}</td>
               <td>{STATUS_LABEL[a.status] || a.status}</td>
               <td>{money(a.total_cents)}</td>
               <td>{money(a.amount_paid_cents)}</td>
@@ -128,9 +131,20 @@ export default function Exhibitors() {
             {a.dietary && <p>Dietary: {a.dietary}</p>}
             {a.additional_request && <p>Requests: {a.additional_request}</p>}
             {a.livestreaming && <p>Live streaming{a.livestream_panel ? ` · Panel: ${a.panel_name || '?'} (${a.panel_day || '?'})` : ''}</p>}
+            <p>Tables held/assigned: <strong>{(a.booth_labels && a.booth_labels.length ? a.booth_labels.join(', ') : a.booth_label) || '—'}</strong></p>
             <p className="muted">Method: {a.payment_method || '—'} · Choice: {a.payment_choice || '—'} · Signed: {a.signature}</p>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {a.status === 'pending_approval' && (
+                <>
+                  <button className="btn" disabled={busy === a.id + 'approve'} onClick={() => act(a.id, 'approve')}>
+                    {busy === a.id + 'approve' ? 'Working…' : 'Approve (lock tables + list vendor)'}
+                  </button>
+                  <button className="btn secondary" disabled={busy === a.id + 'reject'} onClick={() => act(a.id, 'reject')}>
+                    {busy === a.id + 'reject' ? 'Working…' : 'Reject (release tables)'}
+                  </button>
+                </>
+              )}
               {(a.status === 'check_pending' || (a.status === 'deposit_paid' && a.payment_method === 'check' && a.balance_cents > 0)) && (
                 <button className="btn" disabled={busy === a.id + 'mark-paid'} onClick={() => act(a.id, 'mark-paid')}>
                   {busy === a.id + 'mark-paid' ? 'Working…' : 'Mark check received'}
@@ -141,7 +155,7 @@ export default function Exhibitors() {
                   {busy === a.id + 'send-balance' ? 'Sending…' : a.balance_request_sent_at ? 'Resend balance invoice' : 'Send balance invoice'}
                 </button>
               )}
-              {a.status !== 'paid_in_full' && a.status !== 'cancelled' && (
+              {['awaiting_payment', 'check_pending', 'deposit_paid'].includes(a.status) && (
                 <button className="btn secondary" disabled={busy === a.id + 'cancel'} onClick={() => act(a.id, 'cancel')}>
                   {busy === a.id + 'cancel' ? 'Working…' : 'Cancel'}
                 </button>

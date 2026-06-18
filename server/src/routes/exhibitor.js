@@ -76,6 +76,9 @@ const applySchema = z.object({
   dietary: z.string().max(1000).optional().nullable(),
   signature: z.string().min(2).max(200),
   agreed: z.literal(true),
+  // Floor-map table labels the applicant picked during checkout (e.g. ['b5','b6']).
+  // Held on submit until an admin approves (→ sold) or rejects (→ released).
+  selected_tables: z.array(z.string().max(8)).max(20).optional(),
 });
 
 // POST /exhibitor/apply — persist the application + pricing snapshot.
@@ -94,36 +97,61 @@ exhibitorRouter.post(
       throw badRequest(`Only ${pool ? pool.total : 0} additional tables are offered.`, 'tables_exceeded');
     }
 
-    const { rows } = await query(
-      `INSERT INTO exhibitor_applications (
-         reference, vendor_name, product_desc, num_attendees, company_name, address,
-         contact_name, contact_email, contact_phone, website, category,
-         hotel_night1, hotel_night2, hotel_night3, extra_tables, additional_request,
-         livestreaming, livestream_panel, panel_name, panel_day,
-         banquet, banquet_chicken, banquet_beef, banquet_vegan, dietary,
-         signature, agreed_at, total_cents, deposit_cents, balance_cents, breakdown, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-               $21,$22,$23,$24,$25,$26, now(), $27,$28,$29,$30,'draft')
-       RETURNING id, reference, total_cents, deposit_cents, balance_cents`,
-      [
-        reference(), d.vendor_name, d.product_desc ?? null, d.num_attendees ?? null,
-        d.company_name ?? null, d.address ?? null, d.contact_name ?? null, d.contact_email,
-        d.contact_phone ?? null, d.website ?? null, d.category ?? null,
-        !!d.hotel_night1, !!d.hotel_night2, !!d.hotel_night3, pricing.extraTables,
-        d.additional_request ?? null, !!d.livestreaming, !!d.livestream_panel,
-        d.panel_name ?? null, d.panel_day ?? null, !!d.banquet,
-        d.banquet_chicken ?? 0, d.banquet_beef ?? 0, d.banquet_vegan ?? 0, d.dietary ?? null,
-        d.signature, pricing.totalCents, pricing.depositCents, pricing.balanceCents,
-        JSON.stringify(pricing.lineItems),
-      ],
-    );
-    const app = rows[0];
+    const selectedLabels = [...new Set(d.selected_tables ?? [])];
+
+    // Hold the picked tables and create the application atomically. Tables are
+    // held indefinitely (held_until=NULL) — they stay reserved until an admin
+    // approves (→ sold) or rejects (→ released), not on a checkout timer.
+    const app = await withTransaction(async (client) => {
+      const boothIds = [];
+      for (const label of selectedLabels) {
+        const claim = await client.query(
+          `UPDATE booths SET status='held', held_until=NULL
+             WHERE label=$1 AND status='available' AND tier <> 'featured'
+             RETURNING id`,
+          [label],
+        );
+        if (claim.rowCount === 0) {
+          throw new HttpError(409, `Table ${label.toUpperCase()} is no longer available.`, 'table_unavailable');
+        }
+        boothIds.push(claim.rows[0].id);
+      }
+      const status = 'pending_approval';
+      const ins = await client.query(
+        `INSERT INTO exhibitor_applications (
+           reference, vendor_name, product_desc, num_attendees, company_name, address,
+           contact_name, contact_email, contact_phone, website, category,
+           hotel_night1, hotel_night2, hotel_night3, extra_tables, additional_request,
+           livestreaming, livestream_panel, panel_name, panel_day,
+           banquet, banquet_chicken, banquet_beef, banquet_vegan, dietary,
+           signature, agreed_at, total_cents, deposit_cents, balance_cents, breakdown,
+           booth_ids, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
+                 $21,$22,$23,$24,$25,$26, now(), $27,$28,$29,$30, $31, $32)
+         RETURNING id, reference, total_cents, deposit_cents, balance_cents, status`,
+        [
+          reference(), d.vendor_name, d.product_desc ?? null, d.num_attendees ?? null,
+          d.company_name ?? null, d.address ?? null, d.contact_name ?? null, d.contact_email,
+          d.contact_phone ?? null, d.website ?? null, d.category ?? null,
+          !!d.hotel_night1, !!d.hotel_night2, !!d.hotel_night3, pricing.extraTables,
+          d.additional_request ?? null, !!d.livestreaming, !!d.livestream_panel,
+          d.panel_name ?? null, d.panel_day ?? null, !!d.banquet,
+          d.banquet_chicken ?? 0, d.banquet_beef ?? 0, d.banquet_vegan ?? 0, d.dietary ?? null,
+          d.signature, pricing.totalCents, pricing.depositCents, pricing.balanceCents,
+          JSON.stringify(pricing.lineItems), boothIds, status,
+        ],
+      );
+      return ins.rows[0];
+    });
+
     res.status(201).json({
       applicationId: app.id,
       reference: app.reference,
       totalCents: app.total_cents,
       depositCents: app.deposit_cents,
       balanceCents: app.balance_cents,
+      status: app.status,
+      selectedTables: selectedLabels,
       breakdown: pricing.lineItems,
     });
   }),

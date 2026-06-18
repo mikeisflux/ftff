@@ -5,6 +5,7 @@ import { useConfig } from '../store/ConfigContext.jsx';
 import { computeExhibitorPricing, money, PRICES } from '../lib/exhibitorPricing.js';
 import { EXHIBITOR_TERMS, EXHIBITOR_TERMS_TITLE } from '../content/exhibitorTerms.js';
 import BoothPicker from '../components/BoothPicker.jsx';
+import FloorMap from '../components/FloorMap.jsx';
 import StripePayment from '../components/StripePayment.jsx';
 
 const BLANK = {
@@ -34,7 +35,9 @@ export default function BecomeExhibitor() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // pay step
+  // table selection (held until admin approves/rejects)
+  const [selectedTables, setSelectedTables] = useState([]);
+  // legacy pay step (kept for post-approval payment wiring)
   const [booth, setBooth] = useState(null);
   const [choice, setChoice] = useState('deposit');
   const [method, setMethod] = useState('card');
@@ -50,7 +53,7 @@ export default function BecomeExhibitor() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [step]);
 
-  async function submitApplication(e) {
+  function submitApplication(e) {
     e.preventDefault();
     setError('');
     if (!form.vendor_name.trim()) return setError('Please enter your vendor name.');
@@ -58,7 +61,13 @@ export default function BecomeExhibitor() {
     if (!form.signature.trim()) return setError('Please type your signature to agree.');
     if (!agreed) return setError('You must agree to the Terms and Conditions.');
     if (pricing.extraTables > tablesAvailable) return setError(`Only ${tablesAvailable} additional tables remain.`);
+    setStep('tables');
+  }
 
+  // Submit the application + picked tables. Tables are held until an admin
+  // approves (→ confirmed/sold) or rejects (→ released).
+  async function submitFinal() {
+    setError('');
     setBusy(true);
     try {
       const recaptchaToken = await getRecaptchaToken('exhibitor');
@@ -70,13 +79,18 @@ export default function BecomeExhibitor() {
         banquet_beef: Number(form.banquet_beef) || 0,
         banquet_vegan: Number(form.banquet_vegan) || 0,
         agreed: true,
+        selected_tables: selectedTables,
         ...(recaptchaToken ? { recaptchaToken } : {}),
       };
       const res = await api('/exhibitor/apply', { method: 'POST', body });
       setResult(res);
-      setStep('pay');
+      setStep('done');
     } catch (err) {
-      setError(err.data?.details?.[0]?.message || err.message || 'Could not submit your application.');
+      setError(
+        err.data?.code === 'table_unavailable'
+          ? 'One of your tables was just taken — please pick another.'
+          : err.data?.details?.[0]?.message || err.message || 'Could not submit your application.',
+      );
     } finally {
       setBusy(false);
     }
@@ -105,14 +119,43 @@ export default function BecomeExhibitor() {
     }
   }
 
-  // ── Confirmation (check) ────────────────────────────────────────────────────
+  // ── Confirmation (pending approval) ─────────────────────────────────────────
   if (step === 'done') {
     return (
       <div className="section container" style={{ maxWidth: 720 }}>
         <h1 className="glow">Application received</h1>
         <div className="card">
-          <p style={{ color: 'var(--color-success)' }}>✓ Thanks! Your application <strong>{result?.reference}</strong> is in.</p>
-          <p>You chose to pay by check. Make your check or money order payable to <strong>Undeniable Ventures</strong> and mail it to <strong>6 Pilgrim Drive, Succasunna NJ 07876</strong>. Your booth is held for you and we’ll confirm once payment is received.</p>
+          <p style={{ color: 'var(--color-success)' }}>✓ Thanks! Your application <strong>{result?.reference}</strong> is in and pending review.</p>
+          {result?.selectedTables?.length > 0 && (
+            <p>Your selected table{result.selectedTables.length > 1 ? 's' : ''}{' '}
+              <strong>{result.selectedTables.map((t) => t.toUpperCase()).join(', ')}</strong>{' '}
+              {result.selectedTables.length > 1 ? 'are' : 'is'} held while we review your application — confirmed once it’s approved, or released if it’s declined.</p>
+          )}
+          <p>We’ll email <strong>{form.contact_email}</strong> with the decision and payment details.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Table selection (held until admin approves/rejects) ─────────────────────
+  if (step === 'tables') {
+    return (
+      <div className="section container" style={{ maxWidth: 1000 }}>
+        <h1 className="glow">Select your table(s)</h1>
+        <p className="muted">
+          Pick your spot on the Wildwood Ballroom floor map. Selected tables are held while we review
+          your application — confirmed once it’s approved, or released if it’s declined. The featured
+          front row (Row A) isn’t available for selection.
+        </p>
+        <FloorMap selectable value={selectedTables} onChange={setSelectedTables} />
+        {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
+        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+          <button className="btn secondary" onClick={() => setStep('form')} disabled={busy}>← Back to application</button>
+          <button className="btn" onClick={submitFinal} disabled={busy}>
+            {busy ? 'Submitting…' : selectedTables.length
+              ? `Submit application (${selectedTables.length} table${selectedTables.length > 1 ? 's' : ''})`
+              : 'Submit application'}
+          </button>
         </div>
       </div>
     );
@@ -331,7 +374,7 @@ export default function BecomeExhibitor() {
 
             {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
             <button className="btn" disabled={busy} style={{ alignSelf: 'start' }}>
-              {busy ? 'Submitting…' : 'Continue to booth & payment'}
+              Continue to table selection
             </button>
           </div>
 
