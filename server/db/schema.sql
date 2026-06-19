@@ -175,6 +175,10 @@ ALTER TABLE guests ADD COLUMN IF NOT EXISTS photo_op_cents          INTEGER;
 ALTER TABLE guests ADD COLUMN IF NOT EXISTS bio_url                 TEXT;
 -- Up to 3 cover-art images (e.g. comic covers) shown in the guest's bio section.
 ALTER TABLE guests ADD COLUMN IF NOT EXISTS cover_art JSONB NOT NULL DEFAULT '[]'::jsonb;
+-- Optional Row-A (featured front row) table assignment; unique so no two guests
+-- share a table.
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS table_label TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_guests_table_label ON guests(table_label) WHERE table_label IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_guests_category ON guests(category);
 CREATE INDEX IF NOT EXISTS idx_guests_featured ON guests(is_featured) WHERE is_featured;
 -- Removed categories: reassign any existing guests, then tighten the constraint.

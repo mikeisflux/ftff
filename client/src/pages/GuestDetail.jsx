@@ -69,6 +69,9 @@ export default function GuestDetail() {
         {days.length > 0 && (
           <p className="guest-appearing"><strong>Appearing:</strong> {days.join(', ')}</p>
         )}
+        {g.table_label && (
+          <p className="guest-table"><strong>Find them at:</strong> Table {g.table_label.toUpperCase()}</p>
+        )}
       </header>
 
       <div className="guest-detail-grid">

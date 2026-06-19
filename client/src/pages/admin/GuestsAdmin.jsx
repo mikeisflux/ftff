@@ -7,10 +7,14 @@ const TIERS = [['featured', 'Featured Guests'], ['special', 'Special Guests'], [
 const DAYS = ['Friday', 'Saturday', 'Sunday'];
 const blank = {
   name: '', known_for: '', bio: '', bio_url: '', headshot_url: '', category: 'celebrities', tier: 'featured',
-  is_featured: false, is_active: true, appearance_days: [], cover_art: [],
+  is_featured: false, is_active: true, appearance_days: [], cover_art: [], table_label: '',
   autograph: '', autograph_premium: '', photo_op: '',
   imdb: '', website: '', twitter: '', instagram: '',
 };
+
+// Row A = the 20 featured front-row tables (a1…a20). Each guest can be assigned
+// to one, and no two guests share a table.
+const ROW_A_TABLES = Array.from({ length: 20 }, (_, i) => `a${i + 1}`);
 
 const centsToDollars = (c) => (c == null ? '' : String(c / 100));
 const dollarsToCents = (v) => {
@@ -28,6 +32,7 @@ function formFromGuest(g) {
     is_featured: g.is_featured, is_active: g.is_active,
     appearance_days: Array.isArray(g.appearance_days) ? g.appearance_days : [],
     cover_art: Array.isArray(g.cover_art) ? g.cover_art : [],
+    table_label: g.table_label || '',
     autograph: centsToDollars(g.autograph_cents),
     autograph_premium: centsToDollars(g.autograph_premium_cents),
     photo_op: centsToDollars(g.photo_op_cents),
@@ -51,6 +56,7 @@ function bodyFromForm(f) {
     is_active: f.is_active,
     appearance_days: f.appearance_days,
     cover_art: (f.cover_art || []).filter(Boolean),
+    table_label: f.table_label || null,
     socials,
     autograph_cents: dollarsToCents(f.autograph),
     autograph_premium_cents: dollarsToCents(f.autograph_premium),
@@ -114,6 +120,9 @@ export default function GuestsAdmin() {
   async function del(id) { if (window.confirm('Delete guest?')) { await api(`/admin/guests/${id}`, { method: 'DELETE' }); await load(); } }
   async function reorder(orderedIds) { await api('/admin/guests/reorder', { method: 'POST', body: { orderedIds } }); }
 
+  const takenTables = new Set(guests.filter((x) => x.id !== editingId && x.table_label).map((x) => x.table_label));
+  const availableTables = ROW_A_TABLES.filter((t) => !takenTables.has(t));
+
   const shown = filter ? guests.filter((g) => g.category === filter) : guests;
 
   return (
@@ -150,6 +159,15 @@ export default function GuestsAdmin() {
                 </label>
               ))}
             </div>
+
+            <label>Guest table (Row A) <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>— {availableTables.length} of {ROW_A_TABLES.length} available; each table is one guest only</span></label>
+            <select value={form.table_label} onChange={(e) => setForm((f) => ({ ...f, table_label: e.target.value }))}>
+              <option value="">Unassigned</option>
+              {form.table_label && !availableTables.includes(form.table_label) && (
+                <option value={form.table_label}>{form.table_label.toUpperCase()} (current)</option>
+              )}
+              {availableTables.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+            </select>
 
             <label>Bio</label><textarea rows={4} value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} />
             <label>“Check out their bio” link (optional URL)</label>
@@ -210,7 +228,7 @@ export default function GuestsAdmin() {
       <Reorderable items={shown} onReorder={reorder} render={(g) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {g.headshot_url && <img src={g.headshot_url} alt="" style={{ height: 44, width: 44, objectFit: 'cover', borderRadius: 6 }} />}
-          <div style={{ flex: 1 }}><strong>{g.name}</strong> <span className="muted">· {g.category}{!g.is_active ? ' · inactive' : ''}</span></div>
+          <div style={{ flex: 1 }}><strong>{g.name}</strong> <span className="muted">· {g.category}{g.table_label ? ` · Table ${g.table_label.toUpperCase()}` : ''}{!g.is_active ? ' · inactive' : ''}</span></div>
           <button className="btn secondary" onClick={() => toggleFeatured(g)}>{g.is_featured ? '★ Featured' : '☆ Feature'}</button>
           <button className="btn secondary" onClick={() => editGuest(g)}>Edit</button>
           <button className="btn secondary" onClick={() => del(g.id)}>✕</button>

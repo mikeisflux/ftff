@@ -36,6 +36,8 @@ const guestSchema = z.object({
   photo_op_cents: z.number().int().min(0).max(10_000_000).optional().nullable(),
   // Up to 3 cover-art image URLs shown in the guest's bio.
   cover_art: z.array(z.string().url()).max(3).optional(),
+  // Row-A (featured) table assignment, e.g. 'a5'. Unique across guests.
+  table_label: z.string().regex(/^a([1-9]|1[0-9]|20)$/).optional().nullable(),
 });
 
 async function featuredCount(excludeId) {
@@ -83,18 +85,34 @@ async function syncGuestProducts(g) {
 
 adminGuestsRouter.get('/', asyncHandler(async (_q, res) => res.json({ guests: (await query(`SELECT * FROM guests ORDER BY sort_order, name`)).rows })));
 
+// Run a guest INSERT/UPDATE, translating the table_label unique-violation into a
+// friendly 409 (no two guests can share a Row-A table).
+async function insertOrUpdateGuest(sql, params) {
+  try {
+    const { rows } = await query(sql, params);
+    return rows;
+  } catch (e) {
+    if (e.code === '23505' && /table_label/.test(e.constraint || '')) {
+      throw badRequest('That table is already assigned to another guest.');
+    }
+    throw e;
+  }
+}
+
 adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
   const g = guestSchema.parse(req.body);
   if (g.is_featured && (await featuredCount()) >= MAX_FEATURED) {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
-  const { rows } = await query(
+  const rows = await insertOrUpdateGuest(
     `INSERT INTO guests (name, known_for, bio, bio_url, headshot_url, category, tier, socials, appearance_days,
-                         is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
+                         is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art,
+                         table_label, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
     [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
       JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
-      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? [])],
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? []),
+      g.table_label ?? null],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
   await syncGuestProducts(rows[0]);
@@ -106,13 +124,13 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
   if (g.is_featured && (await featuredCount(req.params.id)) >= MAX_FEATURED) {
     throw badRequest(`Only ${MAX_FEATURED} guests can be featured on the homepage`);
   }
-  const { rows } = await query(
+  const rows = await insertOrUpdateGuest(
     `UPDATE guests SET name=$2, known_for=$3, bio=$4, bio_url=$5, headshot_url=$6, category=$7, tier=$8, socials=$9,
             appearance_days=$10, is_featured=$11, is_active=$12,
-            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15, cover_art=$16 WHERE id=$1 RETURNING *`,
+            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15, cover_art=$16, table_label=$17 WHERE id=$1 RETURNING *`,
     [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null,
       g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
-      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? [])],
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? []), g.table_label ?? null],
   );
   if (!rows[0]) throw notFound('Guest not found');
   await syncGuestProducts(rows[0]);
