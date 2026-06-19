@@ -5,7 +5,11 @@ import { getSettingValue } from './settings.js';
 // both v2 (no score) and v3 (score threshold).
 export async function verifyRecaptcha(token, ip) {
   const secret = await getSettingValue('recaptcha.secret');
-  if (!secret) return { ok: true, skipped: true };
+  const siteKey = await getSettingValue('recaptcha.site_key');
+  // Only enforce when BOTH keys are configured. If either is missing the browser
+  // can't produce a valid token, so skipping keeps forms working instead of
+  // failing every submission on a half-configured setup.
+  if (!secret || !siteKey) return { ok: true, skipped: true };
   if (!token) return { ok: false, reason: 'missing_token' };
 
   const params = new URLSearchParams({ secret, response: token });
