@@ -51,7 +51,7 @@ publicRouter.get(
     // Note: bio is intentionally NOT selected here — it only belongs on the
     // individual guest detail page (/guests/:id), never in tile/grid listings.
     const { rows } = await query(
-      `SELECT id, name, known_for, headshot_url, category, tier, appearance_days, is_featured, sort_order
+      `SELECT id, name, known_for, headshot_url, category, tier, appearance_days, is_featured, sort_order, table_label
          FROM guests WHERE ${where.join(' AND ')}
         ORDER BY sort_order, name LIMIT ${limit}`,
       params,
@@ -165,8 +165,13 @@ publicRouter.get(
     const { getSettingValue } = await import('../lib/settings.js');
     const floorplanUrl = await getSettingValue('vendor.floorplan_url');
     const { rows } = await query(
-      `SELECT id, label, zone, tier, price_cents, status, pos_x, pos_y, width, height
-         FROM booths ORDER BY label`,
+      `SELECT b.id, b.label, b.zone, b.tier, b.price_cents, b.status,
+              b.pos_x, b.pos_y, b.width, b.height,
+              gu.id AS guest_id, gu.name AS guest_name,
+              gu.headshot_url AS guest_headshot, gu.known_for AS guest_known_for
+         FROM booths b
+         LEFT JOIN guests gu ON gu.table_label = b.label AND gu.is_active = TRUE
+        ORDER BY b.label`,
     );
     res.set('Cache-Control', 'no-store');
     res.json({ floorplanUrl: floorplanUrl || null, booths: rows });

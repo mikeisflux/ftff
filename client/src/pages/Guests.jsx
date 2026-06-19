@@ -33,6 +33,7 @@ function GuestTile({ g }) {
       <h3 style={{ margin: '8px 0 0' }}>{g.name}</h3>
       {g.known_for && <p className="muted" style={{ margin: '4px 0 0' }}>{g.known_for}</p>}
       {appearing && <p className="muted" style={{ margin: '6px 0 0', fontSize: '.85rem' }}>Appearing: {appearing}</p>}
+      {g.table_label && <span className="table-badge">Table {g.table_label.toUpperCase()}</span>}
     </Link>
   );
 }

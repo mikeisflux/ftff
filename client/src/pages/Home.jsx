@@ -109,6 +109,7 @@ export default function Home() {
                   )}
                   <h3 style={{ margin: '8px 0 0' }}>{g.name}</h3>
                   <p className="muted">{g.known_for}</p>
+                  {g.table_label && <span className="table-badge">Table {g.table_label.toUpperCase()}</span>}
                 </Link>
               ))}
             </div>

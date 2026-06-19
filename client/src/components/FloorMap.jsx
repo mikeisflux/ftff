@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import MAP from '../content/floormap.json';
@@ -60,8 +60,21 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
   const selectedBooths = MAP.booths.filter((b) => selected.has(b.id));
   const total = selectedBooths.reduce((s, b) => s + (priceOf(b.id) || 0), 0);
 
+  // Hover/tap popup showing which guest is at a taken table.
+  const wrapRef = useRef(null);
+  const [guestPop, setGuestPop] = useState(null);
+  const showGuest = (e, id) => {
+    const srv = byLabel[id];
+    if (!srv?.guest_name || !wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    setGuestPop({
+      name: srv.guest_name, headshot: srv.guest_headshot, knownFor: srv.guest_known_for,
+      x: e.clientX - r.left, y: e.clientY - r.top,
+    });
+  };
+
   return (
-    <div className="floormap">
+    <div className="floormap" ref={wrapRef}>
       <div className="floormap-toolbar">
         <div className="floormap-legend">
           <span><i style={{ background: 'var(--color-primary)' }} /> Standard</span>
@@ -119,21 +132,24 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
             const clickable = canSelect(b.id);
             const locked = LOCKED.has(b.id);
             const price = priceOf(b.id);
+            const guestName = byLabel[b.id]?.guest_name;
             return (
               <g key={b.id}>
                 <rect
                   x={fx(b.x_ft)} y={fy(b.y_ft)} width={b.w_ft * SX} height={b.h_ft * SY}
                   rx="2" fill={fillFor(b)}
                   stroke="rgba(0,0,0,.35)" strokeWidth="0.7"
-                  className={`floormap-booth${clickable ? ' is-clickable' : ''}${locked ? ' is-locked' : ''}`}
+                  className={`floormap-booth${clickable ? ' is-clickable' : ''}${locked ? ' is-locked' : ''}${guestName ? ' has-guest' : ''}`}
                   role={selectable ? 'button' : 'img'}
                   tabIndex={clickable ? 0 : -1}
                   aria-pressed={selectable ? selected.has(b.id) : undefined}
-                  aria-label={`Table ${b.id.toUpperCase()}, ${b.price_tier}${price ? `, ${money(price)}` : ''}, ${locked ? 'not available for selection' : st}`}
-                  onClick={() => toggle(b.id)}
+                  aria-label={`Table ${b.id.toUpperCase()}, ${b.price_tier}${price ? `, ${money(price)}` : ''}, ${guestName ? `${guestName} appearing here` : locked ? 'not available for selection' : st}`}
+                  onClick={(e) => { if (guestName) showGuest(e, b.id); else toggle(b.id); }}
+                  onMouseMove={guestName ? (e) => showGuest(e, b.id) : undefined}
+                  onMouseLeave={guestName ? () => setGuestPop(null) : undefined}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(b.id); } }}
                 >
-                  <title>{`${b.id.toUpperCase()} · ${b.price_tier}${price ? ` · ${money(price)}` : ''} · faces ${b.facing} · ${locked ? 'not available' : st}`}</title>
+                  <title>{`${b.id.toUpperCase()} · ${b.price_tier}${price ? ` · ${money(price)}` : ''} · faces ${b.facing} · ${guestName || (locked ? 'not available' : st)}`}</title>
                 </rect>
                 <text x={fx(b.x_ft) + (b.w_ft * SX) / 2} y={fy(b.y_ft) + (b.h_ft * SY) / 2 + 3}
                   className="floormap-booth-label">{b.id.toUpperCase()}</text>
@@ -186,6 +202,16 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {guestPop && (
+        <div className="floormap-guestpop" style={{ left: guestPop.x + 14, top: guestPop.y + 14 }}>
+          {guestPop.headshot && <img src={guestPop.headshot} alt="" />}
+          <div>
+            <strong>{guestPop.name}</strong>
+            {guestPop.knownFor && <div className="muted" style={{ fontSize: '.8rem' }}>{guestPop.knownFor}</div>}
+          </div>
         </div>
       )}
     </div>
