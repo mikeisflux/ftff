@@ -67,7 +67,8 @@ export default function Exhibitors() {
 
   return (
     <div>
-      <h1>Exhibitors</h1>
+      <h1>Vendor Applications</h1>
+      <p className="muted">Booth/table applications from <code>/become-an-exhibitor</code>. Approve to lock the tables (sold) and publish the vendor; reject to release them.</p>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       <div className="card" style={{ marginBottom: 20 }}>

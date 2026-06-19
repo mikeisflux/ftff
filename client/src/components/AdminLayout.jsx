@@ -13,6 +13,7 @@ const NAV_GROUPS = [
     { to: '/admin/orders', label: 'Orders', roles: ['admin'] },
     { to: '/admin/tickets', label: 'Tickets', roles: ['admin'] },
     { to: '/admin/ticket-types', label: 'Ticket Types', roles: ['admin'] },
+    { to: '/admin/exhibitors', label: 'Vendor Applications', roles: ['admin', 'editor'] },
   ] },
   { label: 'Store & Vendors', items: [
     { to: '/admin/products', label: 'Shop', roles: ['admin', 'editor'] },
@@ -21,8 +22,7 @@ const NAV_GROUPS = [
     { to: '/admin/photo-ops', label: 'Photo Ops', roles: ['admin', 'editor'] },
     { to: '/admin/discounts', label: 'Discounts', roles: ['admin', 'editor'] },
     { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
-    { to: '/admin/exhibitors', label: 'Exhibitors', roles: ['admin', 'editor'] },
-    { to: '/admin/vendors', label: 'Vendors', roles: ['admin', 'editor'] },
+    { to: '/admin/vendors', label: 'Vendors (directory)', roles: ['admin', 'editor'] },
     { to: '/admin/rewards', label: 'Exhibitor Rewards', roles: ['admin', 'editor'] },
   ] },
   { label: 'Content', items: [
