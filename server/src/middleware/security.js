@@ -32,6 +32,9 @@ export function securityHeaders() {
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://js.stripe.com',
           'https://maps.googleapis.com',
+          // Google reCAPTCHA (v2/v3) loader + challenge scripts.
+          'https://www.google.com/recaptcha/',
+          'https://www.gstatic.com/recaptcha/',
         ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
