@@ -88,7 +88,9 @@ exhibitorRouter.post(
   requireRecaptcha,
   asyncHandler(async (req, res) => {
     const d = applySchema.parse(req.body);
-    const pricing = computeExhibitorPricing(d);
+    const selectedLabels = [...new Set(d.selected_tables ?? [])];
+    // Each selected spot is a booth ($250); extra_tables are add-on tables ($100).
+    const pricing = computeExhibitorPricing({ ...d, booths: Math.max(1, selectedLabels.length) });
 
     // Don't accept more tables than could ever exist (hard cap; the real
     // reservation happens atomically at checkout).
@@ -96,8 +98,6 @@ exhibitorRouter.post(
     if (pricing.extraTables > 0 && (!pool || pricing.extraTables > pool.total)) {
       throw badRequest(`Only ${pool ? pool.total : 0} additional tables are offered.`, 'tables_exceeded');
     }
-
-    const selectedLabels = [...new Set(d.selected_tables ?? [])];
 
     // Hold the picked tables and create the application atomically. Tables are
     // held indefinitely (held_until=NULL) — they stay reserved until an admin

@@ -57,12 +57,10 @@ export default function FloorMap({ selectable = false, value = [], onChange, tab
   };
 
   const selectedBooths = MAP.booths.filter((b) => selected.has(b.id));
-  // Pricing model: first table is the $250 booth (table + 2 chairs); each
-  // additional table is $100. (Not a flat per-table price.)
+  // Each selected spot is a flat-priced booth space (10'x8'). Extra tables
+  // within a space are a separate add-on handled on the application form.
   const n = selectedBooths.length;
-  const total = tablePricing
-    ? (n ? tablePricing.firstCents + (n - 1) * tablePricing.extraCents : 0)
-    : 0;
+  const total = tablePricing ? n * tablePricing.perBoothCents : 0;
 
   // Hover/tap popup showing which guest is at a taken table.
   const wrapRef = useRef(null);
@@ -168,10 +166,10 @@ export default function FloorMap({ selectable = false, value = [], onChange, tab
             ? <span className="muted">Tap available tables to select them.</span>
             : (
               <>
-                <strong>{selectedBooths.length} table{selectedBooths.length > 1 ? 's' : ''} selected{tablePricing ? ` — ${money(total)}` : ''}</strong>
+                <strong>{n} booth space{n > 1 ? 's' : ''} selected{tablePricing ? ` — ${money(total)}` : ''}</strong>
                 {tablePricing && (
                   <div className="muted" style={{ fontSize: '.82rem', marginTop: 2 }}>
-                    First table {money(tablePricing.firstCents)} (booth: 10′×8′ space, table + 2 chairs) · each additional {money(tablePricing.extraCents)}
+                    Each booth space is {money(tablePricing.perBoothCents)} (10′×8′, table + 2 chairs). Extra tables for a space are added on your application.
                   </div>
                 )}
                 <div className="floormap-chips">

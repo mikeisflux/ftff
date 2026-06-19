@@ -151,7 +151,7 @@ export default function BecomeExhibitor() {
           selectable
           value={selectedTables}
           onChange={setSelectedTables}
-          tablePricing={{ firstCents: PRICES.boothBase, extraCents: PRICES.extraTable }}
+          tablePricing={{ perBoothCents: PRICES.boothBase }}
         />
         {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
         <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
@@ -281,9 +281,10 @@ export default function BecomeExhibitor() {
               <h3 style={{ marginTop: 0 }}>2. Booth rental</h3>
               <p className="muted">
                 Each booth is a <strong>10′ × 8′</strong> space (80 sq ft) with a <strong>6′ table</strong> + 2 chairs,
-                for {money(PRICES.boothBase)} (includes one table). A nonrefundable deposit applies.
-                Each additional table is another 10′ × 8′ space at {money(PRICES.extraTable)} —{' '}
-                <strong>{tablesAvailable}</strong> available.
+                for <strong>{money(PRICES.boothBase)}</strong> per space. A nonrefundable deposit applies.
+                Pick your booth space(s) on the floor map in the next step — each space is {money(PRICES.boothBase)}.
+                Need more tables crammed into a space? <strong>Additional tables are {money(PRICES.extraTable)} each</strong>
+                {' '}(up to <strong>{tablesAvailable}</strong> available) — enter how many below.
               </p>
               <label>Additional tables needed</label>
               <input

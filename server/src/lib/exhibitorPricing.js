@@ -23,6 +23,7 @@ const money = (c) => Math.round(c);
  *           depositCents, balanceCents, extraTables, banquetCount }.
  */
 export function computeExhibitorPricing(input) {
+  const booths = Math.max(1, Math.trunc(Number(input.booths) || 1));
   const extraTables = Math.max(0, Math.trunc(Number(input.extra_tables) || 0));
   const banquetCount = input.banquet
     ? Math.max(0, Math.trunc(Number(input.banquet_chicken) || 0))
@@ -32,10 +33,11 @@ export function computeExhibitorPricing(input) {
 
   const lineItems = [];
 
-  // Booth bucket (50% deposit).
-  lineItems.push({ key: 'booth', label: 'Booth (table + 2 chairs)', qty: 1, unitCents: PRICES.boothBase, amountCents: PRICES.boothBase, bucket: 'booth' });
+  // Booth bucket (50% deposit). Each booth is a flat 10'x8' space at boothBase;
+  // additional tables are extra tables WITHIN a space at extraTable each.
+  lineItems.push({ key: 'booth', label: 'Booth space (10×8, table + 2 chairs)', qty: booths, unitCents: PRICES.boothBase, amountCents: booths * PRICES.boothBase, bucket: 'booth' });
   if (extraTables > 0) {
-    lineItems.push({ key: 'extra_tables', label: 'Additional tables', qty: extraTables, unitCents: PRICES.extraTable, amountCents: extraTables * PRICES.extraTable, bucket: 'booth' });
+    lineItems.push({ key: 'extra_tables', label: 'Additional tables (in your space)', qty: extraTables, unitCents: PRICES.extraTable, amountCents: extraTables * PRICES.extraTable, bucket: 'booth' });
   }
 
   // Add-on bucket (60% deposit): hotel nights + banquet.
