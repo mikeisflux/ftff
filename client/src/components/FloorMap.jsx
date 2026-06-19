@@ -18,7 +18,7 @@ const fx = (ft) => OX + ft * SX;
 const fy = (ft) => OY + ft * SY;
 const money = (c) => `$${Math.round((c || 0) / 100)}`;
 
-export default function FloorMap({ selectable = false, value = [], onChange }) {
+export default function FloorMap({ selectable = false, value = [], onChange, tablePricing = null }) {
   const { data, isLoading } = useQuery({ queryKey: ['booths'], queryFn: () => api('/booths') });
   const [zoom, setZoom] = useState(1);
   const [showList, setShowList] = useState(false);
@@ -56,9 +56,13 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
     }
   };
 
-  const priceOf = (id) => byLabel[id]?.price_cents;
   const selectedBooths = MAP.booths.filter((b) => selected.has(b.id));
-  const total = selectedBooths.reduce((s, b) => s + (priceOf(b.id) || 0), 0);
+  // Pricing model: first table is the $250 booth (table + 2 chairs); each
+  // additional table is $100. (Not a flat per-table price.)
+  const n = selectedBooths.length;
+  const total = tablePricing
+    ? (n ? tablePricing.firstCents + (n - 1) * tablePricing.extraCents : 0)
+    : 0;
 
   // Hover/tap popup showing which guest is at a taken table.
   const wrapRef = useRef(null);
@@ -131,7 +135,6 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
             const st = stateOf(b.id);
             const clickable = canSelect(b.id);
             const locked = LOCKED.has(b.id);
-            const price = priceOf(b.id);
             const guestName = byLabel[b.id]?.guest_name;
             return (
               <g key={b.id}>
@@ -143,13 +146,13 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
                   role={selectable ? 'button' : 'img'}
                   tabIndex={clickable ? 0 : -1}
                   aria-pressed={selectable ? selected.has(b.id) : undefined}
-                  aria-label={`Table ${b.id.toUpperCase()}, ${b.price_tier}${price ? `, ${money(price)}` : ''}, ${guestName ? `${guestName} appearing here` : locked ? 'not available for selection' : st}`}
+                  aria-label={`Table ${b.id.toUpperCase()}, ${b.price_tier}, ${guestName ? `${guestName} appearing here` : locked ? 'not available for selection' : st}`}
                   onClick={(e) => { if (guestName) showGuest(e, b.id); else toggle(b.id); }}
                   onMouseMove={guestName ? (e) => showGuest(e, b.id) : undefined}
                   onMouseLeave={guestName ? () => setGuestPop(null) : undefined}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(b.id); } }}
                 >
-                  <title>{`${b.id.toUpperCase()} · ${b.price_tier}${price ? ` · ${money(price)}` : ''} · faces ${b.facing} · ${guestName || (locked ? 'not available' : st)}`}</title>
+                  <title>{`${b.id.toUpperCase()} · ${b.price_tier} · faces ${b.facing} · ${guestName || (locked ? 'not available' : st)}`}</title>
                 </rect>
                 <text x={fx(b.x_ft) + (b.w_ft * SX) / 2} y={fy(b.y_ft) + (b.h_ft * SY) / 2 + 3}
                   className="floormap-booth-label">{b.id.toUpperCase()}</text>
@@ -165,7 +168,12 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
             ? <span className="muted">Tap available tables to select them.</span>
             : (
               <>
-                <strong>{selectedBooths.length} table{selectedBooths.length > 1 ? 's' : ''} selected — {money(total)}</strong>
+                <strong>{selectedBooths.length} table{selectedBooths.length > 1 ? 's' : ''} selected{tablePricing ? ` — ${money(total)}` : ''}</strong>
+                {tablePricing && (
+                  <div className="muted" style={{ fontSize: '.82rem', marginTop: 2 }}>
+                    First table {money(tablePricing.firstCents)} (booth: 10′×8′ space, table + 2 chairs) · each additional {money(tablePricing.extraCents)}
+                  </div>
+                )}
                 <div className="floormap-chips">
                   {selectedBooths.map((b) => (
                     <button key={b.id} type="button" className="chip" onClick={() => toggle(b.id)}>
@@ -181,7 +189,7 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
       {showList && (
         <div className="floormap-listview">
           <table>
-            <thead><tr><th>Table</th><th>Tier</th><th>Price</th><th>Status</th>{selectable && <th /> }</tr></thead>
+            <thead><tr><th>Table</th><th>Tier</th><th>Status</th>{selectable && <th /> }</tr></thead>
             <tbody>
               {MAP.booths.map((b) => {
                 const st = stateOf(b.id);
@@ -190,7 +198,6 @@ export default function FloorMap({ selectable = false, value = [], onChange }) {
                   <tr key={b.id}>
                     <td>{b.id.toUpperCase()}</td>
                     <td>{b.price_tier}</td>
-                    <td>{priceOf(b.id) ? money(priceOf(b.id)) : '—'}</td>
                     <td>{st}</td>
                     {selectable && (
                       <td>{clickable || selected.has(b.id)

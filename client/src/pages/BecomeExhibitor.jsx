@@ -147,7 +147,12 @@ export default function BecomeExhibitor() {
           your application — confirmed once it’s approved, or released if it’s declined. The featured
           front row (Row A) isn’t available for selection.
         </p>
-        <FloorMap selectable value={selectedTables} onChange={setSelectedTables} />
+        <FloorMap
+          selectable
+          value={selectedTables}
+          onChange={setSelectedTables}
+          tablePricing={{ firstCents: PRICES.boothBase, extraCents: PRICES.extraTable }}
+        />
         {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
         <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
           <button className="btn secondary" onClick={() => setStep('form')} disabled={busy}>← Back to application</button>
@@ -275,8 +280,10 @@ export default function BecomeExhibitor() {
             <section className="card">
               <h3 style={{ marginTop: 0 }}>2. Booth rental</h3>
               <p className="muted">
-                Booths are {money(PRICES.boothBase)} (includes one table + 2 chairs). A nonrefundable deposit applies.
-                Additional tables are {money(PRICES.extraTable)} each — <strong>{tablesAvailable}</strong> available.
+                Each booth is a <strong>10′ × 8′</strong> space (80 sq ft) with a <strong>6′ table</strong> + 2 chairs,
+                for {money(PRICES.boothBase)} (includes one table). A nonrefundable deposit applies.
+                Each additional table is another 10′ × 8′ space at {money(PRICES.extraTable)} —{' '}
+                <strong>{tablesAvailable}</strong> available.
               </p>
               <label>Additional tables needed</label>
               <input
