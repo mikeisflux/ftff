@@ -31,8 +31,8 @@ Status: ✅ done & pushed · 🔶 in progress · ⬜ todo
 - ✅ Approved applications auto-create a **Vendors** directory entry (name + booth numbers).
 - ⬜ **Payment after approval** — wire deposit/full payment once an application is approved (existing `/exhibitor/checkout` + Stripe code remains for this).
 - ⬜ **Slider dimensions** — document recommended image sizes (answered in chat; add to admin help text).
-- ⬜ **Full mobile compatibility** — every feature usable on mobile; no functionality desktop-only (esp. floor map, admin, nav).
-- ⬜ **Distinct phone and tablet layouts** — responsive breakpoints with tailored layouts for phone vs tablet across site + admin.
+- ✅ **Full mobile compatibility** — every feature usable on mobile (floor map touch scroll/zoom, hamburger drawer nav, admin tables scroll, inline grids stack).
+- ✅ **Distinct phone and tablet layouts** — 1024/768/560 breakpoints with tailored grids/spacing across site + admin.
 
 ## Notes / decisions
 - Deploy: `cd /opt/convention && git pull origin claude/optimistic-euler-jesbze && bash scripts/deploy.sh`

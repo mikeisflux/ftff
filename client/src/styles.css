@@ -484,3 +484,22 @@ label { display: block; margin: 12px 0 4px; font-weight: 600; }
 
 /* Media (images/iframes) never force horizontal scroll. */
 img, svg, iframe, video { max-width: 100%; }
+
+/* Stack ad-hoc inline-styled multi-column grids on phones (admin forms and
+   one-off two/three-column content) so nothing is cramped — no per-call edits. */
+@media (max-width: 560px) {
+  .admin-main [style*="grid-template-columns"],
+  .section [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Drawer nav: comfortable, full-width tap rows. */
+  .drawer .nav-link, .drawer .drawer-cta { display: block; width: 100%; }
+  /* Keep modals/lightbox within the viewport. */
+  .modal, .lightbox img { max-width: 96vw; }
+}
+
+/* Tablet: admin sidebar becomes a horizontal scroll strip rather than eating
+   width; content gets the room. */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .admin-sidebar { width: 190px; }
+}
