@@ -145,6 +145,9 @@ const storeSchema = z.object({
     email: z.string().email(),
     phone: z.string().max(40).optional(),
   }),
+  // How physical goods are delivered: picked up at the show (free) or shipped
+  // (buyer pays shipping). Ignored for digital-only carts.
+  delivery: z.enum(['pickup', 'ship']).optional(),
 });
 
 // POST /checkout/store/intent — on-site (white-label) store checkout. Creates a
@@ -155,10 +158,10 @@ checkoutRouter.post(
   '/store/intent',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { items, customer } = storeSchema.parse(req.body);
+    const { items, customer, delivery } = storeSchema.parse(req.body);
     subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
-    const computed = await computeStoreOrder(items);
+    const computed = await computeStoreOrder(items, delivery);
     const order = await createPendingStoreOrder({ customer, computed });
     const intent = await stripe.paymentIntents.create({
       amount: computed.totalCents,
@@ -173,6 +176,9 @@ checkoutRouter.post(
       clientSecret: intent.client_secret,
       orderNumber: order.order_number,
       amountCents: computed.totalCents,
+      subtotalCents: computed.subtotalCents,
+      shippingCents: computed.shippingCents,
+      deliveryMethod: computed.deliveryMethod,
       currency: computed.currency,
     });
   }),
@@ -184,24 +190,34 @@ checkoutRouter.post(
   '/store',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { items, customer } = storeSchema.parse(req.body);
+    const { items, customer, delivery } = storeSchema.parse(req.body);
     subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
-    const computed = await computeStoreOrder(items);
+    const computed = await computeStoreOrder(items, delivery);
     const order = await createPendingStoreOrder({ customer, computed });
+
+    const lineItems = computed.lines.map((l) => ({
+      quantity: l.quantity,
+      price_data: {
+        currency: computed.currency,
+        unit_amount: l.unitPriceCents,
+        product_data: { name: l.name },
+      },
+    }));
+    // Shipping as its own line so the Stripe total matches the order total.
+    if (computed.shippingCents > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: { currency: computed.currency, unit_amount: computed.shippingCents, product_data: { name: 'Shipping' } },
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: customer.email,
-      shipping_address_collection: { allowed_countries: ['US', 'CA'] },
-      line_items: computed.lines.map((l) => ({
-        quantity: l.quantity,
-        price_data: {
-          currency: computed.currency,
-          unit_amount: l.unitPriceCents,
-          product_data: { name: l.name },
-        },
-      })),
+      // Only ask for an address when something is actually being shipped.
+      ...(computed.deliveryMethod === 'ship' ? { shipping_address_collection: { allowed_countries: ['US', 'CA'] } } : {}),
+      line_items: lineItems,
       metadata: { order_id: order.id, order_number: order.order_number },
       success_url: `${env.CLIENT_ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.CLIENT_ORIGIN}/cart`,

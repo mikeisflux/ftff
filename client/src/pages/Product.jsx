@@ -38,6 +38,8 @@ export default function Product() {
       title: `${p.title}${Object.keys(selected.options || {}).length ? ` (${variantLabel(selected)})` : ''}`,
       unitPriceCents: price,
       image: p.images?.[0] || null,
+      fulfillment: p.fulfillment || 'physical',
+      shippingCents: p.fulfillment === 'digital' ? 0 : (p.shipping_cents || 0),
     });
     setAdded(true);
   }
@@ -51,6 +53,14 @@ export default function Product() {
           <h1 className="glow" style={{ marginTop: 0 }}>{p.title}</h1>
           <p style={{ fontSize: '1.4rem' }}>{money(price, p.currency)}</p>
           {p.description && <p className="muted">{p.description}</p>}
+
+          <p className="muted" style={{ fontSize: '.9rem' }}>
+            {p.fulfillment === 'digital'
+              ? 'Digital item — delivered electronically. No shipping.'
+              : (p.shipping_cents > 0
+                ? `Physical item — free pickup at the show, or ship for ${money(p.shipping_cents, p.currency)}/item.`
+                : 'Physical item — free pickup at the show, or free shipping.')}
+          </p>
 
           {variants.length > 1 && (
             <>

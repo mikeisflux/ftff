@@ -25,7 +25,8 @@ adminOrdersRouter.get(
     }
     const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const { rows } = await query(
-      `SELECT id, order_number, customer_name, customer_email, kind, total_cents,
+      `SELECT id, order_number, customer_name, customer_email, kind, subtotal_cents,
+              shipping_cents, total_cents, delivery_method,
               currency, status, fulfillment_status, shipping_address, paid_at, created_at
          FROM orders ${clause} ORDER BY created_at DESC LIMIT 200`,
       params,

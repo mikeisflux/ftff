@@ -235,6 +235,8 @@ CREATE TABLE IF NOT EXISTS orders (
   stripe_session_id    TEXT,
   stripe_payment_intent TEXT,
   shipping_address     JSONB,
+  shipping_cents       INTEGER NOT NULL DEFAULT 0,
+  delivery_method      TEXT,   -- 'pickup' | 'ship' | NULL (digital / not applicable)
   fulfillment_status   TEXT NOT NULL DEFAULT 'unfulfilled'
                          CHECK (fulfillment_status IN ('unfulfilled','fulfilled','shipped','cancelled')),
   paid_at              TIMESTAMPTZ,
@@ -243,6 +245,9 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 -- For existing databases predating fulfillment_status:
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS fulfillment_status TEXT NOT NULL DEFAULT 'unfulfilled';
+-- For existing databases predating store shipping/delivery:
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT;
 DROP TRIGGER IF EXISTS trg_orders_updated ON orders;
 CREATE TRIGGER trg_orders_updated BEFORE UPDATE ON orders
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -395,6 +400,11 @@ CREATE TABLE IF NOT EXISTS products (
   images      JSONB NOT NULL DEFAULT '[]'::jsonb,
   price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
   currency    TEXT NOT NULL DEFAULT 'usd',
+  -- 'physical' goods can be picked up at the show or shipped (buyer pays
+  -- shipping_cents per item when shipping); 'digital' is delivered electronically
+  -- and never ships.
+  fulfillment    TEXT NOT NULL DEFAULT 'physical' CHECK (fulfillment IN ('physical','digital')),
+  shipping_cents INTEGER NOT NULL DEFAULT 0 CHECK (shipping_cents >= 0),
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order  INTEGER NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -402,6 +412,9 @@ CREATE TABLE IF NOT EXISTS products (
 );
 -- For existing databases predating product sections:
 ALTER TABLE products ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'shop';
+-- For existing databases predating physical/digital fulfillment + shipping:
+ALTER TABLE products ADD COLUMN IF NOT EXISTS fulfillment TEXT NOT NULL DEFAULT 'physical';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping_cents INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_products_section ON products(section);
 -- Autograph/Photo-Op products auto-generated from a guest's pricing link back to
 -- the guest so their detail page can offer them for sale (deleting the guest

@@ -41,13 +41,20 @@ export default function Orders() {
       {msg && <p style={{ color: 'var(--color-danger)' }}>{msg}</p>}
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ textAlign: 'left' }}><th style={{ padding: 10 }}>Order</th><th>Customer</th><th>Kind</th><th>Total</th><th>Status</th><th>Fulfillment</th><th>Actions</th></tr></thead>
+          <thead><tr style={{ textAlign: 'left' }}><th style={{ padding: 10 }}>Order</th><th>Customer</th><th>Kind</th><th>Delivery</th><th>Total</th><th>Status</th><th>Fulfillment</th><th>Actions</th></tr></thead>
           <tbody>
             {orders.map((o) => (
               <tr key={o.id} style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
                 <td style={{ padding: 10 }}>{o.order_number}</td>
                 <td>{o.customer_name}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{o.customer_email}</span></td>
                 <td>{o.kind}</td>
+                <td>
+                  {o.kind === 'store'
+                    ? (o.delivery_method === 'ship'
+                        ? <span title={o.shipping_cents ? `Shipping ${money(o.shipping_cents, o.currency)}` : 'Shipping'}>📦 Ship</span>
+                        : o.delivery_method === 'pickup' ? '🎟 Pickup' : 'Digital')
+                    : <span className="muted">—</span>}
+                </td>
                 <td>{money(o.total_cents, o.currency)}</td>
                 <td style={{ color: o.status === 'paid' ? 'var(--color-success)' : o.status === 'refunded' ? 'var(--color-danger)' : 'var(--color-muted)' }}>{o.status}</td>
                 <td>
@@ -62,7 +69,7 @@ export default function Orders() {
                 </td>
               </tr>
             ))}
-            {orders.length === 0 && <tr><td colSpan={7} style={{ padding: 16 }} className="muted">No orders.</td></tr>}
+            {orders.length === 0 && <tr><td colSpan={8} style={{ padding: 16 }} className="muted">No orders.</td></tr>}
           </tbody>
         </table>
       </div>

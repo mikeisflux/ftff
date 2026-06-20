@@ -70,7 +70,7 @@ export async function computeTicketOrder(items) {
  * authoritative product/variant prices, validating active + inventory.
  * Returns { lines, subtotalCents, totalCents, currency }.
  */
-export async function computeStoreOrder(items) {
+export async function computeStoreOrder(items, delivery) {
   if (!Array.isArray(items) || items.length === 0) throw badRequest('Cart is empty');
 
   const wanted = new Map();
@@ -87,7 +87,8 @@ export async function computeStoreOrder(items) {
     `SELECT v.id AS variant_id, v.price_cents AS variant_price, v.inventory,
             v.is_active AS variant_active, v.options,
             p.id AS product_id, p.title, p.price_cents AS product_price,
-            p.currency, p.is_active AS product_active
+            p.currency, p.is_active AS product_active,
+            p.fulfillment, p.shipping_cents
        FROM product_variants v JOIN products p ON p.id = v.product_id
       WHERE v.id = ANY($1)`,
     [ids],
@@ -95,6 +96,8 @@ export async function computeStoreOrder(items) {
   const byId = Object.fromEntries(rows.map((r) => [r.variant_id, r]));
 
   let subtotalCents = 0;
+  let shippableCents = 0; // shipping owed if the buyer chooses to ship
+  let hasPhysical = false;
   let currency = null;
   const lines = [];
   for (const [variantId, quantity] of wanted) {
@@ -106,6 +109,10 @@ export async function computeStoreOrder(items) {
     const unit = v.variant_price ?? v.product_price;
     currency = currency || v.currency;
     subtotalCents += unit * quantity;
+    if (v.fulfillment === 'physical') {
+      hasPhysical = true;
+      shippableCents += (v.shipping_cents || 0) * quantity;
+    }
     const opt = v.options && Object.keys(v.options).length
       ? ` (${Object.values(v.options).join(', ')})` : '';
     lines.push({
@@ -116,7 +123,21 @@ export async function computeStoreOrder(items) {
       quantity,
     });
   }
-  return { lines, subtotalCents, totalCents: subtotalCents, currency: currency || 'usd' };
+
+  // Delivery only applies when there's something physical. Digital-only carts
+  // are never shipped. When shipping, the buyer pays the summed per-item rate.
+  const deliveryMethod = hasPhysical ? (delivery === 'ship' ? 'ship' : 'pickup') : null;
+  const shippingCents = deliveryMethod === 'ship' ? shippableCents : 0;
+
+  return {
+    lines,
+    subtotalCents,
+    shippingCents,
+    totalCents: subtotalCents + shippingCents,
+    deliveryMethod,
+    hasPhysical,
+    currency: currency || 'usd',
+  };
 }
 
 // How long a pending (unpaid) order reserves stock. Mirrors the 30-minute card
@@ -192,10 +213,12 @@ export async function createPendingStoreOrder({ customer, computed }) {
     await assertStoreAvailability(client, computed.lines);
     const { rows } = await client.query(
       `INSERT INTO orders (order_number, customer_name, customer_email, customer_phone,
-                           kind, subtotal_cents, total_cents, currency, status)
-       VALUES ($1,$2,$3,$4,'store',$5,$6,$7,'pending') RETURNING *`,
+                           kind, subtotal_cents, shipping_cents, total_cents, currency,
+                           delivery_method, status)
+       VALUES ($1,$2,$3,$4,'store',$5,$6,$7,$8,$9,'pending') RETURNING *`,
       [makeOrderNumber(), customer.name ?? null, customer.email, customer.phone ?? null,
-        computed.subtotalCents, computed.totalCents, computed.currency],
+        computed.subtotalCents, computed.shippingCents ?? 0, computed.totalCents,
+        computed.currency, computed.deliveryMethod ?? null],
     );
     const order = rows[0];
     for (const line of computed.lines) {
