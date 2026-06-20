@@ -1,5 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { api } from '../../lib/api.js';
+
+// Lazy so TipTap (~400KB) is split into its own chunk, loaded only when an
+// admin opens the compose tab — not on every page load.
+const BlockEditor = lazy(() => import('../../components/BlockEditor.jsx'));
 
 // Email marketing: manage newsletter subscribers + compose/send campaigns.
 export default function EmailMarketing() {
@@ -25,7 +29,8 @@ export default function EmailMarketing() {
 
   async function send(e) {
     e.preventDefault(); setMsg('');
-    if (!campaign.subject.trim() || !campaign.body_html.trim()) return setMsg('Subject and body are required.');
+    const bodyText = campaign.body_html.replace(/<[^>]*>/g, '').trim();
+    if (!campaign.subject.trim() || !bodyText) return setMsg('Subject and body are required.');
     if (!window.confirm(`Send "${campaign.subject}" to the ${campaign.audience} list?`)) return;
     setBusy(true);
     try {
@@ -95,9 +100,15 @@ export default function EmailMarketing() {
           </select>
           <label>Subject</label>
           <input value={campaign.subject} onChange={(e) => setCampaign((c) => ({ ...c, subject: e.target.value }))} required />
-          <label>Body (HTML allowed)</label>
-          <textarea rows={12} value={campaign.body_html} onChange={(e) => setCampaign((c) => ({ ...c, body_html: e.target.value }))} placeholder="<h1>Hello fans!</h1><p>…</p>" required />
-          <p className="muted" style={{ fontSize: '.8rem' }}>An unsubscribe link is appended automatically (required by law).</p>
+          <label>Body</label>
+          <Suspense fallback={<div className="be-wrap" style={{ minHeight: 320, opacity: 0.5 }} />}>
+            <BlockEditor
+              value={campaign.body_html}
+              onChange={(html) => setCampaign((c) => ({ ...c, body_html: html }))}
+              placeholder="Write your campaign… use the + to add headings, images, lists, and more."
+            />
+          </Suspense>
+          <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>An unsubscribe link is appended automatically (required by law).</p>
           <button className="btn" disabled={busy}>{busy ? 'Sending…' : 'Send campaign'}</button>
         </form>
       )}

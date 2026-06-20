@@ -572,3 +572,82 @@ img, svg, iframe, video { max-width: 100%; }
 .newsletter-form input { max-width: 360px; }
 .newsletter-form .btn { white-space: nowrap; }
 @media (max-width: 560px) { .newsletter-form { flex-direction: column; } .newsletter-form input { max-width: 100%; } }
+
+/* ── Block editor (TipTap) — admin rich content/email composer ─────────────── */
+.be-wrap {
+  position: relative; border: 1px solid color-mix(in srgb, var(--color-muted) 28%, transparent);
+  border-radius: var(--radius); overflow: hidden;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+.be-content, .tiptap { min-height: 320px; }
+.tiptap { padding: 14px 16px 14px 56px; outline: none; line-height: 1.6; }
+.tiptap:focus { outline: none; }
+.tiptap > * + * { margin-top: .75em; }
+.tiptap h2 { font-size: 1.5rem; font-weight: 800; line-height: 1.25; }
+.tiptap h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.3; }
+.tiptap p { margin: 0; }
+.tiptap ul, .tiptap ol { padding-left: 1.4em; }
+.tiptap li > p { margin: 0; }
+.tiptap blockquote {
+  border-left: 3px solid var(--color-accent); margin: 0; padding-left: 14px; color: var(--color-muted);
+}
+.tiptap hr { border: none; border-top: 1px solid color-mix(in srgb, var(--color-muted) 30%, transparent); margin: 1em 0; }
+.tiptap img { max-width: 100%; height: auto; border-radius: 8px; }
+.tiptap code { background: color-mix(in srgb, var(--color-muted) 18%, transparent); padding: .1em .35em; border-radius: 5px; font-size: .9em; }
+.tiptap a, .be-link { color: var(--color-accent); text-decoration: underline; }
+/* Placeholder (empty doc / empty headings) */
+.tiptap p.is-editor-empty:first-child::before,
+.tiptap .is-empty::before {
+  content: attr(data-placeholder); color: var(--color-muted); opacity: .6;
+  float: left; height: 0; pointer-events: none;
+}
+
+/* Floating "+" block button */
+.be-plus {
+  width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s; border: 2px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent); color: var(--color-text);
+}
+.be-plus:hover { background: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.be-plus.open { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Popover menus (block menu, bubble menu, url input) */
+.be-menu {
+  display: flex; align-items: center; gap: 2px; padding: 6px;
+  background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-muted) 28%, transparent);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.45); z-index: 30; min-width: max-content;
+}
+.be-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 7px; border-radius: 7px;
+  background: none; border: none; color: var(--color-text); cursor: pointer; transition: background .12s;
+}
+.be-btn.wide { padding: 6px 10px; font-weight: 600; }
+.be-btn:hover { background: color-mix(in srgb, var(--color-muted) 18%, transparent); }
+.be-btn.active { background: color-mix(in srgb, var(--color-muted) 24%, transparent); }
+.be-btn:disabled { opacity: .5; cursor: default; }
+.be-vsep { width: 1px; height: 22px; background: color-mix(in srgb, var(--color-muted) 28%, transparent); margin: 0 3px; }
+
+.be-dropdown {
+  background: var(--color-surface); border: 1px solid color-mix(in srgb, var(--color-muted) 28%, transparent);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5); padding: 4px; z-index: 40;
+}
+.be-item {
+  width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 7px;
+  background: none; border: none; color: var(--color-text); cursor: pointer; font-size: .85rem; text-align: left;
+}
+.be-item:hover { background: color-mix(in srgb, var(--color-muted) 18%, transparent); }
+.be-item.active { background: color-mix(in srgb, var(--color-muted) 24%, transparent); font-weight: 600; }
+.be-sep { height: 1px; background: color-mix(in srgb, var(--color-muted) 22%, transparent); margin: 4px 0; }
+
+.be-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: color-mix(in srgb, var(--color-background) 70%, transparent); color: var(--color-secondary); font-size: .9rem;
+}
+.be-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 14px; border-top: 1px solid color-mix(in srgb, var(--color-muted) 20%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent); font-size: .75rem; color: var(--color-muted);
+}
+.be-footer span { display: inline-flex; align-items: center; gap: 5px; }
+.be-spin { animation: be-spin 1s linear infinite; }
+@keyframes be-spin { to { transform: rotate(360deg); } }
