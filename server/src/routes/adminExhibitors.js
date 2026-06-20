@@ -6,8 +6,11 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 import { fulfillExhibitorSession } from '../lib/fulfillment.js';
 import { sendBalanceInvoice } from '../lib/exhibitorBalance.js';
-import { sendExhibitorPaymentConfirmation } from '../lib/email.js';
+import { sendExhibitorPaymentConfirmation, sendExhibitorApprovalNotice, sendExhibitorPaymentRequest } from '../lib/email.js';
 import { release as releaseInventory } from '../lib/inventory.js';
+import { getStripe } from '../lib/stripe.js';
+import { getSettingValue } from '../lib/settings.js';
+import { env } from '../config/env.js';
 
 // Admin: Become an Exhibitor management (§9 extended). View applications,
 // confirm check payments, send balance invoices, and manage table inventory.
@@ -133,17 +136,25 @@ adminExhibitorsRouter.post(
     if (app.reserved_tables > 0 && app.status !== 'deposit_paid') {
       await releaseInventory('extra_tables', app.reserved_tables);
     }
-    if (app.booth_id && app.status !== 'deposit_paid') {
-      await query(`UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status<>'sold'`, [app.booth_id]);
-    }
-    await query(`UPDATE exhibitor_applications SET status='cancelled' WHERE id=$1`, [app.id]);
+    await withTransaction(async (client) => {
+      // Release the legacy single booth and the multi-table holds/locks.
+      if (app.booth_id && app.status !== 'deposit_paid') {
+        await client.query(`UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status<>'sold'`, [app.booth_id]);
+      }
+      if ((app.booth_ids || []).length) {
+        await client.query(`UPDATE booths SET status='available', held_until=NULL, order_id=NULL WHERE id = ANY($1)`, [app.booth_ids]);
+      }
+      // Remove from the public directory if it was listed.
+      await client.query(`DELETE FROM vendors WHERE application_id=$1`, [app.id]);
+      await client.query(`UPDATE exhibitor_applications SET status='cancelled', is_listed=FALSE WHERE id=$1`, [app.id]);
+    });
     await audit(req.user.id, 'exhibitor.cancel', { entity: 'exhibitor', entityId: app.id });
     res.json({ ok: true });
   }),
 );
 
-// POST /:id/approve — approve a pending application: lock its held tables as
-// SOLD (permanent) and publish the vendor to the public directory.
+// POST /:id/approve — approve a pending application and email the approval
+// notice. Tables stay held; payment and lock-&-list are SEPARATE later steps.
 adminExhibitorsRouter.post(
   '/:id/approve',
   asyncHandler(async (req, res) => {
@@ -151,8 +162,63 @@ adminExhibitorsRouter.post(
     const app = rows[0];
     if (!app) throw notFound('Application not found');
     if (app.status !== 'pending_approval') throw badRequest('Only pending applications can be approved.');
-    const boothIds = app.booth_ids || [];
+    const { rows: u } = await query(
+      `UPDATE exhibitor_applications SET status='approved', approved_at=now(),
+              approval_notice_sent_at=now() WHERE id=$1 RETURNING *`,
+      [app.id],
+    );
+    await sendExhibitorApprovalNotice(u[0]).catch(() => {});
+    await audit(req.user.id, 'exhibitor.approve', { entity: 'exhibitor', entityId: app.id });
+    res.json({ ok: true, application: u[0] });
+  }),
+);
 
+// POST /:id/request-payment — email the vendor pay links (deposit OR full).
+// Does not lock or list — payment is its own step.
+adminExhibitorsRouter.post(
+  '/:id/request-payment',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (!['approved', 'awaiting_payment', 'check_pending'].includes(app.status)) {
+      throw badRequest('Approve the application before requesting payment.', 'not_approved');
+    }
+    const stripe = await getStripe();
+    const currency = (await getSettingValue('stripe.currency')) || 'usd';
+    const mkSession = (phase, amount, label) => stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: app.contact_email,
+      line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `${label} — ${app.vendor_name} (${app.reference})` } } }],
+      metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase },
+      success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.CLIENT_ORIGIN}/`,
+    });
+    const deposit = await mkSession('deposit', app.deposit_cents, 'Exhibitor deposit');
+    const full = await mkSession('full', app.total_cents, 'Exhibitor payment (full)');
+    await query(
+      `UPDATE exhibitor_applications SET status='awaiting_payment', stripe_session_id=$2,
+              payment_request_sent_at=now() WHERE id=$1`,
+      [app.id, deposit.id],
+    );
+    await sendExhibitorPaymentRequest(app, { depositUrl: deposit.url, fullUrl: full.url }).catch(() => {});
+    await audit(req.user.id, 'exhibitor.payment_requested', { entity: 'exhibitor', entityId: app.id });
+    res.json({ ok: true });
+  }),
+);
+
+// POST /:id/list — lock the held tables as SOLD and publish the vendor to the
+// public directory. Separate from payment; idempotent.
+adminExhibitorsRouter.post(
+  '/:id/list',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (!['approved', 'awaiting_payment', 'check_pending', 'deposit_paid', 'paid_in_full'].includes(app.status)) {
+      throw badRequest('Approve the application before locking & listing.', 'not_approved');
+    }
+    const boothIds = app.booth_ids || [];
     const vendor = await withTransaction(async (client) => {
       let labels = [];
       if (boothIds.length) {
@@ -163,10 +229,9 @@ adminExhibitorsRouter.post(
         labels = r.rows.map((x) => x.label.toUpperCase()).sort();
       }
       await client.query(
-        `UPDATE exhibitor_applications SET status='approved', approved_at=now() WHERE id=$1`,
+        `UPDATE exhibitor_applications SET is_listed=TRUE, listed_at=now() WHERE id=$1`,
         [app.id],
       );
-      // Publish to the public Vendors directory (idempotent per application).
       const v = await client.query(
         `INSERT INTO vendors (name, booth_number, category, website, application_id, is_active)
          SELECT $1,$2,$3,$4,$5,TRUE
@@ -176,8 +241,7 @@ adminExhibitorsRouter.post(
       );
       return v.rows[0] || null;
     });
-
-    await audit(req.user.id, 'exhibitor.approve', { entity: 'exhibitor', entityId: app.id });
+    await audit(req.user.id, 'exhibitor.listed', { entity: 'exhibitor', entityId: app.id });
     res.json({ ok: true, vendor });
   }),
 );

@@ -6,10 +6,10 @@ const STATUS_LABEL = {
   pending_approval: 'Pending approval',
   approved: 'Approved',
   rejected: 'Rejected',
-  awaiting_payment: 'Awaiting payment',
+  awaiting_payment: 'Payment requested',
   check_pending: 'Check pending',
-  deposit_paid: 'Deposit paid',
-  paid_in_full: 'Paid in full',
+  deposit_paid: 'Deposit captured',
+  paid_in_full: 'Full payment captured',
   cancelled: 'Cancelled',
 };
 
@@ -68,7 +68,7 @@ export default function Exhibitors() {
   return (
     <div>
       <h1>Vendor Applications</h1>
-      <p className="muted">Booth/table applications from <code>/become-an-exhibitor</code>. Approve to lock the tables (sold) and publish the vendor; reject to release them.</p>
+      <p className="muted">Flow: <strong>Approve &amp; send notice</strong> → <strong>Send payment request</strong> (vendor pays deposit or full) → <strong>Request additional balance</strong> (if deposit) → <strong>Lock &amp; list vendor</strong> (locks tables + publishes — separate from payment).</p>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -99,7 +99,7 @@ export default function Exhibitors() {
             <tr key={a.id} style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
               <td>{a.vendor_name}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{a.reference}</span></td>
               <td>{(a.booth_labels && a.booth_labels.length ? a.booth_labels.join(', ') : a.booth_label) || '—'}</td>
-              <td>{STATUS_LABEL[a.status] || a.status}</td>
+              <td>{STATUS_LABEL[a.status] || a.status}{a.is_listed ? ' · Listed ✓' : ''}</td>
               <td>{money(a.total_cents)}</td>
               <td>{money(a.amount_paid_cents)}</td>
               <td>{a.balance_cents > 0 ? money(a.balance_cents) : '—'}</td>
@@ -135,34 +135,58 @@ export default function Exhibitors() {
             <p>Tables held/assigned: <strong>{(a.booth_labels && a.booth_labels.length ? a.booth_labels.join(', ') : a.booth_label) || '—'}</strong></p>
             <p className="muted">Method: {a.payment_method || '—'} · Choice: {a.payment_choice || '—'} · Signed: {a.signature}</p>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <p className="muted" style={{ marginTop: 10 }}>
+              Stage: <strong>{STATUS_LABEL[a.status] || a.status}</strong>
+              {a.is_listed ? ' · Listed ✓' : ''}
+              {a.balance_cents > 0 && (a.status === 'deposit_paid') ? ` · Balance due ${money(a.balance_cents)}` : ''}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
               {a.status === 'pending_approval' && (
                 <>
                   <button className="btn" disabled={busy === a.id + 'approve'} onClick={() => act(a.id, 'approve')}>
-                    {busy === a.id + 'approve' ? 'Working…' : 'Approve (lock tables + list vendor)'}
+                    {busy === a.id + 'approve' ? 'Working…' : 'Approve & send notice'}
                   </button>
                   <button className="btn secondary" disabled={busy === a.id + 'reject'} onClick={() => act(a.id, 'reject')}>
                     {busy === a.id + 'reject' ? 'Working…' : 'Reject (release tables)'}
                   </button>
                 </>
               )}
-              {(a.status === 'check_pending' || (a.status === 'deposit_paid' && a.payment_method === 'check' && a.balance_cents > 0)) && (
-                <button className="btn" disabled={busy === a.id + 'mark-paid'} onClick={() => act(a.id, 'mark-paid')}>
-                  {busy === a.id + 'mark-paid' ? 'Working…' : 'Mark check received'}
+
+              {['approved', 'awaiting_payment', 'check_pending'].includes(a.status) && (
+                <button className="btn" disabled={busy === a.id + 'request-payment'} onClick={() => act(a.id, 'request-payment')}>
+                  {busy === a.id + 'request-payment' ? 'Sending…' : a.payment_request_sent_at ? 'Resend payment request' : 'Send payment request'}
+                </button>
+              )}
+              {['awaiting_payment', 'check_pending'].includes(a.status) && (
+                <button className="btn secondary" disabled={busy === a.id + 'mark-paid'} onClick={() => act(a.id, 'mark-paid')}>
+                  {busy === a.id + 'mark-paid' ? 'Working…' : 'Mark check received (deposit)'}
                 </button>
               )}
               {a.status === 'deposit_paid' && a.balance_cents > 0 && (
                 <button className="btn" disabled={busy === a.id + 'send-balance'} onClick={() => act(a.id, 'send-balance')}>
-                  {busy === a.id + 'send-balance' ? 'Sending…' : a.balance_request_sent_at ? 'Resend balance invoice' : 'Send balance invoice'}
+                  {busy === a.id + 'send-balance' ? 'Sending…' : a.balance_request_sent_at ? 'Resend balance request' : 'Request additional balance'}
                 </button>
               )}
-              {['awaiting_payment', 'check_pending', 'deposit_paid'].includes(a.status) && (
+              {a.status === 'deposit_paid' && a.balance_cents > 0 && a.payment_method === 'check' && (
+                <button className="btn secondary" disabled={busy === a.id + 'mark-paid'} onClick={() => act(a.id, 'mark-paid')}>
+                  {busy === a.id + 'mark-paid' ? 'Working…' : 'Mark balance check received'}
+                </button>
+              )}
+
+              {['approved', 'awaiting_payment', 'check_pending', 'deposit_paid', 'paid_in_full'].includes(a.status) && !a.is_listed && (
+                <button className="btn" disabled={busy === a.id + 'list'} onClick={() => act(a.id, 'list')}>
+                  {busy === a.id + 'list' ? 'Working…' : 'Lock & list vendor'}
+                </button>
+              )}
+              {a.is_listed && <span className="muted" style={{ alignSelf: 'center' }}>✓ Tables locked &amp; vendor listed</span>}
+
+              {a.status !== 'paid_in_full' && a.status !== 'pending_approval' && a.status !== 'rejected' && a.status !== 'cancelled' && (
                 <button className="btn secondary" disabled={busy === a.id + 'cancel'} onClick={() => act(a.id, 'cancel')}>
                   {busy === a.id + 'cancel' ? 'Working…' : 'Cancel'}
                 </button>
               )}
             </div>
-            {a.balance_request_sent_at && <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>Balance invoice sent {new Date(a.balance_request_sent_at).toLocaleString()}.</p>}
+            {a.balance_request_sent_at && <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>Balance request sent {new Date(a.balance_request_sent_at).toLocaleString()}.</p>}
           </div>
         );
       })()}

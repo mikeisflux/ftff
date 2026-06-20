@@ -701,6 +701,11 @@ CREATE INDEX IF NOT EXISTS idx_exhibitor_apps_email ON exhibitor_applications(co
 ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS booth_ids   UUID[] NOT NULL DEFAULT '{}';
 ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+-- Lock & list is a separate step from payment; track it independently.
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS is_listed   BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS listed_at   TIMESTAMPTZ;
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS approval_notice_sent_at TIMESTAMPTZ;
+ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS payment_request_sent_at TIMESTAMPTZ;
 ALTER TABLE exhibitor_applications DROP CONSTRAINT IF EXISTS exhibitor_applications_status_check;
 ALTER TABLE exhibitor_applications ADD CONSTRAINT exhibitor_applications_status_check
   CHECK (status IN ('draft','pending_approval','approved','rejected',

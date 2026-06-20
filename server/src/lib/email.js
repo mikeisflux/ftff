@@ -166,6 +166,35 @@ export async function sendExhibitorBalanceRequest(app, { url }) {
   return sendEmail({ to: app.contact_email, subject: `Balance due — ${app.reference}`, html });
 }
 
+// Approval notice — tells the vendor they're approved (payment requested next).
+export async function sendExhibitorApprovalNotice(app) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const html =
+    `<h1>Your exhibitor application is approved 🎉</h1>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    `<p>Great news — your application for <strong>${app.vendor_name}</strong> has been approved.</p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Order total: <strong>${money(app.total_cents)}</strong>.</p>` +
+    `<p>We'll follow up shortly with a payment request to secure your space.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Approved — ${app.reference}`, html });
+}
+
+// Payment request with two pay links: deposit or pay-in-full.
+export async function sendExhibitorPaymentRequest(app, { depositUrl, fullUrl }) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const btn = (url, label) =>
+    `<a href="${url}" style="display:inline-block;margin:4px 8px 4px 0;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none">${label}</a>`;
+  const html =
+    `<h1>Complete your exhibitor payment</h1>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Order total: <strong>${money(app.total_cents)}</strong>. Choose how to pay:</p>` +
+    `<p>${btn(depositUrl, `Pay deposit — ${money(app.deposit_cents)}`)}${btn(fullUrl, `Pay in full — ${money(app.total_cents)}`)}</p>` +
+    `<p class="muted">Paying the deposit reserves your space; the remaining balance is requested before the show. ` +
+    `Or pay by check payable to ${CHECK_PAYEE}, mailed to ${CHECK_ADDRESS}.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Payment request — ${app.reference}`, html });
+}
+
 // Form submissions: notify the admin inbox + confirm to the submitter (§7.2).
 export async function notifyAdminOfSubmission({ kind, name, email, subject, message }) {
   const to = await getSettingValue('sendgrid.from_address');
