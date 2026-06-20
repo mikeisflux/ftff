@@ -231,7 +231,7 @@ BEGIN
     DELETE FROM nav_menu WHERE parent_id = shop_id;
     INSERT INTO nav_menu (parent_id, label, route, sort_order, is_cta) VALUES
       (shop_id, 'Buy Tickets', '/buy-tickets', 1, TRUE),
-      (shop_id, 'Room Rate Guarantee', '/travel-hotels', 2, FALSE),
+      (shop_id, 'Room Rate Guarantee', '/room-rate-guarantee', 2, FALSE),
       (shop_id, 'Discounts and Coupons', '/discounts-coupons', 3, FALSE),
       (shop_id, 'Shop', '/shop', 4, FALSE);
   END IF;
@@ -257,9 +257,9 @@ END $$;
 -- block-based Page Builder; the JSON blocks here are the source of truth.
 INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, is_published, published_at) VALUES
   ('about-us', 'About Us',
-   '[{"type":"heading","data":{"text":"About For The Fans Fest"}},{"type":"richtext","data":{"html":"<p>For The Fans Fest is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by the For The Fans Fest team — by fans, for fans.</p>"}}]'::jsonb,
-   '<h2>About For The Fans Fest</h2><p>For The Fans Fest is the city''s premier celebration of comics, sci-fi, horror, anime, and gaming. Each year fans gather to meet celebrity guests, discover artists and exhibitors, attend panels, and experience the best of pop culture under one roof.</p><p>The event is produced by the For The Fans Fest team — by fans, for fans.</p>',
-   'About Us | For The Fans Fest', 'Learn about For The Fans Fest, the city''s premier pop-culture convention.', TRUE, now()),
+   '[{"type":"heading","data":{"text":"About For The Fans Fest"}},{"type":"richtext","data":{"html":"<p>For more than a decade, the independent comic scene has exploded across social media, building an incredible online community of untapped, unshackled creativity. For The Fans Fest exists to bring that cultural movement off the screen and directly to the fans.</p><p>Each October we take over Harrah&rsquo;s Resort &amp; Casino in the heart of Atlantic City, New Jersey for a weekend-long celebration of indie comics and collectibles. Our 2026 show runs October 16&ndash;18 and features the very first Warlock Comic Awards Banquet, two full days of live streams and panels with the very best in the indie comic book scene, and an exclusive comic and toy convention floor open to all fans.</p><p>Come party and celebrate with some of the best professionals in the business &mdash; Ethan Van Sciver, Chuck Dixon, Billy Tucci, Graham Nolan, Jon Malin, Shane Davis, Mandy Summers, Shanth Enjeti, Andy Smith, Mike Baron, Vasilis Lolos, and many, many more to be announced.</p><p>See you there!</p>"}}]'::jsonb,
+   '<h2>About For The Fans Fest</h2><p>For more than a decade, the independent comic scene has exploded across social media, building an incredible online community of untapped, unshackled creativity. For The Fans Fest exists to bring that cultural movement off the screen and directly to the fans.</p><p>Each October we take over Harrah&rsquo;s Resort &amp; Casino in the heart of Atlantic City, New Jersey for a weekend-long celebration of indie comics and collectibles. Our 2026 show runs October 16&ndash;18 and features the very first Warlock Comic Awards Banquet, two full days of live streams and panels with the very best in the indie comic book scene, and an exclusive comic and toy convention floor open to all fans.</p><p>Come party and celebrate with some of the best professionals in the business &mdash; Ethan Van Sciver, Chuck Dixon, Billy Tucci, Graham Nolan, Jon Malin, Shane Davis, Mandy Summers, Shanth Enjeti, Andy Smith, Mike Baron, Vasilis Lolos, and many, many more to be announced.</p><p>See you there!</p>',
+   'About Us | For The Fans Fest', 'Independent comics, collectibles, and the Warlock Comic Awards — For The Fans Fest, Oct 16–18, 2026 in Atlantic City.', TRUE, now()),
 
   ('policies', 'Policies',
    '[{"type":"heading","data":{"text":"Policies"}},{"type":"richtext","data":{"html":"<p>By attending For The Fans Fest you agree to the following policies.</p><h3>Tickets &amp; Refunds</h3><p>All ticket sales are final and non-refundable unless the event is cancelled. Tickets are non-transferable once checked in.</p><h3>Code of Conduct</h3><p>Harassment of any kind is not tolerated. Follow the instructions of show staff and security at all times.</p><h3>Bag &amp; Prop Policy</h3><p>All bags and props are subject to inspection. Functional weapons and realistic firearms are prohibited.</p>"}}]'::jsonb,
@@ -270,10 +270,7 @@ INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, i
    '[{"type":"heading","data":{"text":"Accessibility"}},{"type":"richtext","data":{"html":"<p>For The Fans Fest is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>"}}]'::jsonb,
    '<h2>Accessibility</h2><p>For The Fans Fest is committed to a welcoming, accessible experience for every attendee.</p><ul><li>The venue is wheelchair accessible, including ramps and elevators.</li><li>Accessible restrooms are available on every level.</li><li>ASL interpretation is available for main-stage panels on request.</li><li>A quiet sensory room is available during show hours.</li></ul><p>For specific accommodation requests, contact us before the show.</p>',
    'Accessibility | For The Fans Fest', 'Accessibility services and accommodations at For The Fans Fest.', TRUE, now())
-ON CONFLICT (slug) DO UPDATE
-  SET title = EXCLUDED.title, blocks = EXCLUDED.blocks, body_html = EXCLUDED.body_html,
-      seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,
-      is_published = TRUE, published_at = COALESCE(pages.published_at, now());
+ON CONFLICT (slug) DO NOTHING;
 
 -- ── legal / compliance pages (Privacy, Terms, Refunds, Cookies, Exhibitor) ──
 -- Drafts generated from site facts; have counsel review and fill the
@@ -299,18 +296,11 @@ INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, i
    '[{"type": "heading", "data": {"text": "Exhibitor & Booth Sale Terms"}}, {"type": "richtext", "data": {"html": "<p><em>Last updated: June 10, 2026.</em></p><p>These terms govern the reservation and purchase of exhibitor booths at For The Fans Fest (the &ldquo;Event&rdquo;). By reserving a booth you (the &ldquo;Exhibitor&rdquo;) agree to these terms in addition to our <a href=\"/terms\">Terms of Sale &amp; Use</a> and <a href=\"/policies\">Policies</a>.</p><h3>Booth selection &amp; holds</h3><p>Booths are selected from the interactive floor plan and priced by zone (for example, Artist Alley and Exhibitor Hall). When you select a booth we place a temporary <strong>hold</strong> on it so another exhibitor cannot buy it while you check out. The hold expires after a short window (15 minutes by default), after which the booth is automatically released and made available again if checkout is not completed.</p><h3>Payment &amp; confirmation</h3><p>Booth fees are payable in full at checkout through Stripe. <strong>A booth is confirmed and marked sold only after payment succeeds.</strong> Selecting a booth or holding it does not reserve it until payment is complete. Prices are shown on the floor plan in U.S. dollars.</p><h3>Fees &amp; refunds</h3><p>Booth fees are <strong>non-refundable</strong> except where the Event is cancelled by us or as required by law. Booth assignments are final.</p><h3>Transfer &amp; subletting</h3><p>Booths may not be transferred, shared, sublet, or resold without our prior written consent. The booth must be used by the Exhibitor named on the order.</p><h3>Setup, staffing &amp; teardown</h3><p>Exhibitors must set up, staff, and tear down their booth during the published show hours and follow all instructions of show staff, security, and the venue.</p><h3>Conduct &amp; prohibited goods</h3><p>Exhibitors must comply with our code of conduct and bag &amp; prop policy. The sale of counterfeit, infringing, illegal, or unsafe goods, and of functional weapons or realistic firearms, is prohibited. We may remove any Exhibitor in violation without refund.</p><h3>Insurance, liability &amp; indemnification</h3><p>Exhibitors are responsible for their own goods, displays, and personnel and are encouraged to carry their own insurance. To the fullest extent permitted by law, we are not liable for loss of or damage to Exhibitor property, and the Exhibitor agrees to indemnify and hold us and the venue harmless from claims arising out of the Exhibitor&rsquo;s participation.</p><h3>Cancellation by organizer &amp; force majeure</h3><p>We may cancel or reschedule the Event due to circumstances beyond our reasonable control. In the event of cancellation by us, booth fees will be refunded.</p><h3>Governing law</h3><p>These terms are governed by the laws of the State of New Jersey. Questions: [exhibitors@forthefansfest.com].</p>"}}]'::jsonb,
    '<h2>Exhibitor &amp; Booth Sale Terms</h2><p><em>Last updated: June 10, 2026.</em></p><p>These terms govern the reservation and purchase of exhibitor booths at For The Fans Fest (the &ldquo;Event&rdquo;). By reserving a booth you (the &ldquo;Exhibitor&rdquo;) agree to these terms in addition to our <a href="/terms">Terms of Sale &amp; Use</a> and <a href="/policies">Policies</a>.</p><h3>Booth selection &amp; holds</h3><p>Booths are selected from the interactive floor plan and priced by zone (for example, Artist Alley and Exhibitor Hall). When you select a booth we place a temporary <strong>hold</strong> on it so another exhibitor cannot buy it while you check out. The hold expires after a short window (15 minutes by default), after which the booth is automatically released and made available again if checkout is not completed.</p><h3>Payment &amp; confirmation</h3><p>Booth fees are payable in full at checkout through Stripe. <strong>A booth is confirmed and marked sold only after payment succeeds.</strong> Selecting a booth or holding it does not reserve it until payment is complete. Prices are shown on the floor plan in U.S. dollars.</p><h3>Fees &amp; refunds</h3><p>Booth fees are <strong>non-refundable</strong> except where the Event is cancelled by us or as required by law. Booth assignments are final.</p><h3>Transfer &amp; subletting</h3><p>Booths may not be transferred, shared, sublet, or resold without our prior written consent. The booth must be used by the Exhibitor named on the order.</p><h3>Setup, staffing &amp; teardown</h3><p>Exhibitors must set up, staff, and tear down their booth during the published show hours and follow all instructions of show staff, security, and the venue.</p><h3>Conduct &amp; prohibited goods</h3><p>Exhibitors must comply with our code of conduct and bag &amp; prop policy. The sale of counterfeit, infringing, illegal, or unsafe goods, and of functional weapons or realistic firearms, is prohibited. We may remove any Exhibitor in violation without refund.</p><h3>Insurance, liability &amp; indemnification</h3><p>Exhibitors are responsible for their own goods, displays, and personnel and are encouraged to carry their own insurance. To the fullest extent permitted by law, we are not liable for loss of or damage to Exhibitor property, and the Exhibitor agrees to indemnify and hold us and the venue harmless from claims arising out of the Exhibitor&rsquo;s participation.</p><h3>Cancellation by organizer &amp; force majeure</h3><p>We may cancel or reschedule the Event due to circumstances beyond our reasonable control. In the event of cancellation by us, booth fees will be refunded.</p><h3>Governing law</h3><p>These terms are governed by the laws of the State of New Jersey. Questions: [exhibitors@forthefansfest.com].</p>',
    'Exhibitor & Booth Sale Terms | For The Fans Fest', 'Terms for reserving and purchasing exhibitor booths at For The Fans Fest.', TRUE, now())
-ON CONFLICT (slug) DO UPDATE
-  SET title = EXCLUDED.title, blocks = EXCLUDED.blocks, body_html = EXCLUDED.body_html,
-      seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description,
-      is_published = TRUE, published_at = COALESCE(pages.published_at, now());
+ON CONFLICT (slug) DO NOTHING;
 
 -- ── editable content pages (managed in the Page Builder). Seeded once with
 --    placeholder copy; DO NOTHING so admin edits are never overwritten. ──────
 INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, is_published, published_at) VALUES
-  ('room-rate-guarantee', 'Room Rate Guarantee',
-   '[{"type":"heading","data":{"text":"Room Rate Guarantee"}},{"type":"richtext","data":{"html":"<p>We have negotiated special discounted room rates for For The Fans Fest attendees at our partner hotels. Book within our room block to lock in the guaranteed rate. Details and booking links are coming soon — check the Travel &amp; Hotels page for participating hotels.</p>"}}]'::jsonb,
-   '<h2>Room Rate Guarantee</h2><p>We have negotiated special discounted room rates for For The Fans Fest attendees at our partner hotels. Book within our room block to lock in the guaranteed rate. Details and booking links are coming soon — check the Travel &amp; Hotels page for participating hotels.</p>',
-   'Room Rate Guarantee | For The Fans Fest', 'Guaranteed discounted hotel room rates for For The Fans Fest attendees.', TRUE, now()),
   ('warlock-awards-banquet', 'Warlock Awards Banquet',
    '[{"type":"heading","data":{"text":"Warlock Awards Banquet"}},{"type":"richtext","data":{"html":"<p>Join us for the Warlock Awards Banquet — an evening celebrating the best of the show. Details, ticketing, and the menu will be announced here soon.</p>"}}]'::jsonb,
    '<h2>Warlock Awards Banquet</h2><p>Join us for the Warlock Awards Banquet — an evening celebrating the best of the show. Details, ticketing, and the menu will be announced here soon.</p>',
@@ -320,6 +310,23 @@ INSERT INTO pages (slug, title, blocks, body_html, seo_title, seo_description, i
    '<h2>Graham Nolan''s Cigar Fest</h2><p>Graham Nolan''s Cigar Fest returns to For The Fans Fest. More details on this signature event coming soon.</p>',
    'Graham Nolan''s Cigar Fest | For The Fans Fest', 'Graham Nolan''s Cigar Fest at For The Fans Fest.', TRUE, now())
 ON CONFLICT (slug) DO NOTHING;
+
+-- ── one-time content migrations ──────────────────────────────────────────────
+-- The page rows above are seeded with ON CONFLICT DO NOTHING so admin edits are
+-- never overwritten. The fixes below patch DBs that were seeded before these
+-- corrections existed, and are each guarded so they only touch the original
+-- default content (admin-edited pages are left untouched) and are idempotent.
+
+-- Strip literal "&amp;" that leaked into page TITLES (titles are rendered as
+-- text, not HTML, so the entity showed through — e.g. "Terms of Sale &amp; Use").
+UPDATE pages SET title = replace(title, '&amp;', '&') WHERE title LIKE '%&amp;%';
+
+-- Refresh the About Us copy on DBs that still carry the original placeholder
+-- ("by fans, for fans."). Guarded so an admin-edited About page is preserved.
+UPDATE pages SET
+  blocks = '[{"type":"heading","data":{"text":"About For The Fans Fest"}},{"type":"richtext","data":{"html":"<p>For more than a decade, the independent comic scene has exploded across social media, building an incredible online community of untapped, unshackled creativity. For The Fans Fest exists to bring that cultural movement off the screen and directly to the fans.</p><p>Each October we take over Harrah&rsquo;s Resort &amp; Casino in the heart of Atlantic City, New Jersey for a weekend-long celebration of indie comics and collectibles. Our 2026 show runs October 16&ndash;18 and features the very first Warlock Comic Awards Banquet, two full days of live streams and panels with the very best in the indie comic book scene, and an exclusive comic and toy convention floor open to all fans.</p><p>Come party and celebrate with some of the best professionals in the business &mdash; Ethan Van Sciver, Chuck Dixon, Billy Tucci, Graham Nolan, Jon Malin, Shane Davis, Mandy Summers, Shanth Enjeti, Andy Smith, Mike Baron, Vasilis Lolos, and many, many more to be announced.</p><p>See you there!</p>"}}]'::jsonb,
+  body_html = '<h2>About For The Fans Fest</h2><p>For more than a decade, the independent comic scene has exploded across social media, building an incredible online community of untapped, unshackled creativity. For The Fans Fest exists to bring that cultural movement off the screen and directly to the fans.</p><p>Each October we take over Harrah&rsquo;s Resort &amp; Casino in the heart of Atlantic City, New Jersey for a weekend-long celebration of indie comics and collectibles. Our 2026 show runs October 16&ndash;18 and features the very first Warlock Comic Awards Banquet, two full days of live streams and panels with the very best in the indie comic book scene, and an exclusive comic and toy convention floor open to all fans.</p><p>Come party and celebrate with some of the best professionals in the business &mdash; Ethan Van Sciver, Chuck Dixon, Billy Tucci, Graham Nolan, Jon Malin, Shane Davis, Mandy Summers, Shanth Enjeti, Andy Smith, Mike Baron, Vasilis Lolos, and many, many more to be announced.</p><p>See you there!</p>'
+WHERE slug = 'about-us' AND body_html LIKE '%by fans, for fans.%';
 
 -- Hero slides are fully admin-managed (Hero Slides). Seeding intentionally does
 -- NOT touch the `slides` table, so admin-configured sliders are never
@@ -473,45 +480,38 @@ INSERT INTO booths (label, zone, price_cents, pos_x, pos_y, width, height, tier,
   ('a18', 'featured', 50000, 0.83665, 0.90863, 0.03984, 0.04061, 'featured', 'N'),
   ('a19', 'featured', 50000, 0.87649, 0.90863, 0.03984, 0.04061, 'featured', 'N'),
   ('a20', 'featured', 50000, 0.91633, 0.90863, 0.03984, 0.04061, 'featured', 'N')
-ON CONFLICT (label) DO UPDATE SET
-  zone=EXCLUDED.zone, price_cents=EXCLUDED.price_cents, pos_x=EXCLUDED.pos_x,
-  pos_y=EXCLUDED.pos_y, width=EXCLUDED.width, height=EXCLUDED.height,
-  tier=EXCLUDED.tier, facing=EXCLUDED.facing;
+ON CONFLICT (label) DO NOTHING;
 
--- ── store products (default merch; admin replaces via the Products manager) ──
-INSERT INTO products (slug, title, description, price_cents, sort_order) VALUES
-  ('event-tee',          'Official Event T-Shirt', 'Soft cotton tee with this year''s show art.', 2500, 1),
-  ('commemorative-poster','Commemorative Poster',  '18×24 print, limited run.',                   1500, 2),
-  ('enamel-pin-set',     'Enamel Pin Set',         'Set of 3 collectible enamel pins.',            1200, 3)
-ON CONFLICT (slug) DO NOTHING;
-
--- variants (sizes for the tee; single variant for others)
+-- ── store products (default merch, seeded ONLY when the catalog is empty so
+--    deleted defaults are never re-added and admin products are never touched) ──
 DO $$
 DECLARE tee UUID; poster UUID; pins UUID;
 BEGIN
+  IF EXISTS (SELECT 1 FROM products) THEN RETURN; END IF;
+  INSERT INTO products (slug, title, description, price_cents, sort_order) VALUES
+    ('event-tee',          'Official Event T-Shirt', 'Soft cotton tee with this year''s show art.', 2500, 1),
+    ('commemorative-poster','Commemorative Poster',  '18×24 print, limited run.',                   1500, 2),
+    ('enamel-pin-set',     'Enamel Pin Set',         'Set of 3 collectible enamel pins.',            1200, 3);
   SELECT id INTO tee FROM products WHERE slug='event-tee';
   SELECT id INTO poster FROM products WHERE slug='commemorative-poster';
   SELECT id INTO pins FROM products WHERE slug='enamel-pin-set';
-  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=tee) THEN
-    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES
-      (tee, 'TEE-S',  '{"size":"S"}',  50),
-      (tee, 'TEE-M',  '{"size":"M"}',  80),
-      (tee, 'TEE-L',  '{"size":"L"}',  80),
-      (tee, 'TEE-XL', '{"size":"XL"}', 40);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=poster) THEN
-    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES (poster, 'POSTER', '{}', 200);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM product_variants WHERE product_id=pins) THEN
-    INSERT INTO product_variants (product_id, sku, options, inventory) VALUES (pins, 'PINSET', '{}', 120);
-  END IF;
+  INSERT INTO product_variants (product_id, sku, options, inventory) VALUES
+    (tee, 'TEE-S',  '{"size":"S"}',  50),
+    (tee, 'TEE-M',  '{"size":"M"}',  80),
+    (tee, 'TEE-L',  '{"size":"L"}',  80),
+    (tee, 'TEE-XL', '{"size":"XL"}', 40),
+    (poster, 'POSTER', '{}', 200),
+    (pins, 'PINSET', '{}', 120);
 END $$;
 
 -- ── FAQs ─────────────────────────────────────────────────────────────────────
-INSERT INTO faqs (question, answer, sort_order) VALUES
-  ('Where is the convention held?', 'At the Donald E. Stephens Convention Center in Rosemont, IL.', 1),
-  ('Are tickets refundable?', 'All sales are final unless the event is cancelled.', 2)
-ON CONFLICT DO NOTHING;
+INSERT INTO faqs (question, answer, sort_order)
+SELECT v.question, v.answer, v.sort_order
+  FROM (VALUES
+    ('Where is the convention held?', 'At Harrah''s Resort Atlantic City, NJ.', 1),
+    ('Are tickets refundable?', 'All sales are final unless the event is cancelled.', 2)
+  ) AS v(question, answer, sort_order)
+ WHERE NOT EXISTS (SELECT 1 FROM faqs);
 
 -- Extra-table inventory pool for exhibitors (oversell-safe). Admin can adjust
 -- the total in the admin panel. Default 20 additional tables available.

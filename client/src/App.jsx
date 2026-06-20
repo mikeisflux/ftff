@@ -31,7 +31,7 @@ import HotelDetail from './pages/HotelDetail.jsx';
 import ShowGuides from './pages/ShowGuides.jsx';
 import FirstTimeGuide from './pages/FirstTimeGuide.jsx';
 import MeetingCelebsGuide from './pages/MeetingCelebsGuide.jsx';
-import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts } from './pages/Shop.jsx';
+import Shop, { SpecialExperiences, Autographs, PhotoOps, Discounts, RoomRateGuarantee } from './pages/Shop.jsx';
 import Product from './pages/Product.jsx';
 import Cart from './pages/Cart.jsx';
 import Virtual from './pages/Virtual.jsx';
@@ -121,6 +121,7 @@ export default function App() {
           <Route path="/admin/autographs" element={<Products section="autographs" title="Autographs" />} />
           <Route path="/admin/photo-ops" element={<Products section="photo_ops" title="Photo Ops" />} />
           <Route path="/admin/discounts" element={<Products section="discounts" title="Discounts & Coupons" />} />
+          <Route path="/admin/room-rate-guarantee" element={<Products section="room_rate_guarantee" title="Room Rate Guarantee" />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />
           <Route path="/admin/stream" element={<Stream />} />
@@ -156,6 +157,7 @@ export default function App() {
           <Route path="/autographs" element={<Autographs />} />
           <Route path="/photo-ops" element={<PhotoOps />} />
           <Route path="/discounts-coupons" element={<Discounts />} />
+          <Route path="/room-rate-guarantee" element={<RoomRateGuarantee />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/virtual" element={<Virtual />} />
           <Route path="/faqs" element={<Faqs />} />

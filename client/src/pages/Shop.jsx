@@ -17,3 +17,6 @@ export function PhotoOps() {
 export function Discounts() {
   return <ProductGrid section="discounts" title="Discounts & Coupons" empty="Discounts will be posted soon." />;
 }
+export function RoomRateGuarantee() {
+  return <ProductGrid section="room_rate_guarantee" title="Room Rate Guarantee" empty="Discounted room rates will be posted soon." />;
+}
