@@ -10,7 +10,8 @@ import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { PRICES, computeExhibitorPricing } from '../lib/exhibitorPricing.js';
 import { getPool, reserve, release as releaseInventory } from '../lib/inventory.js';
-import { sendExhibitorCheckReceived, notifyAdminOfExhibitor } from '../lib/email.js';
+import { sendExhibitorCheckReceived, notifyAdminOfExhibitor, sendExhibitorApplicationReceived } from '../lib/email.js';
+import { subscribeEmail } from '../lib/newsletter.js';
 
 // Become an Exhibitor (§9 extended). A vendor fills the application + agrees to
 // the terms, then proceeds to pick a booth and pay (deposit or full) by card or
@@ -143,6 +144,15 @@ exhibitorRouter.post(
       );
       return ins.rows[0];
     });
+
+    // Confirmation to the applicant + admin notification + newsletter opt-in.
+    const emailApp = {
+      ...app, vendor_name: d.vendor_name, contact_email: d.contact_email,
+      total_cents: pricing.totalCents, deposit_cents: pricing.depositCents, breakdown: pricing.lineItems,
+    };
+    sendExhibitorApplicationReceived(emailApp).catch(() => {});
+    notifyAdminOfExhibitor(emailApp, { choice: '—', method: 'application', booth: null }).catch(() => {});
+    subscribeEmail(d.contact_email, { name: d.vendor_name, source: 'exhibitor' }).catch(() => {});
 
     res.status(201).json({
       applicationId: app.id,

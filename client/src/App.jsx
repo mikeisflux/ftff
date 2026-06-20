@@ -69,6 +69,7 @@ import GuestsAdmin from './pages/admin/GuestsAdmin.jsx';
 import VendorsAdmin from './pages/admin/VendorsAdmin.jsx';
 import PanelsAdmin from './pages/admin/PanelsAdmin.jsx';
 import ScheduleAdmin from './pages/admin/ScheduleAdmin.jsx';
+import EmailMarketing from './pages/admin/EmailMarketing.jsx';
 import FaqsAdmin from './pages/admin/FaqsAdmin.jsx';
 import ShowInfo from './pages/admin/ShowInfo.jsx';
 import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="/admin/vendors" element={<VendorsAdmin />} />
           <Route path="/admin/panels" element={<PanelsAdmin />} />
           <Route path="/admin/schedule" element={<ScheduleAdmin />} />
+          <Route path="/admin/email-marketing" element={<EmailMarketing />} />
           <Route path="/admin/faqs" element={<FaqsAdmin />} />
           <Route path="/admin/show-info" element={<ShowInfo />} />
           <Route path="/admin/ticket-types" element={<TicketTypesAdmin />} />

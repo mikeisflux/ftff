@@ -497,9 +497,26 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS name   TEXT;
+ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS source TEXT;  -- where they signed up
 DROP TRIGGER IF EXISTS trg_newsletter_updated ON newsletter_subscribers;
 CREATE TRIGGER trg_newsletter_updated BEFORE UPDATE ON newsletter_subscribers
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ── email_campaigns (marketing sends to subscribers) ────────────────────────
+CREATE TABLE IF NOT EXISTS email_campaigns (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject         TEXT NOT NULL,
+  body_html       TEXT NOT NULL,
+  audience        TEXT NOT NULL DEFAULT 'subscribed',
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  sent_count      INTEGER NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','sending','failed')),
+  created_by      UUID REFERENCES users(id),
+  sent_at         TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_email_campaigns_created ON email_campaigns(created_at DESC);
 
 -- ── contact_messages ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS contact_messages (

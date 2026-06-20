@@ -565,3 +565,10 @@ img, svg, iframe, video { max-width: 100%; }
   background: color-mix(in srgb, var(--color-secondary) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-secondary) 50%, transparent);
 }
+
+/* Home newsletter signup section. */
+.newsletter-cta { max-width: 720px; margin: 0 auto; text-align: center; }
+.newsletter-form { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.newsletter-form input { max-width: 360px; }
+.newsletter-form .btn { white-space: nowrap; }
+@media (max-width: 560px) { .newsletter-form { flex-direction: column; } .newsletter-form input { max-width: 100%; } }

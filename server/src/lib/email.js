@@ -166,6 +166,19 @@ export async function sendExhibitorBalanceRequest(app, { url }) {
   return sendEmail({ to: app.contact_email, subject: `Balance due — ${app.reference}`, html });
 }
 
+// Application received — confirmation to the applicant on submit.
+export async function sendExhibitorApplicationReceived(app) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const html =
+    `<h1>We received your exhibitor application ✅</h1>` +
+    `<p>Thanks, ${app.vendor_name}! Your application was submitted successfully.</p>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Order total: <strong>${money(app.total_cents)}</strong> (nothing charged yet).</p>` +
+    `<p>Our team will review it and email you with approval and payment details. Your selected table(s) are held while we review.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `Application received — ${app.reference}`, html });
+}
+
 // Approval notice — tells the vendor they're approved (payment requested next).
 export async function sendExhibitorApprovalNotice(app) {
   if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };

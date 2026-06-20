@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
+import { useConfig } from '../store/ConfigContext.jsx';
 import { formatDateRange, formatTime } from '../lib/dates.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
 
@@ -121,6 +123,49 @@ export default function Home() {
           <p className="muted">Guest announcements are coming soon — check back shortly.</p>
         )}
       </section>
+
+      <NewsletterSignup />
     </div>
+  );
+}
+
+function NewsletterSignup() {
+  const { getRecaptchaToken } = useConfig();
+  const [email, setEmail] = useState('');
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    try {
+      const recaptchaToken = await getRecaptchaToken('newsletter');
+      await api('/newsletter', { method: 'POST', body: { email, ...(recaptchaToken ? { recaptchaToken } : {}) } });
+      setDone(true);
+    } catch (ex) {
+      setErr(ex.message || 'Could not sign you up — please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="section container">
+      <div className="card newsletter-cta">
+        <h2 className="glow" style={{ marginTop: 0 }}>Stay in the loop</h2>
+        <p className="muted">Get For The Fans Fest news — guest announcements, schedules, and exclusive offers, straight to your inbox.</p>
+        {done ? (
+          <p style={{ color: 'var(--color-success)' }}>✓ You're in! Check your inbox to confirm your subscription.</p>
+        ) : (
+          <form onSubmit={submit} className="newsletter-form">
+            <input type="email" required placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email address" />
+            <button className="btn" disabled={busy}>{busy ? 'Signing up…' : 'Sign Up'}</button>
+          </form>
+        )}
+        {err && <p style={{ color: 'var(--color-danger)' }}>{err}</p>}
+      </div>
+    </section>
   );
 }

@@ -8,6 +8,7 @@ import { requireRecaptcha } from '../middleware/recaptcha.js';
 import { sanitizeHtml } from '../lib/sanitize.js';
 import { randomToken } from '../lib/crypto.js';
 import { notifyAdminOfSubmission, confirmSubmission, sendNewsletterConfirm } from '../lib/email.js';
+import { subscribeEmail } from '../lib/newsletter.js';
 
 // Public read endpoints + public form submissions (§7, §14).
 export const publicRouter = Router();
@@ -326,6 +327,7 @@ publicRouter.post(
     );
     notifyAdminOfSubmission({ kind: `application:${kind}`, ...data }).catch(() => {});
     confirmSubmission({ email: data.email, name: data.name, kind: 'application' }).catch(() => {});
+    subscribeEmail(data.email, { name: data.name, source: `application:${kind}` }).catch(() => {});
     res.json({ ok: true });
   }),
 );
@@ -357,6 +359,7 @@ function contactHandler(kind) {
     // Notify admin + confirm to submitter (config-gated, non-blocking; §7.2).
     notifyAdminOfSubmission({ kind, ...data }).catch(() => {});
     confirmSubmission({ email: data.email, name: data.name, kind }).catch(() => {});
+    subscribeEmail(data.email, { name: data.name, source: kind }).catch(() => {});
     res.json({ ok: true });
   });
 }

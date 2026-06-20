@@ -9,6 +9,7 @@ import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { HttpError } from '../lib/http.js';
 import { randomToken } from '../lib/crypto.js';
+import { subscribeEmail } from '../lib/newsletter.js';
 import {
   computeTicketOrder,
   createPendingTicketOrder,
@@ -39,6 +40,7 @@ checkoutRouter.post(
   formLimiter,
   asyncHandler(async (req, res) => {
     const { items, customer, referralCode } = cartSchema.parse(req.body);
+    subscribeEmail(customer.email, { name: customer.name, source: 'ticket-purchase' }).catch(() => {});
 
     // Verify Stripe is configured BEFORE creating an order, so a misconfigured
     // site doesn't leave orphan pending orders.
@@ -82,6 +84,7 @@ checkoutRouter.post(
   formLimiter,
   asyncHandler(async (req, res) => {
     const { items, customer, referralCode } = cartSchema.parse(req.body);
+    subscribeEmail(customer.email, { name: customer.name, source: 'ticket-purchase' }).catch(() => {});
     const stripe = await getStripe();
     const computed = await computeTicketOrder(items);
     const order = await createPendingTicketOrder({ customer, computed });
@@ -153,6 +156,7 @@ checkoutRouter.post(
   formLimiter,
   asyncHandler(async (req, res) => {
     const { items, customer } = storeSchema.parse(req.body);
+    subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
     const computed = await computeStoreOrder(items);
     const order = await createPendingStoreOrder({ customer, computed });
@@ -181,6 +185,7 @@ checkoutRouter.post(
   formLimiter,
   asyncHandler(async (req, res) => {
     const { items, customer } = storeSchema.parse(req.body);
+    subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
     const computed = await computeStoreOrder(items);
     const order = await createPendingStoreOrder({ customer, computed });
@@ -224,6 +229,7 @@ checkoutRouter.post(
   formLimiter,
   asyncHandler(async (req, res) => {
     const { boothId, vendor } = boothSchema.parse(req.body);
+    subscribeEmail(vendor.email, { name: vendor.name, source: 'booth-purchase' }).catch(() => {});
     const stripe = await getStripe();
     const holdMinutes = Number(await getSettingValue('vendor.hold_minutes')) || 15;
     const currency = (await getSettingValue('stripe.currency')) || 'usd';

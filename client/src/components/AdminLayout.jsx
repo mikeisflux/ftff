@@ -37,6 +37,7 @@ const NAV_GROUPS = [
   { label: 'Communication', items: [
     { to: '/admin/mail', label: 'Mail', roles: ['admin', 'editor'] },
     { to: '/admin/submissions', label: 'Submissions', roles: ['admin', 'editor'] },
+    { to: '/admin/email-marketing', label: 'Email Marketing', roles: ['admin', 'editor'] },
     { to: '/admin/stream', label: 'Livestream', roles: ['admin', 'editor'] },
     { to: '/admin/chat', label: 'Chat Moderation', roles: ['admin', 'editor'] },
   ] },
