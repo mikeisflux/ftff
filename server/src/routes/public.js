@@ -148,6 +148,17 @@ publicRouter.get(
   }),
 );
 
+// GET /image-overrides — admin-swapped images for bespoke pages (slot → url).
+publicRouter.get(
+  '/image-overrides',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(`SELECT slot, url FROM image_overrides`);
+    const overrides = {};
+    for (const r of rows) overrides[r.slot] = r.url;
+    res.json({ overrides });
+  }),
+);
+
 // GET /products?section= — store/section listing (active products) (§10).
 publicRouter.get(
   '/products',

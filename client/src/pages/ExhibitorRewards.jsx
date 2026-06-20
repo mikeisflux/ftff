@@ -3,11 +3,12 @@ import { api } from '../lib/api.js';
 import { useConfig } from '../store/ConfigContext.jsx';
 import { money } from '../lib/exhibitorPricing.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
+import { useImg } from '../lib/pageImages.js';
 
 const STEPS = [
-  { img: '/retailers/share.png', title: 'Share', body: 'Grab your personal ticket link and post it everywhere — your socials, your storefront, your newsletter. Invite your fans to grab their passes and come see you at the show.' },
-  { img: '/retailers/earn.png', title: 'Earn', body: 'Every time a fan buys their tickets through your link, you bank 5% of the sale as Fan Fest Cash — credit you can put straight toward your next booth.' },
-  { img: '/retailers/redeem.png', title: 'Redeem', body: 'After the show wraps, we tally your Fan Fest Cash and apply it to your next booth booking. The more fans you bring, the more you save.' },
+  { slot: 'rewards.share', title: 'Share', body: 'Grab your personal ticket link and post it everywhere — your socials, your storefront, your newsletter. Invite your fans to grab their passes and come see you at the show.' },
+  { slot: 'rewards.earn', title: 'Earn', body: 'Every time a fan buys their tickets through your link, you bank 5% of the sale as Fan Fest Cash — credit you can put straight toward your next booth.' },
+  { slot: 'rewards.redeem', title: 'Redeem', body: 'After the show wraps, we tally your Fan Fest Cash and apply it to your next booth booking. The more fans you bring, the more you save.' },
 ];
 
 function StatementRow({ e }) {
@@ -26,6 +27,7 @@ function StatementRow({ e }) {
 
 export default function ExhibitorRewards() {
   const { getRecaptchaToken } = useConfig();
+  const img = useImg();
   const [form, setForm] = useState({ name: '', email: '' });
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -69,7 +71,7 @@ export default function ExhibitorRewards() {
 
   const slides = [{
     id: 0,
-    image_url: '/retailers/hero-2.png',
+    image_url: img('rewards.hero'),
     title: 'Exhibitor Rewards',
     subtitle: 'Bring your fans to the show and earn 5% back toward your next booth. Three easy steps.',
     cta_url: '/exhibitor-rewards',
@@ -89,7 +91,7 @@ export default function ExhibitorRewards() {
         <div className="grid cols-3" style={{ marginTop: 16 }}>
           {STEPS.map((s) => (
             <div className="card" key={s.title} style={{ padding: 0, overflow: 'hidden' }}>
-              <img src={s.img} alt={s.title} style={{ width: '100%', display: 'block' }} />
+              <img src={img(s.slot)} alt={s.title} style={{ width: '100%', display: 'block' }} />
               <div style={{ padding: 20 }}>
                 <h3 style={{ marginTop: 0 }}>{s.title}</h3>
                 <p className="muted">{s.body}</p>

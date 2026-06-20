@@ -25,6 +25,7 @@ const NAV_GROUPS = [
   ] },
   { label: 'Content', items: [
     { to: '/admin/pages', label: 'Page Builder', roles: ['admin', 'editor'] },
+    { to: '/admin/page-images', label: 'Page Images', roles: ['admin', 'editor'] },
     { to: '/admin/guests', label: 'Guests', roles: ['admin', 'editor'] },
     { to: '/admin/slides', label: 'Hero Slides', roles: ['admin', 'editor'] },
     { to: '/admin/panels', label: 'Live Stream Panels', roles: ['admin', 'editor'] },

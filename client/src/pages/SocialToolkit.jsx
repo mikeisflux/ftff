@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { useImg } from '../lib/pageImages.js';
 
 // Promotional assets exhibitors can download to announce their booth. Our own
-// branded "See us at" images in three common social sizes.
+// branded "See us at" images in three common social sizes. Images are
+// admin-swappable (Admin → Page Images) via their slot keys.
 const IMAGES = [
-  { src: '/retailers/toolkit-landscape.png', label: 'Landscape (1200×630)' },
-  { src: '/retailers/toolkit-square.png', label: 'Square (1080×1080)' },
-  { src: '/retailers/toolkit-story.png', label: 'Story (1080×1350)' },
+  { slot: 'toolkit.landscape', label: 'Landscape (1200×630)' },
+  { slot: 'toolkit.square', label: 'Square (1080×1080)' },
+  { slot: 'toolkit.story', label: 'Story (1080×1350)' },
 ];
 
 const TIPS = [
@@ -33,6 +35,7 @@ const SOCIALS = [
 ];
 
 export default function SocialToolkit() {
+  const img = useImg();
   const { data } = useQuery({ queryKey: ['public-config'], queryFn: () => api('/public-config') });
   const social = data?.social || {};
   const links = SOCIALS.map(([label, key]) => [label, social[label.toLowerCase()] || social[key]]).filter(([, url]) => url);
@@ -57,13 +60,16 @@ export default function SocialToolkit() {
       <h2 className="glow" style={{ marginTop: 40 }}>Social media images</h2>
       <p className="muted">Ready-to-post “See us at” graphics in three sizes. Click any image to download.</p>
       <div className="grid cols-3">
-        {IMAGES.map((im) => (
-          <div className="card" key={im.src} style={{ padding: 12 }}>
-            <img src={im.src} alt={im.label} style={{ width: '100%', borderRadius: 8, display: 'block' }} />
-            <p style={{ margin: '10px 0 6px', fontWeight: 600 }}>{im.label}</p>
-            <a className="btn secondary" href={im.src} download>Download</a>
-          </div>
-        ))}
+        {IMAGES.map((im) => {
+          const src = img(im.slot);
+          return (
+            <div className="card" key={im.slot} style={{ padding: 12 }}>
+              <img src={src} alt={im.label} style={{ width: '100%', borderRadius: 8, display: 'block' }} />
+              <p style={{ margin: '10px 0 6px', fontWeight: 600 }}>{im.label}</p>
+              <a className="btn secondary" href={src} download>Download</a>
+            </div>
+          );
+        })}
       </div>
 
       <h2 className="glow" style={{ marginTop: 40 }}>Social tips &amp; tricks</h2>

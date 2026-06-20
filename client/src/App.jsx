@@ -18,10 +18,8 @@ import Schedule from './pages/Schedule.jsx';
 import FloorPlan from './pages/FloorPlan.jsx';
 import BecomeExhibitor from './pages/BecomeExhibitor.jsx';
 import ExhibitorSuccess from './pages/ExhibitorSuccess.jsx';
-import Retailers from './pages/Retailers.jsx';
-import ArtistAlley from './pages/ArtistAlley.jsx';
-import Corporate from './pages/Corporate.jsx';
-import Advertise from './pages/Advertise.jsx';
+// Retailers, Artist Alley, Corporate & Advertise are now Page Builder CMS pages
+// (seeded), rendered by the /:slug catch-all via CmsPage.
 import ExhibitorRewards from './pages/ExhibitorRewards.jsx';
 import SocialToolkit from './pages/SocialToolkit.jsx';
 import PastExhibitors from './pages/PastExhibitors.jsx';
@@ -75,6 +73,7 @@ import ShowInfo from './pages/admin/ShowInfo.jsx';
 import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
 import NavBuilder from './pages/admin/NavBuilder.jsx';
 import PageBuilder from './pages/admin/PageBuilder.jsx';
+import PageImages from './pages/admin/PageImages.jsx';
 import ThemeStudio from './pages/admin/ThemeStudio.jsx';
 import Exhibitors from './pages/admin/Exhibitors.jsx';
 import Rewards from './pages/admin/Rewards.jsx';
@@ -115,6 +114,7 @@ export default function App() {
           <Route path="/admin/ticket-types" element={<TicketTypesAdmin />} />
           <Route path="/admin/nav" element={<NavBuilder />} />
           <Route path="/admin/pages" element={<PageBuilder />} />
+          <Route path="/admin/page-images" element={<PageImages />} />
           <Route path="/admin/theme" element={<ThemeStudio />} />
           <Route path="/admin/products" element={<Products section="shop" title="Shop" />} />
           <Route path="/admin/special-experiences" element={<Products section="special_experiences" title="Special Experiences" />} />
@@ -180,10 +180,7 @@ export default function App() {
           <Route path="/media-inquiries" element={<MediaInquiries />} />
           <Route path="/become-an-exhibitor" element={<BecomeExhibitor />} />
           <Route path="/become-an-exhibitor/success" element={<ExhibitorSuccess />} />
-          <Route path="/retailers" element={<Retailers />} />
-          <Route path="/artist-alley" element={<ArtistAlley />} />
-          <Route path="/corporate" element={<Corporate />} />
-          <Route path="/advertise" element={<Advertise />} />
+          {/* /retailers, /artist-alley, /corporate, /advertise → CMS (CmsPage via /:slug) */}
           <Route path="/exhibitor-rewards" element={<ExhibitorRewards />} />
           <Route path="/social-media-tool-kit" element={<SocialToolkit />} />
           <Route path="/past-exhibitors" element={<PastExhibitors />} />

@@ -370,6 +370,20 @@ CREATE TRIGGER trg_schedule_events_updated BEFORE UPDATE ON schedule_events
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_schedule_events_day ON schedule_events(day, sort_order);
 
+-- ── image_overrides (admin-swappable images for hardcoded pages) ─────────────
+-- Lets admins replace the fixed images used on bespoke pages (e.g. Exhibitor
+-- Rewards, Social Media Tool Kit) without a code change. Keyed by a stable slot
+-- id defined in the client registry; the page uses the override URL if present,
+-- otherwise the built-in default.
+CREATE TABLE IF NOT EXISTS image_overrides (
+  slot        TEXT PRIMARY KEY,
+  url         TEXT NOT NULL,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_image_overrides_updated ON image_overrides;
+CREATE TRIGGER trg_image_overrides_updated BEFORE UPDATE ON image_overrides
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 
 -- ── products / variants (store) ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (

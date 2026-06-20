@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '../../lib/api.js';
+import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
 const BLOCK_TYPES = [
@@ -15,7 +15,26 @@ function BlockEditor({ block, onChange }) {
   switch (block.type) {
     case 'heading': return <input value={d.text || ''} onChange={(e) => set('text', e.target.value)} placeholder="Heading text" />;
     case 'richtext': case 'html': return <textarea rows={4} value={d.html || ''} onChange={(e) => set('html', e.target.value)} placeholder="HTML content" />;
-    case 'image': return (<><input value={d.url || ''} onChange={(e) => set('url', e.target.value)} placeholder="Image URL" /><input value={d.alt || ''} onChange={(e) => set('alt', e.target.value)} placeholder="Alt text" /></>);
+    case 'image': return (
+      <>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input value={d.url || ''} onChange={(e) => set('url', e.target.value)} placeholder="Image URL (or upload →)" />
+          <input
+            type="file"
+            accept="image/*"
+            style={{ width: 'auto' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try { const { url } = await uploadFile('/admin/uploads', file); set('url', url); }
+              catch (err) { alert(err.message || 'Upload failed'); }
+            }}
+          />
+        </div>
+        {d.url && <img src={d.url} alt="" style={{ maxHeight: 90, marginTop: 8, borderRadius: 8, display: 'block' }} />}
+        <input value={d.alt || ''} onChange={(e) => set('alt', e.target.value)} placeholder="Alt text" />
+      </>
+    );
     case 'button': return (<><input value={d.label || ''} onChange={(e) => set('label', e.target.value)} placeholder="Label" /><input value={d.url || ''} onChange={(e) => set('url', e.target.value)} placeholder="URL" /></>);
     case 'spacer': return <input type="number" value={d.height || 24} onChange={(e) => set('height', Number(e.target.value))} placeholder="Height px" />;
     case 'embed': return <input value={d.url || ''} onChange={(e) => set('url', e.target.value)} placeholder="https:// embed URL" />;
