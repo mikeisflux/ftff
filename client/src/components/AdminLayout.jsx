@@ -29,6 +29,7 @@ const NAV_GROUPS = [
     { to: '/admin/pages', label: 'Page Builder', roles: ['admin', 'editor'] },
     { to: '/admin/guests', label: 'Guests', roles: ['admin', 'editor'] },
     { to: '/admin/slides', label: 'Hero Slides', roles: ['admin', 'editor'] },
+    { to: '/admin/panels', label: 'Live Stream Panels', roles: ['admin', 'editor'] },
     { to: '/admin/nav', label: 'Navigation', roles: ['admin', 'editor'] },
     { to: '/admin/faqs', label: 'FAQs', roles: ['admin', 'editor'] },
     { to: '/admin/show-info', label: 'Show Info', roles: ['admin', 'editor'] },

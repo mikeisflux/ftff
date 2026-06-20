@@ -325,6 +325,27 @@ CREATE TRIGGER trg_vendors_updated BEFORE UPDATE ON vendors
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_vendors_name ON vendors(lower(name));
 
+-- ── livestream panels (schedule shown on /live-stream-panels, by day) ────────
+CREATE TABLE IF NOT EXISTS panels (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       TEXT NOT NULL,
+  day         TEXT NOT NULL DEFAULT 'Friday'
+                CHECK (day IN ('Friday','Saturday','Sunday')),
+  start_time  TEXT,        -- free text, e.g. '2:00 PM'
+  end_time    TEXT,
+  location    TEXT,
+  presenter   TEXT,
+  description TEXT,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_panels_updated ON panels;
+CREATE TRIGGER trg_panels_updated BEFORE UPDATE ON panels
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE INDEX IF NOT EXISTS idx_panels_day ON panels(day, sort_order);
+
 
 -- ── products / variants (store) ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (

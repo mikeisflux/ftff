@@ -104,6 +104,19 @@ publicRouter.get(
   }),
 );
 
+// GET /panels — active livestream panels (client groups by day).
+publicRouter.get(
+  '/panels',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT id, title, day, start_time, end_time, location, presenter, description, sort_order
+         FROM panels WHERE is_active = TRUE
+        ORDER BY sort_order, start_time, title`,
+    );
+    res.json({ panels: rows });
+  }),
+);
+
 // GET /ticket-types
 publicRouter.get(
   '/ticket-types',

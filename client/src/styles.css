@@ -543,3 +543,16 @@ img, svg, iframe, video { max-width: 100%; }
 .hero-overlay h1 { font-size: clamp(1.8rem, 5vw, 3.6rem); margin: 0; }
 
 @media (max-width: 560px) { .hero-overlay { padding: 14px; } .hero-overlay h1 { font-size: clamp(1.4rem, 7vw, 2rem); } }
+
+/* Live Stream Panels schedule (grouped by day). */
+.panel-day { margin-top: 28px; }
+.panel-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.panel-item {
+  display: grid; grid-template-columns: 140px 1fr; gap: 16px;
+  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.panel-time { font-weight: 700; color: var(--color-secondary); }
+.panel-title { margin: 0; font-size: 1.1rem; }
+.panel-meta { margin: 2px 0 0; font-size: .9rem; }
+.panel-desc { margin: 8px 0 0; line-height: 1.5; }
+@media (max-width: 560px) { .panel-item { grid-template-columns: 1fr; gap: 4px; } }
