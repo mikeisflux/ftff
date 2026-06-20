@@ -6,6 +6,8 @@ import { asyncHandler, notFound, badRequest } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 import { sendEmail } from '../lib/email.js';
+import { inlineEmailStyles, renderEmailDocument } from '../lib/emailLayout.js';
+import { getSettingValue } from '../lib/settings.js';
 import { randomToken } from '../lib/crypto.js';
 
 // Email marketing: manage newsletter subscribers + send campaigns to them.
@@ -68,6 +70,29 @@ adminEmailMarketingRouter.get('/export.csv', asyncHandler(async (_req, res) => {
   res.send(csv);
 }));
 
+// POST /campaigns/test — send the in-progress campaign to the admin only, so
+// they can confirm formatting in a real inbox before blasting the list.
+adminEmailMarketingRouter.post('/campaigns/test', asyncHandler(async (req, res) => {
+  const { subject, body_html } = z.object({
+    subject: z.string().min(1).max(300),
+    body_html: z.string().min(1).max(100000),
+  }).parse(req.body);
+  const to = req.user.email;
+  if (!to) throw badRequest('Your account has no email address.');
+
+  const siteName = (await getSettingValue('site.name')) || 'For The Fans Fest';
+  const footer = `<hr style="border:none;border-top:1px solid #e3e3ea;margin:22px 0;"/>` +
+    `<p style="margin:0;font-size:12px;color:#888888;">This is a <strong>test</strong> send — the live version appends a personalized unsubscribe link.</p>`;
+  const html = renderEmailDocument({
+    title: subject, siteName,
+    contentHtml: inlineEmailStyles(body_html) + footer,
+  });
+  const r = await sendEmail({ to, subject: `[TEST] ${subject}`, html });
+  if (r?.skipped) throw badRequest('Email isn’t configured yet (SendGrid).', 'sendgrid_unconfigured');
+  await audit(req.user.id, 'campaign.test', { entity: 'campaign', meta: { to } });
+  res.json({ ok: true, to });
+}));
+
 // POST /campaigns — send a campaign to subscribed (or all) recipients.
 adminEmailMarketingRouter.post('/campaigns', asyncHandler(async (req, res) => {
   const { subject, body_html, audience } = z.object({
@@ -90,15 +115,24 @@ adminEmailMarketingRouter.post('/campaigns', asyncHandler(async (req, res) => {
   );
   const campaign = c[0];
 
-  // Send sequentially-ish in small batches; CAN-SPAM unsubscribe footer per recipient.
-  let sent = 0;
+  // Inline the editor's HTML once (clients strip <style>), then wrap each send in
+  // the email shell with a per-recipient CAN-SPAM unsubscribe footer.
+  const siteName = (await getSettingValue('site.name')) || 'For The Fans Fest';
+  const bodyInlined = inlineEmailStyles(body_html);
   const footer = (token) =>
-    `<hr><p style="font-size:12px;color:#888">You're receiving this because you signed up at For The Fans Fest. ` +
-    `<a href="${env.CLIENT_ORIGIN}/api/v1/newsletter/unsubscribe?token=${token || ''}">Unsubscribe</a>.</p>`;
+    `<hr style="border:none;border-top:1px solid #e3e3ea;margin:22px 0;"/>` +
+    `<p style="margin:0;font-size:12px;color:#888888;">You're receiving this because you signed up at ${siteName}. ` +
+    `<a href="${env.CLIENT_ORIGIN}/api/v1/newsletter/unsubscribe?token=${token || ''}" style="color:#7c3aed;">Unsubscribe</a>.</p>`;
+
+  let sent = 0;
   for (let i = 0; i < recipients.length; i += 20) {
     const batch = recipients.slice(i, i + 20);
     const results = await Promise.allSettled(
-      batch.map((r) => sendEmail({ to: r.email, subject, html: body_html + footer(r.confirm_token) })),
+      batch.map((r) => sendEmail({
+        to: r.email,
+        subject,
+        html: renderEmailDocument({ title: subject, siteName, contentHtml: bodyInlined + footer(r.confirm_token) }),
+      })),
     );
     sent += results.filter((x) => x.status === 'fulfilled' && x.value?.sent).length;
   }

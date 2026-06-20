@@ -15,6 +15,8 @@ export default function EmailMarketing() {
   const [campaign, setCampaign] = useState({ subject: '', body_html: '', audience: 'subscribed' });
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const load = useCallback(async () => setData(await api('/admin/email-marketing')), []);
   useEffect(() => { load(); }, [load]);
@@ -41,6 +43,32 @@ export default function EmailMarketing() {
     } catch (err) { setMsg(err.data?.code === 'no_recipients' ? 'No recipients in that audience.' : err.message); }
     finally { setBusy(false); }
   }
+
+  async function sendTest() {
+    setMsg('');
+    const bodyText = campaign.body_html.replace(/<[^>]*>/g, '').trim();
+    if (!campaign.subject.trim() || !bodyText) return setMsg('Add a subject and body before sending a test.');
+    setTesting(true);
+    try {
+      const r = await api('/admin/email-marketing/campaigns/test', { method: 'POST', body: { subject: campaign.subject, body_html: campaign.body_html } });
+      setMsg(`Test sent to ${r.to}. Check your inbox to confirm the formatting.`);
+    } catch (err) {
+      setMsg(err.data?.code === 'sendgrid_unconfigured' ? 'Email isn’t configured yet (SendGrid).' : err.message);
+    } finally { setTesting(false); }
+  }
+
+  // Approximate inbox preview: the real send inlines styles + wraps this in a
+  // branded shell server-side; this mirrors the look closely enough to proof.
+  const previewDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#2a2a2a;">
+      <div style="max-width:600px;margin:20px auto;background:#fff;border:1px solid #e8e8ee;border-radius:12px;overflow:hidden;">
+        <div style="background:#0f0f1f;padding:18px 28px;color:#fff;font-weight:800;font-size:18px;">For The Fans Fest</div>
+        <div style="padding:28px;font-size:16px;line-height:1.6;">${campaign.body_html || '<p style="color:#999">Nothing to preview yet.</p>'}
+          <hr style="border:none;border-top:1px solid #e3e3ea;margin:22px 0;">
+          <p style="margin:0;font-size:12px;color:#888">You're receiving this because you signed up at For The Fans Fest. <a href="#" style="color:#7c3aed">Unsubscribe</a>.</p>
+        </div>
+      </div>
+    </body></html>`;
 
   const subs = filter ? data.subscribers.filter((s) => s.email.toLowerCase().includes(filter.toLowerCase())) : data.subscribers;
 
@@ -108,8 +136,17 @@ export default function EmailMarketing() {
               placeholder="Write your campaign… use the + to add headings, images, lists, and more."
             />
           </Suspense>
-          <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>An unsubscribe link is appended automatically (required by law).</p>
-          <button className="btn" disabled={busy}>{busy ? 'Sending…' : 'Send campaign'}</button>
+          <p className="muted" style={{ fontSize: '.8rem', marginTop: 8 }}>
+            Styles are inlined and wrapped in a branded, mobile-friendly email shell on send. An unsubscribe link is appended automatically (required by law).
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="btn" disabled={busy}>{busy ? 'Sending…' : 'Send campaign'}</button>
+            <button type="button" className="btn secondary" disabled={testing} onClick={sendTest}>{testing ? 'Sending…' : 'Send test to myself'}</button>
+            <button type="button" className="btn secondary" onClick={() => setShowPreview((v) => !v)}>{showPreview ? 'Hide preview' : 'Preview email'}</button>
+          </div>
+          {showPreview && (
+            <iframe title="Email preview" srcDoc={previewDoc} style={{ width: '100%', height: 520, marginTop: 14, border: '1px solid rgba(255,255,255,.15)', borderRadius: 'var(--radius)', background: '#fff' }} />
+          )}
         </form>
       )}
 
