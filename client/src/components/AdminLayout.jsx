@@ -17,10 +17,8 @@ const NAV_GROUPS = [
   ] },
   { label: 'Store & Vendors', items: [
     { to: '/admin/products', label: 'Shop', roles: ['admin', 'editor'] },
-    { to: '/admin/special-experiences', label: 'Special Experiences', roles: ['admin', 'editor'] },
-    { to: '/admin/autographs', label: 'Autographs', roles: ['admin', 'editor'] },
-    { to: '/admin/photo-ops', label: 'Photo Ops', roles: ['admin', 'editor'] },
     { to: '/admin/discounts', label: 'Discounts', roles: ['admin', 'editor'] },
+    { to: '/admin/pages', label: 'Room Rate Guarantee', roles: ['admin', 'editor'] },
     { to: '/admin/booths', label: 'Floor Plan', roles: ['admin', 'editor'] },
     { to: '/admin/vendors', label: 'Vendors (directory)', roles: ['admin', 'editor'] },
     { to: '/admin/rewards', label: 'Exhibitor Rewards', roles: ['admin', 'editor'] },
