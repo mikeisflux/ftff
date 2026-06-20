@@ -29,15 +29,16 @@ const slideSchema = z.object({
   image_url: z.string().max(500).optional().nullable(),
   cta_label: z.string().max(80).optional().nullable(),
   cta_url: z.string().max(300).optional().nullable(),
+  page_slug: z.string().max(120).optional().nullable(),
   is_active: z.boolean().optional(),
 });
 adminSlidesRouter.get('/', asyncHandler(async (_q, res) => res.json({ slides: (await query(`SELECT * FROM slides ORDER BY sort_order, created_at`)).rows })));
 adminSlidesRouter.post('/', asyncHandler(async (req, res) => {
   const s = slideSchema.parse(req.body);
   const { rows } = await query(
-    `INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, is_active, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,(SELECT COALESCE(MAX(sort_order)+1,0) FROM slides)) RETURNING *`,
-    [s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
+    `INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, page_slug, is_active, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,(SELECT COALESCE(MAX(sort_order)+1,0) FROM slides)) RETURNING *`,
+    [s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, (s.page_slug || null), s.is_active ?? true],
   );
   await audit(req.user.id, 'slide.create', { entity: 'slide', entityId: rows[0].id });
   res.status(201).json({ slide: rows[0] });
@@ -45,8 +46,8 @@ adminSlidesRouter.post('/', asyncHandler(async (req, res) => {
 adminSlidesRouter.put('/:id', asyncHandler(async (req, res) => {
   const s = slideSchema.parse(req.body);
   const { rows } = await query(
-    `UPDATE slides SET title=$2, subtitle=$3, image_url=$4, cta_label=$5, cta_url=$6, is_active=$7 WHERE id=$1 RETURNING *`,
-    [req.params.id, s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, s.is_active ?? true],
+    `UPDATE slides SET title=$2, subtitle=$3, image_url=$4, cta_label=$5, cta_url=$6, page_slug=$7, is_active=$8 WHERE id=$1 RETURNING *`,
+    [req.params.id, s.title ?? null, s.subtitle ?? null, s.image_url || null, s.cta_label ?? null, s.cta_url ?? null, (s.page_slug || null), s.is_active ?? true],
   );
   if (!rows[0]) throw notFound('Slide not found');
   res.json({ slide: rows[0] });

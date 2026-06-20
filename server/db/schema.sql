@@ -124,6 +124,9 @@ CREATE TABLE IF NOT EXISTS slides (
 );
 -- Allow logo-only slides (no background image) for existing databases.
 ALTER TABLE slides ALTER COLUMN image_url DROP NOT NULL;
+-- Which page a slide belongs to. NULL/'home' = homepage hero; otherwise a page
+-- slug (e.g. 'getting-here') so a slider can be assigned to any page.
+ALTER TABLE slides ADD COLUMN IF NOT EXISTS page_slug TEXT;
 DROP TRIGGER IF EXISTS trg_slides_updated ON slides;
 CREATE TRIGGER trg_slides_updated BEFORE UPDATE ON slides
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

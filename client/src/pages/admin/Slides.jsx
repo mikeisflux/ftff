@@ -2,23 +2,27 @@ import { useEffect, useState, useCallback } from 'react';
 import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
-const blank = { title: '', subtitle: '', image_url: '', cta_label: '', cta_url: '', is_active: true };
+const blank = { title: '', subtitle: '', image_url: '', cta_label: '', cta_url: '', page_slug: '', is_active: true };
 
-// Hero slider manager (§13): CRUD + image upload + drag-to-reorder.
+// Hero slider manager (§13): CRUD + image upload + drag-to-reorder + per-page assignment.
 export default function Slides() {
   const [slides, setSlides] = useState([]);
+  const [pages, setPages] = useState([]);
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState(null);
   const [msg, setMsg] = useState('');
 
-  const load = useCallback(async () => setSlides((await api('/admin/slides')).slides), []);
+  const load = useCallback(async () => {
+    setSlides((await api('/admin/slides')).slides);
+    try { setPages((await api('/admin/pages')).pages || []); } catch { /* optional */ }
+  }, []);
   useEffect(() => { load(); }, [load]);
 
   async function save(e) {
     e.preventDefault();
     setMsg('');
     try {
-      const body = { ...form, title: form.title || null, subtitle: form.subtitle || null, cta_label: form.cta_label || null, cta_url: form.cta_url || null };
+      const body = { ...form, title: form.title || null, subtitle: form.subtitle || null, cta_label: form.cta_label || null, cta_url: form.cta_url || null, page_slug: form.page_slug || null };
       if (editingId) await api(`/admin/slides/${editingId}`, { method: 'PUT', body });
       else await api('/admin/slides', { method: 'POST', body });
       setForm(blank); setEditingId(null); await load();
@@ -44,6 +48,12 @@ export default function Slides() {
         </div>
         <label>Subtitle</label>
         <input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
+        <label>Assign to page <span className="muted" style={{ fontWeight: 400 }}>(blank = Homepage; or a page slug like getting-here)</span></label>
+        <input list="page-slugs" value={form.page_slug} onChange={(e) => setForm((f) => ({ ...f, page_slug: e.target.value.trim() }))} placeholder="Homepage" />
+        <datalist id="page-slugs">
+          <option value="">Homepage</option>
+          {pages.map((p) => <option key={p.slug} value={p.slug}>{p.title || p.slug}</option>)}
+        </datalist>
         <label>Image <span className="muted" style={{ fontWeight: 400 }}>(optional — leave blank, with no title, to show the logo)</span></label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://… or upload (optional)" />
@@ -60,8 +70,8 @@ export default function Slides() {
       <Reorderable items={slides} onReorder={reorder} render={(s) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {s.image_url && <img src={s.image_url} alt="" style={{ height: 44, borderRadius: 6 }} />}
-          <div style={{ flex: 1 }}><strong>{s.title || '(untitled)'}</strong> {!s.is_active && <span className="muted">· hidden</span>}</div>
-          <button className="btn secondary" onClick={() => { setEditingId(s.id); setForm({ title: s.title || '', subtitle: s.subtitle || '', image_url: s.image_url, cta_label: s.cta_label || '', cta_url: s.cta_url || '', is_active: s.is_active }); }}>Edit</button>
+          <div style={{ flex: 1 }}><strong>{s.title || '(untitled)'}</strong> <span className="muted">· {s.page_slug || 'Homepage'}</span> {!s.is_active && <span className="muted">· hidden</span>}</div>
+          <button className="btn secondary" onClick={() => { setEditingId(s.id); setForm({ title: s.title || '', subtitle: s.subtitle || '', image_url: s.image_url, cta_label: s.cta_label || '', cta_url: s.cta_url || '', page_slug: s.page_slug || '', is_active: s.is_active }); }}>Edit</button>
           <button className="btn secondary" onClick={() => del(s.id)}>Delete</button>
         </div>
       )} />

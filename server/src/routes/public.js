@@ -13,13 +13,17 @@ import { subscribeEmail } from '../lib/newsletter.js';
 // Public read endpoints + public form submissions (§7, §14).
 export const publicRouter = Router();
 
-// GET /slides — active hero slides, ordered.
+// GET /slides?page=home — active hero slides for a page (NULL/'' => 'home').
 publicRouter.get(
   '/slides',
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    const page = (typeof req.query.page === 'string' && req.query.page) ? req.query.page : 'home';
     const { rows } = await query(
       `SELECT id, title, subtitle, image_url, cta_label, cta_url, sort_order
-         FROM slides WHERE is_active = TRUE ORDER BY sort_order, created_at`,
+         FROM slides
+        WHERE is_active = TRUE AND COALESCE(NULLIF(page_slug, ''), 'home') = $1
+        ORDER BY sort_order, created_at`,
+      [page],
     );
     res.json({ slides: rows });
   }),
