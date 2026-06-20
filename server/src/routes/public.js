@@ -171,7 +171,7 @@ publicRouter.get(
     }
     const { rows } = await query(
       `SELECT id, slug, section, title, description, images, price_cents, currency, fulfillment
-         FROM products WHERE is_active = TRUE ${extra} ORDER BY sort_order, title`,
+         FROM products WHERE is_active = TRUE ${extra} ORDER BY price_cents ASC, title`,
       params,
     );
     res.json({ products: rows });
