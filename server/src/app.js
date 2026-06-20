@@ -28,6 +28,7 @@ import { adminSlidesRouter, adminFaqsRouter, adminShowInfoRouter, adminTicketTyp
 import { adminGuestsRouter } from './routes/adminGuests.js';
 import { adminVendorsRouter } from './routes/adminVendors.js';
 import { adminPanelsRouter } from './routes/adminPanels.js';
+import { adminScheduleRouter } from './routes/adminSchedule.js';
 import { adminNavRouter } from './routes/adminNav.js';
 import { adminPagesRouter } from './routes/adminPages.js';
 import { adminUploadsRouter } from './routes/adminUploads.js';
@@ -124,6 +125,7 @@ export function createApp() {
   api.use('/admin/guests', csrfProtection, adminGuestsRouter);
   api.use('/admin/vendors', csrfProtection, adminVendorsRouter);
   api.use('/admin/panels', csrfProtection, adminPanelsRouter);
+  api.use('/admin/schedule', csrfProtection, adminScheduleRouter);
   api.use('/admin/nav', csrfProtection, adminNavRouter);
   api.use('/admin/pages', csrfProtection, adminPagesRouter);
   api.use('/admin/uploads', csrfProtection, adminUploadsRouter);

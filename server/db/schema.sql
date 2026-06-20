@@ -346,6 +346,27 @@ CREATE TRIGGER trg_panels_updated BEFORE UPDATE ON panels
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE INDEX IF NOT EXISTS idx_panels_day ON panels(day, sort_order);
 
+-- ── schedule_events (full show schedule shown on /schedule, by day) ──────────
+CREATE TABLE IF NOT EXISTS schedule_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       TEXT NOT NULL,
+  day         TEXT NOT NULL DEFAULT 'Friday'
+                CHECK (day IN ('Friday','Saturday','Sunday')),
+  start_time  TEXT,        -- free text, e.g. '2:00 PM'
+  end_time    TEXT,
+  location    TEXT,
+  category    TEXT,        -- e.g. Panel, Signing, Screening, Contest
+  description TEXT,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_schedule_events_updated ON schedule_events;
+CREATE TRIGGER trg_schedule_events_updated BEFORE UPDATE ON schedule_events
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE INDEX IF NOT EXISTS idx_schedule_events_day ON schedule_events(day, sort_order);
+
 
 -- ── products / variants (store) ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (

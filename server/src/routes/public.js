@@ -104,6 +104,19 @@ publicRouter.get(
   }),
 );
 
+// GET /schedule — active show-schedule events (client groups by day).
+publicRouter.get(
+  '/schedule',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT id, title, day, start_time, end_time, location, category, description, sort_order
+         FROM schedule_events WHERE is_active = TRUE
+        ORDER BY sort_order, start_time, title`,
+    );
+    res.json({ events: rows });
+  }),
+);
+
 // GET /panels — active livestream panels (client groups by day).
 publicRouter.get(
   '/panels',
