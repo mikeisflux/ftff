@@ -232,8 +232,9 @@ BEGIN
     INSERT INTO nav_menu (parent_id, label, route, sort_order, is_cta) VALUES
       (shop_id, 'Buy Tickets', '/buy-tickets', 1, TRUE),
       (shop_id, 'Room Rate Guarantee', '/room-rate-guarantee', 2, FALSE),
-      (shop_id, 'Discounts and Coupons', '/discounts-coupons', 3, FALSE),
-      (shop_id, 'Shop', '/shop', 4, FALSE);
+      (shop_id, 'Sponsorships', '/sponsorships', 3, FALSE),
+      (shop_id, 'Discounts and Coupons', '/discounts-coupons', 4, FALSE),
+      (shop_id, 'Shop', '/shop', 5, FALSE);
   END IF;
 
   IF attr_id IS NOT NULL THEN

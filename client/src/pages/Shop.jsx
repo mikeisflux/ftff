@@ -20,3 +20,6 @@ export function Discounts() {
 export function RoomRateGuarantee() {
   return <ProductGrid section="room_rate_guarantee" title="Room Rate Guarantee" empty="Discounted room rates will be posted soon." />;
 }
+export function Sponsorships() {
+  return <ProductGrid section="sponsorships" title="Sponsorships" empty="Sponsorship packages will be posted soon." />;
+}

@@ -389,7 +389,7 @@ CREATE TRIGGER trg_image_overrides_updated BEFORE UPDATE ON image_overrides
 CREATE TABLE IF NOT EXISTS products (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug        TEXT UNIQUE NOT NULL,
-  section     TEXT NOT NULL DEFAULT 'shop',  -- shop|special_experiences|autographs|photo_ops|discounts
+  section     TEXT NOT NULL DEFAULT 'shop',  -- shop|special_experiences|autographs|photo_ops|discounts|room_rate_guarantee|sponsorships
   title       TEXT NOT NULL,
   description TEXT,
   images      JSONB NOT NULL DEFAULT '[]'::jsonb,

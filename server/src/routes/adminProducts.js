@@ -12,7 +12,7 @@ adminProductsRouter.use(requireAuth, requireRole('admin', 'editor'));
 
 const productSchema = z.object({
   slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/, 'lowercase, digits, hyphens'),
-  section: z.enum(['shop', 'special_experiences', 'autographs', 'photo_ops', 'discounts', 'room_rate_guarantee']).optional(),
+  section: z.enum(['shop', 'special_experiences', 'autographs', 'photo_ops', 'discounts', 'room_rate_guarantee', 'sponsorships']).optional(),
   title: z.string().min(1).max(200),
   description: z.string().max(8000).optional().nullable(),
   images: z.array(z.string().url()).max(12).optional(),
