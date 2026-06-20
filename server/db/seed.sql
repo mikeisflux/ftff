@@ -305,17 +305,10 @@ ON CONFLICT (slug) DO UPDATE
       is_published = TRUE, published_at = COALESCE(pages.published_at, now());
 
 -- ── home hero ────────────────────────────────────────────────────────────────
--- The home hero shows the centered brand logo by default (HeroCarousel renders
--- the logo when there are no slides). Earlier versions auto-seeded background
--- slides that turned it into a multi-image carousel; remove those so it returns
--- to the single logo hero. Admins can still add their own slides in Hero Slides
--- to make it a carousel again — only the auto-seeded defaults are removed here.
-DELETE FROM slides
- WHERE cta_url = '/buy-tickets'
-   AND image_url IN ('/retailers/hero-1.png', '/retailers/hero-2.png', '/retailers/hero-3.png');
-DELETE FROM slides
- WHERE image_url IS NULL AND title IS NULL
-   AND subtitle = 'The ultimate fan experience.';
+-- Hero slides are fully admin-managed (Hero Slides). Seeding intentionally does
+-- NOT touch the `slides` table, so admin-configured sliders are never
+-- overwritten on deploy/re-seed. (HeroCarousel shows the brand logo when there
+-- are no slides.)
 
 -- ── booths (default vendor floor inventory; admin replaces via the editor) ───
 -- ── booths: 140 Wildwood Ballroom tables (from docs/floor-plan/booths.json)
@@ -510,25 +503,5 @@ INSERT INTO inventory_pools (key, label, total)
 VALUES ('extra_tables', 'Additional vendor tables', 20)
 ON CONFLICT (key) DO NOTHING;
 
--- Default home hero slider (§7.1.1). Uses the three committed background images
--- (/retailers/hero-1..3.png) so the carousel works out of the box and survives
--- container rebuilds — no admin uploads to lose. Idempotent: each slide is
--- inserted only when its image isn't already present. Also repairs the old
--- logo-only default slide (no title/image) in place so databases seeded during
--- the logo-hero regression get the branded background slider back.
-UPDATE slides
-   SET title = 'For The Fans Fest', image_url = '/retailers/hero-2.png'
- WHERE sort_order = 0 AND image_url IS NULL AND title IS NULL
-   AND subtitle = 'The ultimate fan experience.';
-
-INSERT INTO slides (title, subtitle, image_url, cta_label, cta_url, sort_order)
-SELECT 'For The Fans Fest', 'The ultimate fan experience.', '/retailers/hero-2.png', 'Buy Tickets', '/buy-tickets', 0
-WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-2.png');
-
-INSERT INTO slides (subtitle, image_url, cta_label, cta_url, sort_order)
-SELECT 'The ultimate fan experience.', '/retailers/hero-1.png', 'Buy Tickets', '/buy-tickets', 1
-WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-1.png');
-
-INSERT INTO slides (subtitle, image_url, cta_label, cta_url, sort_order)
-SELECT 'The ultimate fan experience.', '/retailers/hero-3.png', 'Buy Tickets', '/buy-tickets', 2
-WHERE NOT EXISTS (SELECT 1 FROM slides WHERE image_url = '/retailers/hero-3.png');
+-- (Home hero slides are intentionally NOT seeded — they are admin-managed and
+-- must never be overwritten on re-seed. See the home-hero note above.)
