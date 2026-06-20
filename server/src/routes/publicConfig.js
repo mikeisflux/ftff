@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db/pool.js';
 import { asyncHandler } from '../lib/http.js';
 import { getSettingValue } from '../lib/settings.js';
+import { getShippingRates } from '../lib/shipping.js';
 import { env } from '../config/env.js';
 
 // Non-secret, browser-safe public config (§5, §7.0b): site name, social/share
@@ -19,9 +20,11 @@ publicConfigRouter.get(
     ];
     const entries = await Promise.all(keys.map(async (k) => [k, await getSettingValue(k)]));
     const cfg = Object.fromEntries(entries);
+    const shipping = await getShippingRates();
     res.set('Cache-Control', 'public, max-age=60');
     res.json({
       siteName: cfg['site.name'] || 'For The Fans Fest',
+      shipping,
       recaptchaSiteKey: cfg['recaptcha.site_key'] || null,
       stripePublishableKey: cfg['stripe.publishable_key'] || null,
       // Default ON for compliance; only hidden when explicitly set to 'false'.

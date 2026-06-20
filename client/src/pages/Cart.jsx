@@ -4,6 +4,7 @@ import { useCart } from '../store/CartContext.jsx';
 import { useConfig } from '../store/ConfigContext.jsx';
 import { api } from '../lib/api.js';
 import StripePayment from '../components/StripePayment.jsx';
+import { shippingRegions, countriesFor } from '../lib/shipping.js';
 
 const money = (cents, cur = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur.toUpperCase() }).format((cents || 0) / 100);
@@ -16,14 +17,15 @@ export default function Cart() {
   const { config } = useConfig();
   const [customer, setCustomer] = useState({ name: '', email: '' });
   const [delivery, setDelivery] = useState('pickup');
+  const [shipTo, setShipTo] = useState('domestic');
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [intent, setIntent] = useState(null);
 
   const hasPhysical = cart.items.some((i) => (i.fulfillment || 'physical') === 'physical');
-  const shipsFor = cart.items.reduce(
-    (n, i) => n + ((i.fulfillment || 'physical') === 'physical' ? (i.shippingCents || 0) * i.quantity : 0), 0);
-  const shippingCents = hasPhysical && delivery === 'ship' ? shipsFor : 0;
+  const regions = shippingRegions(config?.shipping);
+  const region = regions.find((r) => r.key === shipTo) || regions[0];
+  const shippingCents = hasPhysical && delivery === 'ship' ? (region?.cents || 0) : 0;
   const grandTotal = cart.totalCents + shippingCents;
 
   async function continueToPayment(e) {
@@ -36,7 +38,7 @@ export default function Cart() {
         body: {
           items: cart.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
           customer,
-          ...(hasPhysical ? { delivery } : {}),
+          ...(hasPhysical ? { delivery, ...(delivery === 'ship' ? { shipTo } : {}) } : {}),
         },
       });
       setIntent(res);
@@ -82,6 +84,7 @@ export default function Cart() {
             returnPath="/checkout/success"
             amountLabel={money(intent.amountCents)}
             collectShipping={intent.deliveryMethod === 'ship'}
+            allowedCountries={intent.deliveryMethod === 'ship' ? countriesFor(intent.shipRegion) : null}
           />
         ) : (
           <p className="muted">Payments aren’t configured yet.</p>
@@ -114,7 +117,7 @@ export default function Cart() {
         </div>
         {hasPhysical && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span className="muted">Shipping</span>
+            <span className="muted">Shipping{delivery === 'ship' ? ` · ${region?.label}` : ''}</span>
             <span>{delivery === 'ship' ? (shippingCents > 0 ? money(shippingCents) : 'Free') : 'Pickup — free'}</span>
           </div>
         )}
@@ -132,8 +135,18 @@ export default function Cart() {
           </label>
           <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 0', cursor: 'pointer' }}>
             <input type="radio" name="delivery" style={{ width: 'auto', marginTop: 4 }} checked={delivery === 'ship'} onChange={() => setDelivery('ship')} />
-            <span><strong>Ship to me {shipsFor > 0 ? `· ${money(shipsFor)}` : '· Free'}</strong><br /><span className="muted" style={{ fontSize: '.9rem' }}>We’ll collect your address on the next step and ship after payment.</span></span>
+            <span><strong>Ship to me</strong><br /><span className="muted" style={{ fontSize: '.9rem' }}>Flat-rate shipping by destination. We’ll collect your address on the next step and ship after payment.</span></span>
           </label>
+          {delivery === 'ship' && (
+            <div style={{ marginTop: 8, maxWidth: 360 }}>
+              <label>Ship to</label>
+              <select value={shipTo} onChange={(e) => setShipTo(e.target.value)}>
+                {regions.map((r) => (
+                  <option key={r.key} value={r.key}>{r.label} — {money(r.cents)}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 

@@ -97,7 +97,12 @@ INSERT INTO settings (key, category, label, description, is_secret) VALUES
   ('vendor.hold_minutes',            'Vendors',       'Booth Hold Minutes',         'Soft-hold duration during checkout.', FALSE),
 
   ('virtual.chat_enabled',           'Video',         'Live Chat Enabled',          'Show live chat on the Virtual Con page.', FALSE),
-  ('privacy.consent_banner_enabled', 'Privacy',       'Cookie Consent Banner',      'Show the EU/US cookie & privacy consent banner. Set to false to hide it.', FALSE)
+  ('privacy.consent_banner_enabled', 'Privacy',       'Cookie Consent Banner',      'Show the EU/US cookie & privacy consent banner. Set to false to hide it.', FALSE),
+
+  ('shipping.domestic_cents',        'Shipping',      'United States (cents)',       'Flat per-order shipping fee to the US.', FALSE),
+  ('shipping.canada_cents',          'Shipping',      'Canada (cents)',             'Flat per-order shipping fee to Canada.', FALSE),
+  ('shipping.uk_cents',              'Shipping',      'United Kingdom (cents)',     'Flat per-order shipping fee to the UK.', FALSE),
+  ('shipping.world_cents',           'Shipping',      'Rest of World (cents)',      'Flat per-order shipping fee everywhere else.', FALSE)
 ON CONFLICT (key) DO NOTHING;
 
 -- sensible non-secret defaults
@@ -107,6 +112,10 @@ UPDATE settings SET value = 'For The Fans Fest', is_set = TRUE WHERE key = 'site
 UPDATE settings SET value = '/og-default.png', is_set = TRUE WHERE key = 'social.default_og_image_url' AND NOT is_set;
 UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'virtual.chat_enabled' AND NOT is_set;
 UPDATE settings SET value = 'true', is_set = TRUE WHERE key = 'privacy.consent_banner_enabled' AND NOT is_set;
+UPDATE settings SET value = '1300', is_set = TRUE WHERE key = 'shipping.domestic_cents' AND NOT is_set;
+UPDATE settings SET value = '2600', is_set = TRUE WHERE key = 'shipping.canada_cents'   AND NOT is_set;
+UPDATE settings SET value = '4000', is_set = TRUE WHERE key = 'shipping.uk_cents'        AND NOT is_set;
+UPDATE settings SET value = '5000', is_set = TRUE WHERE key = 'shipping.world_cents'     AND NOT is_set;
 
 -- ── ticket_types (five fixed, §8) ────────────────────────────────────────────
 -- Pricing: single-day $40, 3-day (multi-day) $80, digital $10. Upsert so

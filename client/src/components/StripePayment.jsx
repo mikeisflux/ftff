@@ -5,7 +5,7 @@ import { getStripe, stripeAppearance } from '../lib/stripe.js';
 // our own page (no redirect to stripe.com) and confirms the PaymentIntent.
 // `automatic_payment_methods` on the server means every method enabled in the
 // Stripe account shows here (cards, wallets, Klarna, etc.).
-export default function StripePayment({ publishableKey, clientSecret, returnPath, amountLabel, collectShipping = false }) {
+export default function StripePayment({ publishableKey, clientSecret, returnPath, amountLabel, collectShipping = false, allowedCountries = null }) {
   const mountRef = useRef(null);
   const shipRef = useRef(null);
   const stripeRef = useRef(null);
@@ -24,7 +24,10 @@ export default function StripePayment({ publishableKey, clientSecret, returnPath
         if (cancelled) return;
         const elements = stripe.elements({ clientSecret, appearance: stripeAppearance });
         if (collectShipping) {
-          addressElement = elements.create('address', { mode: 'shipping' });
+          addressElement = elements.create('address', {
+            mode: 'shipping',
+            ...(allowedCountries?.length ? { allowedCountries } : {}),
+          });
           addressElement.mount(shipRef.current);
         }
         paymentElement = elements.create('payment', { layout: 'tabs' });
@@ -41,7 +44,7 @@ export default function StripePayment({ publishableKey, clientSecret, returnPath
       try { paymentElement?.unmount(); } catch { /* already gone */ }
       try { addressElement?.unmount(); } catch { /* already gone */ }
     };
-  }, [publishableKey, clientSecret, collectShipping]);
+  }, [publishableKey, clientSecret, collectShipping, allowedCountries?.join(',')]);
 
   async function pay(e) {
     e.preventDefault();

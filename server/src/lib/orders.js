@@ -1,6 +1,7 @@
 import { query, withTransaction } from '../db/pool.js';
 import { randomToken } from './crypto.js';
 import { HttpError, badRequest } from './http.js';
+import { SHIPPING_REGIONS, shippingCentsFor } from './shipping.js';
 
 // Order construction for ticket checkout (§15). Amounts are ALWAYS computed
 // server-side from the database — the client never sets prices.
@@ -70,7 +71,7 @@ export async function computeTicketOrder(items) {
  * authoritative product/variant prices, validating active + inventory.
  * Returns { lines, subtotalCents, totalCents, currency }.
  */
-export async function computeStoreOrder(items, delivery) {
+export async function computeStoreOrder(items, delivery, shipTo) {
   if (!Array.isArray(items) || items.length === 0) throw badRequest('Cart is empty');
 
   const wanted = new Map();
@@ -87,8 +88,7 @@ export async function computeStoreOrder(items, delivery) {
     `SELECT v.id AS variant_id, v.price_cents AS variant_price, v.inventory,
             v.is_active AS variant_active, v.options,
             p.id AS product_id, p.title, p.price_cents AS product_price,
-            p.currency, p.is_active AS product_active,
-            p.fulfillment, p.shipping_cents
+            p.currency, p.is_active AS product_active, p.fulfillment
        FROM product_variants v JOIN products p ON p.id = v.product_id
       WHERE v.id = ANY($1)`,
     [ids],
@@ -96,7 +96,6 @@ export async function computeStoreOrder(items, delivery) {
   const byId = Object.fromEntries(rows.map((r) => [r.variant_id, r]));
 
   let subtotalCents = 0;
-  let shippableCents = 0; // shipping owed if the buyer chooses to ship
   let hasPhysical = false;
   let currency = null;
   const lines = [];
@@ -109,10 +108,7 @@ export async function computeStoreOrder(items, delivery) {
     const unit = v.variant_price ?? v.product_price;
     currency = currency || v.currency;
     subtotalCents += unit * quantity;
-    if (v.fulfillment === 'physical') {
-      hasPhysical = true;
-      shippableCents += (v.shipping_cents || 0) * quantity;
-    }
+    if (v.fulfillment === 'physical') hasPhysical = true;
     const opt = v.options && Object.keys(v.options).length
       ? ` (${Object.values(v.options).join(', ')})` : '';
     lines.push({
@@ -125,9 +121,15 @@ export async function computeStoreOrder(items, delivery) {
   }
 
   // Delivery only applies when there's something physical. Digital-only carts
-  // are never shipped. When shipping, the buyer pays the summed per-item rate.
+  // are never shipped. Shipping is a single flat per-order fee by destination
+  // region (admin-configured); item count/quantity does not affect it.
   const deliveryMethod = hasPhysical ? (delivery === 'ship' ? 'ship' : 'pickup') : null;
-  const shippingCents = deliveryMethod === 'ship' ? shippableCents : 0;
+  let shippingCents = 0;
+  let shipRegion = null;
+  if (deliveryMethod === 'ship') {
+    shipRegion = SHIPPING_REGIONS.includes(shipTo) ? shipTo : 'domestic';
+    shippingCents = await shippingCentsFor(shipRegion);
+  }
 
   return {
     lines,
@@ -135,6 +137,7 @@ export async function computeStoreOrder(items, delivery) {
     shippingCents,
     totalCents: subtotalCents + shippingCents,
     deliveryMethod,
+    shipRegion,
     hasPhysical,
     currency: currency || 'usd',
   };

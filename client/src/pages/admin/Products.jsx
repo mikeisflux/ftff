@@ -4,7 +4,7 @@ import { api, uploadFile } from '../../lib/api.js';
 const money = (cents) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((cents || 0) / 100);
 const toCents = (d) => Math.round(Number(d || 0) * 100);
 const toDollars = (c) => (Number(c || 0) / 100).toFixed(2);
-const blankProduct = { slug: '', title: '', description: '', price: '25.00', quantity: '100', fulfillment: 'physical', shipping: '0.00', images: [], is_active: true };
+const blankProduct = { slug: '', title: '', description: '', price: '25.00', quantity: '100', fulfillment: 'physical', images: [], is_active: true };
 
 // Admin product manager (§10): product CRUD + per-product variants/inventory.
 // Reused per storefront section (Shop, Special Experiences, Autographs, etc.).
@@ -27,7 +27,6 @@ export default function Products({ section = 'shop', title = 'Shop' }) {
       slug: form.slug, section, title: form.title, description: form.description || null,
       price_cents: toCents(form.price), is_active: form.is_active,
       fulfillment: form.fulfillment,
-      shipping_cents: form.fulfillment === 'digital' ? 0 : toCents(form.shipping),
       images: form.images || [],
     };
     try {
@@ -97,23 +96,15 @@ export default function Products({ section = 'shop', title = 'Shop' }) {
             </div>
           </div>
         )}
-        <div className="grid cols-3" style={{ marginTop: 10, alignItems: 'start' }}>
-          <div>
-            <label>Product type</label>
-            <select value={form.fulfillment} onChange={(e) => setForm((f) => ({ ...f, fulfillment: e.target.value }))}>
-              <option value="physical">Physical (pickup or ship)</option>
-              <option value="digital">Digital (no shipping)</option>
-            </select>
+        <div style={{ maxWidth: 320, marginTop: 10 }}>
+          <label>Product type</label>
+          <select value={form.fulfillment} onChange={(e) => setForm((f) => ({ ...f, fulfillment: e.target.value }))}>
+            <option value="physical">Physical (pickup or ship)</option>
+            <option value="digital">Digital (no shipping)</option>
+          </select>
+          <div className="muted" style={{ fontSize: '.8rem', marginTop: 4 }}>
+            Physical items can be picked up free at the show or shipped for a flat fee (set in Admin → Shipping). Digital items never ship.
           </div>
-          {form.fulfillment === 'physical' && (
-            <div>
-              <label>Shipping per item ($)</label>
-              <input type="number" step="0.01" min="0" value={form.shipping} onChange={(e) => setForm((f) => ({ ...f, shipping: e.target.value }))} />
-              <div className="muted" style={{ fontSize: '.8rem', marginTop: 4 }}>
-                Charged per item only if the buyer chooses to ship. Free for show pickup. Set 0 for free shipping.
-              </div>
-            </div>
-          )}
         </div>
         <label>Description</label>
         <textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
@@ -144,9 +135,9 @@ export default function Products({ section = 'shop', title = 'Shop' }) {
       {products.map((p) => (
         <div className="card" key={p.id} style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <h3 style={{ margin: 0 }}>{p.title} <span className="muted" style={{ fontSize: '.8rem' }}>/{p.slug} · {money(p.price_cents)} · {p.fulfillment === 'digital' ? 'digital' : (p.shipping_cents > 0 ? `ships ${money(p.shipping_cents)}/item` : 'physical')}{!p.is_active ? ' · inactive' : ''}</span></h3>
+            <h3 style={{ margin: 0 }}>{p.title} <span className="muted" style={{ fontSize: '.8rem' }}>/{p.slug} · {money(p.price_cents)} · {p.fulfillment === 'digital' ? 'digital' : 'physical'}{!p.is_active ? ' · inactive' : ''}</span></h3>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn secondary" onClick={() => { setEditingId(p.id); setForm({ slug: p.slug, title: p.title, description: p.description || '', price: toDollars(p.price_cents), fulfillment: p.fulfillment || 'physical', shipping: toDollars(p.shipping_cents), images: p.images || [], is_active: p.is_active }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
+              <button className="btn secondary" onClick={() => { setEditingId(p.id); setForm({ slug: p.slug, title: p.title, description: p.description || '', price: toDollars(p.price_cents), fulfillment: p.fulfillment || 'physical', images: p.images || [], is_active: p.is_active }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
               <button className="btn secondary" onClick={() => delProduct(p.id)}>Delete</button>
             </div>
           </div>

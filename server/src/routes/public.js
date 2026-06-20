@@ -170,8 +170,7 @@ publicRouter.get(
       extra = `AND section = $1`;
     }
     const { rows } = await query(
-      `SELECT id, slug, section, title, description, images, price_cents, currency,
-              fulfillment, shipping_cents
+      `SELECT id, slug, section, title, description, images, price_cents, currency, fulfillment
          FROM products WHERE is_active = TRUE ${extra} ORDER BY sort_order, title`,
       params,
     );
@@ -184,8 +183,7 @@ publicRouter.get(
   '/products/:slug',
   asyncHandler(async (req, res) => {
     const { rows } = await query(
-      `SELECT id, slug, title, description, images, price_cents, currency,
-              fulfillment, shipping_cents
+      `SELECT id, slug, title, description, images, price_cents, currency, fulfillment
          FROM products WHERE slug = $1 AND is_active = TRUE`,
       [req.params.slug],
     );

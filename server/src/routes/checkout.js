@@ -146,9 +146,19 @@ const storeSchema = z.object({
     phone: z.string().max(40).optional(),
   }),
   // How physical goods are delivered: picked up at the show (free) or shipped
-  // (buyer pays shipping). Ignored for digital-only carts.
+  // (buyer pays a flat per-order fee). Ignored for digital-only carts.
   delivery: z.enum(['pickup', 'ship']).optional(),
+  // Destination region for the flat shipping fee (only when delivery === 'ship').
+  shipTo: z.enum(['domestic', 'canada', 'uk', 'world']).optional(),
 });
+
+// Stripe needs an explicit allowed-country list; map our region → countries.
+const REGION_COUNTRIES = {
+  domestic: ['US'],
+  canada: ['CA'],
+  uk: ['GB'],
+  world: ['AU', 'NZ', 'IE', 'DE', 'FR', 'IT', 'ES', 'NL', 'SE', 'NO', 'DK', 'JP', 'MX', 'BR'],
+};
 
 // POST /checkout/store/intent — on-site (white-label) store checkout. Creates a
 // PaymentIntent; the branded Payment Element collects payment + shipping on our
@@ -158,10 +168,10 @@ checkoutRouter.post(
   '/store/intent',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { items, customer, delivery } = storeSchema.parse(req.body);
+    const { items, customer, delivery, shipTo } = storeSchema.parse(req.body);
     subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
-    const computed = await computeStoreOrder(items, delivery);
+    const computed = await computeStoreOrder(items, delivery, shipTo);
     const order = await createPendingStoreOrder({ customer, computed });
     const intent = await stripe.paymentIntents.create({
       amount: computed.totalCents,
@@ -179,6 +189,7 @@ checkoutRouter.post(
       subtotalCents: computed.subtotalCents,
       shippingCents: computed.shippingCents,
       deliveryMethod: computed.deliveryMethod,
+      shipRegion: computed.shipRegion,
       currency: computed.currency,
     });
   }),
@@ -190,10 +201,10 @@ checkoutRouter.post(
   '/store',
   formLimiter,
   asyncHandler(async (req, res) => {
-    const { items, customer, delivery } = storeSchema.parse(req.body);
+    const { items, customer, delivery, shipTo } = storeSchema.parse(req.body);
     subscribeEmail(customer.email, { name: customer.name, source: 'store-purchase' }).catch(() => {});
     const stripe = await getStripe();
-    const computed = await computeStoreOrder(items, delivery);
+    const computed = await computeStoreOrder(items, delivery, shipTo);
     const order = await createPendingStoreOrder({ customer, computed });
 
     const lineItems = computed.lines.map((l) => ({
@@ -215,8 +226,11 @@ checkoutRouter.post(
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: customer.email,
-      // Only ask for an address when something is actually being shipped.
-      ...(computed.deliveryMethod === 'ship' ? { shipping_address_collection: { allowed_countries: ['US', 'CA'] } } : {}),
+      // Only ask for an address when something is actually being shipped, and
+      // restrict it to the chosen destination region.
+      ...(computed.deliveryMethod === 'ship'
+        ? { shipping_address_collection: { allowed_countries: REGION_COUNTRIES[computed.shipRegion] || REGION_COUNTRIES.domestic } }
+        : {}),
       line_items: lineItems,
       metadata: { order_id: order.id, order_number: order.order_number },
       success_url: `${env.CLIENT_ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,

@@ -400,11 +400,10 @@ CREATE TABLE IF NOT EXISTS products (
   images      JSONB NOT NULL DEFAULT '[]'::jsonb,
   price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
   currency    TEXT NOT NULL DEFAULT 'usd',
-  -- 'physical' goods can be picked up at the show or shipped (buyer pays
-  -- shipping_cents per item when shipping); 'digital' is delivered electronically
-  -- and never ships.
+  -- 'physical' goods can be picked up at the show or shipped (shipping is a flat
+  -- per-order fee by region, configured in Admin → Shipping); 'digital' is
+  -- delivered electronically and never ships.
   fulfillment    TEXT NOT NULL DEFAULT 'physical' CHECK (fulfillment IN ('physical','digital')),
-  shipping_cents INTEGER NOT NULL DEFAULT 0 CHECK (shipping_cents >= 0),
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order  INTEGER NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -412,9 +411,10 @@ CREATE TABLE IF NOT EXISTS products (
 );
 -- For existing databases predating product sections:
 ALTER TABLE products ADD COLUMN IF NOT EXISTS section TEXT NOT NULL DEFAULT 'shop';
--- For existing databases predating physical/digital fulfillment + shipping:
+-- For existing databases predating physical/digital fulfillment:
 ALTER TABLE products ADD COLUMN IF NOT EXISTS fulfillment TEXT NOT NULL DEFAULT 'physical';
-ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping_cents INTEGER NOT NULL DEFAULT 0;
+-- Shipping moved from a per-item product fee to a flat per-order regional fee:
+ALTER TABLE products DROP COLUMN IF EXISTS shipping_cents;
 CREATE INDEX IF NOT EXISTS idx_products_section ON products(section);
 -- Autograph/Photo-Op products auto-generated from a guest's pricing link back to
 -- the guest so their detail page can offer them for sale (deleting the guest

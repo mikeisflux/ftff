@@ -34,6 +34,7 @@ import { adminNavRouter } from './routes/adminNav.js';
 import { adminPagesRouter } from './routes/adminPages.js';
 import { adminUploadsRouter } from './routes/adminUploads.js';
 import { adminImagesRouter } from './routes/adminImages.js';
+import { adminShippingRouter } from './routes/adminShipping.js';
 import { UPLOAD_DIR } from './lib/uploads.js';
 import { publicConfigRouter, sitemapHandler, robotsHandler } from './routes/publicConfig.js';
 import { imgProxyRouter } from './routes/imgProxy.js';
@@ -133,6 +134,7 @@ export function createApp() {
   api.use('/admin/pages', csrfProtection, adminPagesRouter);
   api.use('/admin/uploads', csrfProtection, adminUploadsRouter);
   api.use('/admin/images', csrfProtection, adminImagesRouter);
+  api.use('/admin/shipping', csrfProtection, adminShippingRouter);
 
   app.use('/api/v1', api);
 

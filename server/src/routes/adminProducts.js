@@ -18,7 +18,6 @@ const productSchema = z.object({
   images: z.array(z.string().url()).max(12).optional(),
   price_cents: z.number().int().min(0),
   fulfillment: z.enum(['physical', 'digital']).optional(),
-  shipping_cents: z.number().int().min(0).optional(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().optional(),
 });
@@ -54,12 +53,11 @@ adminProductsRouter.post(
     const p = productSchema.parse(req.body);
     const { rows } = await query(
       `INSERT INTO products (slug, section, title, description, images, price_cents,
-                             fulfillment, shipping_cents, is_active, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+                             fulfillment, is_active, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [p.slug, p.section ?? 'shop', p.title, p.description ? sanitizeHtml(p.description) : null,
         JSON.stringify(p.images || []), p.price_cents,
-        p.fulfillment ?? 'physical', p.fulfillment === 'digital' ? 0 : (p.shipping_cents ?? 0),
-        p.is_active ?? true, p.sort_order ?? 0],
+        p.fulfillment ?? 'physical', p.is_active ?? true, p.sort_order ?? 0],
     );
     await audit(req.user.id, 'product.create', { entity: 'product', entityId: rows[0].id });
     res.status(201).json({ product: rows[0] });
@@ -72,12 +70,11 @@ adminProductsRouter.put(
     const p = productSchema.parse(req.body);
     const { rows } = await query(
       `UPDATE products SET slug=$2, section=COALESCE($3,section), title=$4, description=$5,
-              images=$6, price_cents=$7, fulfillment=$8, shipping_cents=$9,
-              is_active=$10, sort_order=$11 WHERE id=$1 RETURNING *`,
+              images=$6, price_cents=$7, fulfillment=$8, is_active=$9, sort_order=$10
+        WHERE id=$1 RETURNING *`,
       [req.params.id, p.slug, p.section ?? null, p.title, p.description ? sanitizeHtml(p.description) : null,
         JSON.stringify(p.images || []), p.price_cents,
-        p.fulfillment ?? 'physical', p.fulfillment === 'digital' ? 0 : (p.shipping_cents ?? 0),
-        p.is_active ?? true, p.sort_order ?? 0],
+        p.fulfillment ?? 'physical', p.is_active ?? true, p.sort_order ?? 0],
     );
     if (!rows[0]) throw notFound('Product not found');
     await audit(req.user.id, 'product.update', { entity: 'product', entityId: req.params.id });

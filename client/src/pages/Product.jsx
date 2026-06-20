@@ -39,7 +39,6 @@ export default function Product() {
       unitPriceCents: price,
       image: p.images?.[0] || null,
       fulfillment: p.fulfillment || 'physical',
-      shippingCents: p.fulfillment === 'digital' ? 0 : (p.shipping_cents || 0),
     });
     setAdded(true);
   }
@@ -57,9 +56,7 @@ export default function Product() {
           <p className="muted" style={{ fontSize: '.9rem' }}>
             {p.fulfillment === 'digital'
               ? 'Digital item — delivered electronically. No shipping.'
-              : (p.shipping_cents > 0
-                ? `Physical item — free pickup at the show, or ship for ${money(p.shipping_cents, p.currency)}/item.`
-                : 'Physical item — free pickup at the show, or free shipping.')}
+              : 'Physical item — pick up free at the show, or ship for a flat fee chosen at checkout.'}
           </p>
 
           {variants.length > 1 && (

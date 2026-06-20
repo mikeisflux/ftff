@@ -74,6 +74,7 @@ import TicketTypesAdmin from './pages/admin/TicketTypesAdmin.jsx';
 import NavBuilder from './pages/admin/NavBuilder.jsx';
 import PageBuilder from './pages/admin/PageBuilder.jsx';
 import PageImages from './pages/admin/PageImages.jsx';
+import Shipping from './pages/admin/Shipping.jsx';
 import ThemeStudio from './pages/admin/ThemeStudio.jsx';
 import Exhibitors from './pages/admin/Exhibitors.jsx';
 import Rewards from './pages/admin/Rewards.jsx';
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="/admin/discounts" element={<Products section="discounts" title="Discounts & Coupons" />} />
           <Route path="/admin/room-rate-guarantee" element={<Products section="room_rate_guarantee" title="Room Rate Guarantee" />} />
           <Route path="/admin/sponsorships" element={<Products section="sponsorships" title="Sponsorships" />} />
+          <Route path="/admin/shipping" element={<Shipping />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/mail" element={<Mail />} />
           <Route path="/admin/stream" element={<Stream />} />
