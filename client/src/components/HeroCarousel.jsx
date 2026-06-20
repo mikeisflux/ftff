@@ -37,10 +37,14 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
   }
 
   const slide = slides[i];
+  const hasImage = !!slide.image_url;
+  // An image slide shows the whole image scaled to the screen (responsive),
+  // with any title/subtitle/CTA overlaid. Text-only slides use the centered box.
+  const overlay = hasImage ? (slide.title || slide.subtitle || slide.cta_url) : true;
 
   return (
     <section
-      className="hero section"
+      className={`hero section${hasImage ? ' hero--image' : ''}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
@@ -50,22 +54,23 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
         if (Math.abs(dx) > 40) go(dx < 0 ? i + 1 : i - 1);
         touchX.current = null;
       }}
-      style={{
-        background: slide.image_url
-          ? `linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6)), url(${slide.image_url}) center/cover`
-          : undefined,
-      }}
       aria-roledescription="carousel"
     >
-      <div className="container">
-        <h1 className="glow">{slide.title || fallbackTitle}</h1>
-        {slide.subtitle && <p className="muted" style={{ fontSize: '1.2rem' }}>{slide.subtitle}</p>}
-        {slide.cta_url ? (
-          <Link to={slide.cta_url} className="btn">{slide.cta_label || 'Learn More'}</Link>
-        ) : (
-          <Link to="/buy-tickets" className="btn">Buy Tickets</Link>
-        )}
-      </div>
+      {hasImage && (
+        <img className="hero-slide-img" src={slide.image_url} alt={slide.title || fallbackTitle} />
+      )}
+
+      {overlay && (
+        <div className={hasImage ? 'hero-overlay' : 'container'}>
+          {(slide.title || !hasImage) && <h1 className="glow">{slide.title || fallbackTitle}</h1>}
+          {slide.subtitle && <p className="muted" style={{ fontSize: '1.2rem' }}>{slide.subtitle}</p>}
+          {slide.cta_url ? (
+            <Link to={slide.cta_url} className="btn">{slide.cta_label || 'Learn More'}</Link>
+          ) : (!hasImage && (
+            <Link to="/buy-tickets" className="btn">Buy Tickets</Link>
+          ))}
+        </div>
+      )}
 
       {count > 1 && (
         <>
