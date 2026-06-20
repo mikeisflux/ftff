@@ -529,11 +529,11 @@ img, svg, iframe, video { max-width: 100%; }
    with title/subtitle/CTA overlaid. Replaces the cropped background approach. */
 .hero--image {
   min-height: 0; padding: 0; display: block;
-  background: #05060d;
+  background: #05060d; border-radius: 0; overflow: hidden;
 }
+/* Always full-screen width, whole image, correct aspect ratio (no crop). */
 .hero-slide-img {
-  display: block; margin: 0 auto;
-  max-width: 100%; max-height: 78vh; width: auto; height: auto;
+  display: block; width: 100%; height: auto; margin: 0;
 }
 .hero-overlay {
   position: absolute; inset: 0; z-index: 2;
@@ -541,8 +541,5 @@ img, svg, iframe, video { max-width: 100%; }
   background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.5));
 }
 .hero-overlay h1 { font-size: clamp(1.8rem, 5vw, 3.6rem); margin: 0; }
-@media (max-width: 560px) { .hero-slide-img { max-height: 60vh; } }
 
-/* Hero image height caps per device so it never dominates the viewport. */
-@media (min-width: 561px) and (max-width: 1024px) { .hero-slide-img { max-height: 64vh; } } /* tablet */
 @media (max-width: 560px) { .hero-overlay { padding: 14px; } .hero-overlay h1 { font-size: clamp(1.4rem, 7vw, 2rem); } }
