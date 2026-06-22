@@ -54,8 +54,13 @@ export async function api(path, { method = 'GET', body, headers = {}, _retry = f
   }
   let res = await fetch(`${BASE}${path}`, opts);
 
-  // Session expired? Refresh once and retry the original request.
-  if (res.status === 401 && !_retry && !path.startsWith('/auth/')) {
+  // Session expired? Refresh once and retry the original request. Only the
+  // refresh/login calls themselves are excluded (to avoid recursion / not to
+  // mask real credential failures) — crucially, /auth/me MUST be retried so a
+  // page reload after the 15-min access token expires silently re-auths from the
+  // long-lived refresh token instead of logging the admin out.
+  const skipRefresh = path.startsWith('/auth/refresh') || path.startsWith('/auth/login');
+  if (res.status === 401 && !_retry && !skipRefresh) {
     const ok = await refreshSession();
     if (ok) {
       if (!['GET', 'HEAD'].includes(method)) opts.headers['X-CSRF-Token'] = csrfToken();
