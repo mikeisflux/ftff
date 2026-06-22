@@ -16,6 +16,25 @@ import {
   computeStoreOrder,
   createPendingStoreOrder,
 } from '../lib/orders.js';
+import { fulfillCheckoutSession } from '../lib/fulfillment.js';
+import { sendTicketDelivery, sendBoothConfirmation, sendOrderConfirmation } from '../lib/email.js';
+
+// Fallback fulfillment for the confirmation page: the Stripe webhook is the
+// source of truth, but if it's delayed or unconfigured the buyer would be stuck
+// on "pending". So when the success page asks for status, we verify directly
+// with Stripe and fulfill on the spot — fulfillCheckoutSession is idempotent, so
+// this never double-issues if the webhook also runs.
+async function fulfillAndNotify(sessionLike) {
+  const result = await fulfillCheckoutSession(sessionLike);
+  if (result?.order && !result.alreadyPaid) {
+    const order = result.order;
+    const send = order.kind === 'ticket' ? sendTicketDelivery
+      : order.kind === 'vendor' ? sendBoothConfirmation
+      : sendOrderConfirmation;
+    await send(order).catch((e) => console.error('Confirmation email failed:', e.message));
+  }
+  return result;
+}
 
 // Guest checkout for tickets (§8, §15). Amounts are computed server-side; the
 // browser is handed only the Stripe-hosted Checkout URL (SAQ A — card data
@@ -118,8 +137,24 @@ checkoutRouter.get(
       `SELECT id, order_number, status, total_cents, currency FROM orders WHERE stripe_payment_intent = $1`,
       [req.params.piId],
     );
-    const order = rows[0];
+    let order = rows[0];
     if (!order) throw notFound('Order not found');
+
+    // Don't wait on the webhook — confirm with Stripe and fulfill if paid.
+    if (order.status !== 'paid') {
+      try {
+        const stripe = await getStripe();
+        const pi = await stripe.paymentIntents.retrieve(req.params.piId);
+        if (pi.status === 'succeeded' && pi.metadata?.order_id) {
+          await fulfillAndNotify({ metadata: pi.metadata, payment_intent: pi.id, id: null, shipping_details: pi.shipping ?? null });
+          order = (await query(
+            `SELECT id, order_number, status, total_cents, currency FROM orders WHERE id = $1`,
+            [order.id],
+          )).rows[0];
+        }
+      } catch (e) { console.error('Intent confirm fallback failed:', e.message); }
+    }
+
     let tickets = [];
     if (order.status === 'paid') {
       tickets = (
@@ -328,8 +363,23 @@ checkoutRouter.get(
          FROM orders WHERE stripe_session_id = $1`,
       [req.params.sessionId],
     );
-    const order = rows[0];
+    let order = rows[0];
     if (!order) throw notFound('Order not found');
+
+    // Don't wait on the webhook — confirm with Stripe and fulfill if paid.
+    if (order.status !== 'paid') {
+      try {
+        const stripe = await getStripe();
+        const s = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+        if (s.payment_status === 'paid' && s.metadata?.order_id) {
+          await fulfillAndNotify({ metadata: s.metadata, payment_intent: s.payment_intent, id: s.id, shipping_details: s.shipping_details ?? null });
+          order = (await query(
+            `SELECT id, order_number, status, total_cents, currency, customer_email FROM orders WHERE id = $1`,
+            [order.id],
+          )).rows[0];
+        }
+      } catch (e) { console.error('Session confirm fallback failed:', e.message); }
+    }
 
     let tickets = [];
     if (order.status === 'paid') {
