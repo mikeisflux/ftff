@@ -1,6 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
+
+// IndieCrowdfund-style WYSIWYG (TipTap) for body text. Lazy so TipTap (~400KB)
+// loads only when a page is being edited, not in the main admin bundle.
+const RichTextEditor = lazy(() => import('../../components/BlockEditor.jsx'));
+const EditorFallback = () => <div className="be-wrap" style={{ minHeight: 160, opacity: 0.5 }} />;
 
 const BLOCK_TYPES = [
   ['heading', 'Heading'], ['richtext', 'Rich text'], ['image', 'Image'], ['button', 'Button'],
@@ -14,7 +19,12 @@ function BlockEditor({ block, onChange }) {
   const set = (k, v) => onChange({ ...block, data: { ...d, [k]: v } });
   switch (block.type) {
     case 'heading': return <input value={d.text || ''} onChange={(e) => set('text', e.target.value)} placeholder="Heading text" />;
-    case 'richtext': case 'html': return <textarea rows={4} value={d.html || ''} onChange={(e) => set('html', e.target.value)} placeholder="HTML content" />;
+    case 'richtext': return (
+      <Suspense fallback={<EditorFallback />}>
+        <RichTextEditor value={d.html || ''} onChange={(html) => set('html', html)} placeholder="Write the page content… use the + to add headings, images, lists, and more." />
+      </Suspense>
+    );
+    case 'html': return <textarea rows={4} value={d.html || ''} onChange={(e) => set('html', e.target.value)} placeholder="Raw HTML" />;
     case 'image': return (
       <>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -40,7 +50,25 @@ function BlockEditor({ block, onChange }) {
     case 'embed': return <input value={d.url || ''} onChange={(e) => set('url', e.target.value)} placeholder="https:// embed URL" />;
     case 'map': return <input value={d.address || ''} onChange={(e) => set('address', e.target.value)} placeholder="Address" />;
     case 'countdown': return <input type="date" value={d.to || ''} onChange={(e) => set('to', e.target.value)} />;
-    case 'columns': return <textarea rows={3} value={(d.columns || []).map((c) => c.html).join('\n---\n')} onChange={(e) => set('columns', e.target.value.split('\n---\n').map((html) => ({ html })))} placeholder="Column HTML separated by --- on its own line" />;
+    case 'columns': {
+      const cols = d.columns || [];
+      return (
+        <div>
+          {cols.map((c, ci) => (
+            <div key={ci} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span className="muted" style={{ fontSize: '.8rem' }}>Column {ci + 1}</span>
+                <button className="btn secondary" onClick={() => set('columns', cols.filter((_, j) => j !== ci))}>Remove</button>
+              </div>
+              <Suspense fallback={<EditorFallback />}>
+                <RichTextEditor value={c.html || ''} onChange={(html) => set('columns', cols.map((x, j) => (j === ci ? { ...x, html } : x)))} placeholder={`Column ${ci + 1} content`} />
+              </Suspense>
+            </div>
+          ))}
+          <button className="btn secondary" onClick={() => set('columns', [...cols, { html: '' }])}>+ Add column</button>
+        </div>
+      );
+    }
     default: return <span className="muted">Dynamic block — renders live data on the page.</span>;
   }
 }
