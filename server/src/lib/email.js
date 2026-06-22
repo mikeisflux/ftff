@@ -21,6 +21,15 @@ export async function sendEmail({ to, subject, html, text, log = true }) {
     subject,
     html,
     ...(text ? { text } : {}),
+    // Disable SendGrid click/open tracking. It rewrites links (e.g. the Stripe
+    // payment URL) through a tracking CNAME (url####.forfansfest.com); with HSTS
+    // includeSubDomains on the apex, browsers demand a valid cert for that
+    // subdomain and block the redirect ("HSTS / Not Secure"). Transactional
+    // links must reach their real destination untouched.
+    trackingSettings: {
+      clickTracking: { enable: false, enableText: false },
+      openTracking: { enable: false },
+    },
   });
 
   // Record outbound system mail in the admin Mail "Sent" folder so transactional
