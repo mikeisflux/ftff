@@ -68,7 +68,7 @@ export default function Exhibitors() {
   return (
     <div>
       <h1>Vendor Applications</h1>
-      <p className="muted">Flow: <strong>Approve &amp; send payment link</strong> (emails deposit/full pay links automatically) → <strong>Request additional balance</strong> (if they paid a deposit) → <strong>Lock &amp; list vendor</strong> (locks tables + publishes — separate from payment).</p>
+      <p className="muted">Flow: <strong>Approve &amp; send payment link</strong> (emails deposit/full pay links automatically) → <strong>Resend approval email (with link)</strong> if they need it again → <strong>Request additional balance</strong> (if they paid a deposit) → <strong>Lock &amp; list vendor</strong> (locks tables + publishes — separate from payment).</p>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -153,8 +153,10 @@ export default function Exhibitors() {
               )}
 
               {['approved', 'awaiting_payment', 'check_pending'].includes(a.status) && (
-                <button className="btn" disabled={busy === a.id + 'request-payment'} onClick={() => act(a.id, 'request-payment')}>
-                  {busy === a.id + 'request-payment' ? 'Sending…' : a.payment_request_sent_at ? 'Resend payment request' : 'Send payment request'}
+                <button className="btn" title="Re-generates the deposit/full Stripe links and emails the approval + payment message to the vendor"
+                  disabled={busy === a.id + 'request-payment'} onClick={() => act(a.id, 'request-payment')}>
+                  {busy === a.id + 'request-payment' ? 'Sending…'
+                    : (a.payment_request_sent_at || a.approval_notice_sent_at) ? 'Resend approval email (with link)' : 'Send approval email (with link)'}
                 </button>
               )}
               {['awaiting_payment', 'check_pending'].includes(a.status) && (

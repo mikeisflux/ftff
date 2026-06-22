@@ -216,14 +216,14 @@ export async function sendExhibitorPaymentRequest(app, { depositUrl, fullUrl }) 
   const btn = (url, label) =>
     `<a href="${url}" style="display:inline-block;margin:4px 8px 4px 0;padding:10px 18px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none">${label}</a>`;
   const html =
-    `<h1>Complete your exhibitor payment</h1>` +
-    `<p>Reference <strong>${app.reference}</strong></p>` +
+    `<h1>You're approved — complete your exhibitor payment 🎉</h1>` +
+    `<p>Great news, ${app.vendor_name}! Your application is approved. Reference <strong>${app.reference}</strong></p>` +
     exhibitorBreakdownHtml(app) +
-    `<p>Order total: <strong>${money(app.total_cents)}</strong>. Choose how to pay:</p>` +
+    `<p>Order total: <strong>${money(app.total_cents)}</strong>. Choose how to pay to secure your space:</p>` +
     `<p>${btn(depositUrl, `Pay deposit — ${money(app.deposit_cents)}`)}${btn(fullUrl, `Pay in full — ${money(app.total_cents)}`)}</p>` +
     `<p class="muted">Paying the deposit reserves your space; the remaining balance is requested before the show. ` +
     `Or pay by check payable to ${CHECK_PAYEE}, mailed to ${CHECK_ADDRESS}.</p>`;
-  return sendEmail({ to: app.contact_email, subject: `Payment request — ${app.reference}`, html });
+  return sendEmail({ to: app.contact_email, subject: `You're approved — complete your payment (${app.reference})`, html });
 }
 
 // Form submissions: notify the admin inbox + confirm to the submitter (§7.2).
