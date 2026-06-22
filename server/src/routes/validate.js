@@ -87,7 +87,8 @@ validateRouter.get(
   asyncHandler(async (req, res) => {
     const { rows } = await query(
       `SELECT t.qr_token, t.status, t.checked_in_at, t.attendee_name,
-              tt.name AS ticket_name, o.order_number, o.customer_name
+              tt.name AS ticket_name, tt.is_digital,
+              o.id AS order_id, o.order_number, o.customer_name
          FROM tickets t
          JOIN ticket_types tt ON tt.id = t.ticket_type_id
          JOIN orders o ON o.id = t.order_id
@@ -102,7 +103,9 @@ validateRouter.get(
         status: r.status,
         checkedInAt: r.checked_in_at,
         ticketName: r.ticket_name,
+        isDigital: r.is_digital,
         attendeeName: r.attendee_name || r.customer_name,
+        orderId: r.order_id,
         orderNumber: r.order_number,
       })),
     });

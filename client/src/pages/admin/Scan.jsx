@@ -46,7 +46,7 @@ export default function Scan() {
     try {
       const { generatedAt, tickets } = await api('/validate/manifest');
       const map = {};
-      for (const t of tickets) map[t.qr_token] = { status: t.status, name: t.attendeeName, ticket: t.ticketName, order: t.orderNumber, checkedInAt: t.checkedInAt };
+      for (const t of tickets) map[t.qr_token] = { status: t.status, name: t.attendeeName, ticket: t.ticketName, order: t.orderNumber, orderId: t.orderId, isDigital: t.isDigital, checkedInAt: t.checkedInAt };
       const m = { generatedAt, map };
       setManifest(m); saveJson(MANIFEST_KEY, m);
       setSyncMsg(`Manifest updated (${tickets.length} tickets).`);
@@ -82,16 +82,64 @@ export default function Scan() {
   // On first load while online: refresh manifest + flush any queue.
   useEffect(() => { if (navigator.onLine) { downloadManifest(); syncQueue(); } }, [downloadManifest, syncQueue]);
 
+  // Offline check-in mirrors the online GROUP behaviour: scanning any ticket in
+  // an order checks in every still-valid PHYSICAL ticket on that order locally,
+  // queues them for sync, and returns the same group breakdown shape the online
+  // path uses. Falls back to single-ticket if an older cache lacks order grouping.
   const validateOffline = useCallback((token) => {
-    const entry = manifest?.map?.[token];
+    const m = manifest;
+    const entry = m?.map?.[token];
     if (!entry) return { result: 'not_found' };
-    if (entry.status === 'checked_in') return { result: 'already_checked_in', ticket: { ticketName: entry.ticket, attendeeName: entry.name, orderNumber: entry.order, checkedInAt: entry.checkedInAt } };
-    // Mark locally checked in + queue.
-    entry.status = 'checked_in';
-    entry.checkedInAt = new Date().toISOString();
-    setManifest((m) => { const next = { ...m }; saveJson(MANIFEST_KEY, next); return next; });
-    setQueue((q) => [...q, { qr_token: token, at: entry.checkedInAt }]);
-    return { result: 'queued', ticket: { ticketName: entry.ticket, attendeeName: entry.name, orderNumber: entry.order } };
+
+    const orderId = entry.orderId;
+    if (!orderId) {
+      // Legacy cache without order grouping → single-ticket behaviour.
+      if (entry.status === 'checked_in') return { result: 'already_checked_in', ticket: { ticketName: entry.ticket, attendeeName: entry.name, orderNumber: entry.order, checkedInAt: entry.checkedInAt } };
+      const at = new Date().toISOString();
+      const next = { ...m, map: { ...m.map, [token]: { ...entry, status: 'checked_in', checkedInAt: at } } };
+      setManifest(next); saveJson(MANIFEST_KEY, next);
+      setQueue((q) => [...q, { qr_token: token, at }]);
+      return { result: 'queued', ticket: { ticketName: entry.ticket, attendeeName: entry.name, orderNumber: entry.order } };
+    }
+
+    const groupTokens = Object.keys(m.map).filter((tok) => m.map[tok].orderId === orderId);
+    const at = new Date().toISOString();
+    const newMap = { ...m.map };
+    const queued = [];
+    for (const tok of groupTokens) {
+      const e = newMap[tok];
+      if (!e.isDigital && e.status === 'valid') {
+        newMap[tok] = { ...e, status: 'checked_in', checkedInAt: at };
+        queued.push({ qr_token: tok, at });
+      }
+    }
+    if (queued.length) {
+      const next = { ...m, map: newMap };
+      setManifest(next); saveJson(MANIFEST_KEY, next);
+      setQueue((q) => [...q, ...queued]);
+    }
+
+    const byKey = {};
+    for (const tok of groupTokens) {
+      const e = newMap[tok];
+      const k = `${e.ticket}|${e.isDigital ? 'd' : 'p'}`;
+      byKey[k] = byKey[k] || { ticketName: e.ticket, isDigital: !!e.isDigital, total: 0, checkedIn: 0 };
+      byKey[k].total += 1;
+      if (e.status === 'checked_in') byKey[k].checkedIn += 1;
+    }
+    const breakdown = Object.values(byKey);
+    const physical = breakdown.filter((b) => !b.isDigital);
+    const totalPhysical = physical.reduce((n, b) => n + b.total, 0);
+    const checkedPhysical = physical.reduce((n, b) => n + b.checkedIn, 0);
+    const admitted = queued.length;
+
+    let result;
+    if (admitted > 0) result = 'queued';
+    else if (totalPhysical === 0 && breakdown.some((b) => b.isDigital)) result = 'digital';
+    else if (totalPhysical > 0 && checkedPhysical >= totalPhysical) result = 'already_checked_in';
+    else result = 'void';
+
+    return { result, admitted, order: { orderNumber: entry.order, customerName: entry.name, totalPhysical, checkedPhysical, breakdown } };
   }, [manifest]);
 
   const validate = useCallback(async (token) => {
@@ -103,7 +151,19 @@ export default function Scan() {
     if (navigator.onLine) {
       try {
         const res = await api('/validate', { method: 'POST', body: { qr_token: token } });
-        if (manifest?.map?.[token]) { manifest.map[token].status = 'checked_in'; saveJson(MANIFEST_KEY, manifest); }
+        // Mirror the group check-in into the offline cache (all physical tickets
+        // on the same order), so a later offline re-scan shows them checked in.
+        if (manifest?.map?.[token]) {
+          const oid = manifest.map[token].orderId;
+          const nm = { ...manifest.map };
+          for (const tok of Object.keys(nm)) {
+            if ((oid ? nm[tok].orderId === oid : tok === token) && !nm[tok].isDigital) {
+              nm[tok] = { ...nm[tok], status: 'checked_in' };
+            }
+          }
+          const next = { ...manifest, map: nm };
+          saveJson(MANIFEST_KEY, next); setManifest(next);
+        }
         setResult(res);
       } catch (err) {
         // Network blip mid-scan → fall back to offline path.

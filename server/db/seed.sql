@@ -605,3 +605,25 @@ ON CONFLICT (key) DO NOTHING;
 
 -- (Home hero slides are intentionally NOT seeded — they are admin-managed and
 -- must never be overwritten on re-seed. See the home-hero note above.)
+
+-- ── Backfill: issue ticket rows for paid orders that are missing them ─────────
+-- Digital tickets purchased before digital rows were issued (and any other
+-- shortfall) get materialized here so every paid seat is tracked/counted in
+-- Admin → Tickets. Idempotent: inserts only (purchased qty − existing rows) per
+-- order+type, so re-running on each deploy is a no-op once filled. Does NOT touch
+-- quantity_sold (already incremented at original fulfillment).
+INSERT INTO tickets (order_id, ticket_type_id, attendee_name, qr_token)
+SELECT oi.order_id, oi.ticket_type_id, o.customer_name,
+       encode(gen_random_bytes(24), 'hex')
+  FROM order_items oi
+  JOIN orders o ON o.id = oi.order_id
+  CROSS JOIN LATERAL generate_series(
+    1,
+    GREATEST(0, oi.quantity - (
+      SELECT count(*) FROM tickets t
+       WHERE t.order_id = oi.order_id AND t.ticket_type_id = oi.ticket_type_id
+    ))
+  ) AS g
+ WHERE oi.kind = 'ticket'
+   AND oi.ticket_type_id IS NOT NULL
+   AND o.status = 'paid';
