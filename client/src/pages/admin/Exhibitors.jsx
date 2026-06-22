@@ -68,7 +68,7 @@ export default function Exhibitors() {
   return (
     <div>
       <h1>Vendor Applications</h1>
-      <p className="muted">Flow: <strong>Approve &amp; send notice</strong> → <strong>Send payment request</strong> (vendor pays deposit or full) → <strong>Request additional balance</strong> (if deposit) → <strong>Lock &amp; list vendor</strong> (locks tables + publishes — separate from payment).</p>
+      <p className="muted">Flow: <strong>Approve &amp; send payment link</strong> (emails deposit/full pay links automatically) → <strong>Request additional balance</strong> (if they paid a deposit) → <strong>Lock &amp; list vendor</strong> (locks tables + publishes — separate from payment).</p>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -144,7 +144,7 @@ export default function Exhibitors() {
               {a.status === 'pending_approval' && (
                 <>
                   <button className="btn" disabled={busy === a.id + 'approve'} onClick={() => act(a.id, 'approve')}>
-                    {busy === a.id + 'approve' ? 'Working…' : 'Approve & send notice'}
+                    {busy === a.id + 'approve' ? 'Working…' : 'Approve & send payment link'}
                   </button>
                   <button className="btn secondary" disabled={busy === a.id + 'reject'} onClick={() => act(a.id, 'reject')}>
                     {busy === a.id + 'reject' ? 'Working…' : 'Reject (release tables)'}

@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 import { fulfillExhibitorSession } from '../lib/fulfillment.js';
 import { sendBalanceInvoice } from '../lib/exhibitorBalance.js';
-import { sendExhibitorPaymentConfirmation, sendExhibitorApprovalNotice, sendExhibitorPaymentRequest } from '../lib/email.js';
+import { sendExhibitorPaymentConfirmation, sendExhibitorPaymentRequest } from '../lib/email.js';
 import { release as releaseInventory } from '../lib/inventory.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
@@ -153,8 +153,34 @@ adminExhibitorsRouter.post(
   }),
 );
 
-// POST /:id/approve — approve a pending application and email the approval
-// notice. Tables stay held; payment and lock-&-list are SEPARATE later steps.
+// Generate the deposit + full Stripe Checkout links, record them on the app, and
+// email the vendor the payment request. Shared by approve (sent automatically)
+// and the manual resend. Errors propagate so the admin sees a real failure
+// instead of a silent success.
+async function generateAndSendPaymentRequest(app) {
+  const stripe = await getStripe();
+  const currency = (await getSettingValue('stripe.currency')) || 'usd';
+  const mkSession = (phase, amount, label) => stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer_email: app.contact_email,
+    line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `${label} — ${app.vendor_name} (${app.reference})` } } }],
+    metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase },
+    success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${env.CLIENT_ORIGIN}/`,
+  });
+  const deposit = await mkSession('deposit', app.deposit_cents, 'Exhibitor deposit');
+  const full = await mkSession('full', app.total_cents, 'Exhibitor payment (full)');
+  await query(
+    `UPDATE exhibitor_applications SET status='awaiting_payment', stripe_session_id=$2,
+            payment_request_sent_at=now() WHERE id=$1`,
+    [app.id, deposit.id],
+  );
+  await sendExhibitorPaymentRequest(app, { depositUrl: deposit.url, fullUrl: full.url });
+}
+
+// POST /:id/approve — approve a pending application AND immediately generate +
+// email the payment request (deposit/full pay links). Tables stay held;
+// lock-&-list is still a separate later step.
 adminExhibitorsRouter.post(
   '/:id/approve',
   asyncHandler(async (req, res) => {
@@ -162,19 +188,21 @@ adminExhibitorsRouter.post(
     const app = rows[0];
     if (!app) throw notFound('Application not found');
     if (app.status !== 'pending_approval') throw badRequest('Only pending applications can be approved.');
-    const { rows: u } = await query(
+    await query(
       `UPDATE exhibitor_applications SET status='approved', approved_at=now(),
-              approval_notice_sent_at=now() WHERE id=$1 RETURNING *`,
+              approval_notice_sent_at=now() WHERE id=$1`,
       [app.id],
     );
-    await sendExhibitorApprovalNotice(u[0]).catch(() => {});
+    // Generate the Stripe pay links and email them now (sets status=awaiting_payment).
+    const fresh = (await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [app.id])).rows[0];
+    await generateAndSendPaymentRequest(fresh);
+    const updated = (await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [app.id])).rows[0];
     await audit(req.user.id, 'exhibitor.approve', { entity: 'exhibitor', entityId: app.id });
-    res.json({ ok: true, application: u[0] });
+    res.json({ ok: true, application: updated });
   }),
 );
 
-// POST /:id/request-payment — email the vendor pay links (deposit OR full).
-// Does not lock or list — payment is its own step.
+// POST /:id/request-payment — (re)generate + email the deposit/full pay links.
 adminExhibitorsRouter.post(
   '/:id/request-payment',
   asyncHandler(async (req, res) => {
@@ -184,24 +212,7 @@ adminExhibitorsRouter.post(
     if (!['approved', 'awaiting_payment', 'check_pending'].includes(app.status)) {
       throw badRequest('Approve the application before requesting payment.', 'not_approved');
     }
-    const stripe = await getStripe();
-    const currency = (await getSettingValue('stripe.currency')) || 'usd';
-    const mkSession = (phase, amount, label) => stripe.checkout.sessions.create({
-      mode: 'payment',
-      customer_email: app.contact_email,
-      line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `${label} — ${app.vendor_name} (${app.reference})` } } }],
-      metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase },
-      success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.CLIENT_ORIGIN}/`,
-    });
-    const deposit = await mkSession('deposit', app.deposit_cents, 'Exhibitor deposit');
-    const full = await mkSession('full', app.total_cents, 'Exhibitor payment (full)');
-    await query(
-      `UPDATE exhibitor_applications SET status='awaiting_payment', stripe_session_id=$2,
-              payment_request_sent_at=now() WHERE id=$1`,
-      [app.id, deposit.id],
-    );
-    await sendExhibitorPaymentRequest(app, { depositUrl: deposit.url, fullUrl: full.url }).catch(() => {});
+    await generateAndSendPaymentRequest(app);
     await audit(req.user.id, 'exhibitor.payment_requested', { entity: 'exhibitor', entityId: app.id });
     res.json({ ok: true });
   }),
