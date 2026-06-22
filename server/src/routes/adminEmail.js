@@ -81,7 +81,8 @@ adminEmailRouter.post(
   asyncHandler(async (req, res) => {
     const body = sendSchema.parse(req.body);
     const html = body.html ? sanitizeHtml(body.html) : undefined;
-    const result = await sendEmail({ to: body.to, subject: body.subject, html, text: body.text });
+    // log:false — this route writes its own Sent row below (with thread support).
+    const result = await sendEmail({ to: body.to, subject: body.subject, html, text: body.text, log: false });
 
     const from = await getSettingValue('sendgrid.from_address');
     const fromName = await getSettingValue('sendgrid.from_name');

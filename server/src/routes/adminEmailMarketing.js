@@ -132,6 +132,7 @@ adminEmailMarketingRouter.post('/campaigns', asyncHandler(async (req, res) => {
         to: r.email,
         subject,
         html: renderEmailDocument({ title: subject, siteName, contentHtml: bodyInlined + footer(r.confirm_token) }),
+        log: false, // campaigns are recorded in the Sent campaigns tab, not per-recipient in Mail
       })),
     );
     sent += results.filter((x) => x.status === 'fulfilled' && x.value?.sent).length;

@@ -7,7 +7,7 @@ import { getSettingValue } from './settings.js';
 // the Settings panel yet, sends are skipped gracefully (never throws into the
 // caller) so fulfillment is unaffected. Becomes live the moment keys are saved.
 
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, log = true }) {
   const apiKey = await getSettingValue('sendgrid.api_key');
   const from = await getSettingValue('sendgrid.from_address');
   if (!apiKey || !from) return { skipped: true, reason: 'sendgrid_unconfigured' };
@@ -21,6 +21,24 @@ export async function sendEmail({ to, subject, html, text }) {
     html,
     ...(text ? { text } : {}),
   });
+
+  // Record outbound system mail in the admin Mail "Sent" folder so transactional
+  // emails (vendor confirmations, payment requests, tickets, etc.) are visible
+  // alongside hand-composed mail. Best-effort: never fail a real send over this.
+  // Callers that keep their own Sent record (admin composer) or send in bulk
+  // (campaigns) pass log:false.
+  if (log) {
+    try {
+      const snippet = (text || html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+      await query(
+        `INSERT INTO email_messages
+           (folder, direction, from_email, from_name, to_emails, subject, snippet, body_html, body_text, is_read)
+         VALUES ('sent','outbound',$1,$2,$3,$4,$5,$6,$7,TRUE)`,
+        [from, fromName ?? null, JSON.stringify(Array.isArray(to) ? to : [to]),
+          subject, snippet, html ?? null, text ?? null],
+      );
+    } catch { /* logging is best-effort */ }
+  }
   return { sent: true };
 }
 
