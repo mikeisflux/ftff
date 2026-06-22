@@ -54,18 +54,18 @@ export async function fulfillCheckoutSession(session) {
     const issued = [];
     for (const it of items) {
       if (it.kind === 'ticket') {
-        // Digital tickets are NOT scannable — no QR is issued. Holders access the
-        // Live session with their order (confirmation) number + email instead.
-        if (!it.is_digital) {
-          for (let i = 0; i < it.quantity; i += 1) {
-            const token = randomToken(24); // 48 hex chars, unguessable
-            const t = await client.query(
-              `INSERT INTO tickets (order_id, ticket_type_id, attendee_name, qr_token)
-               VALUES ($1, $2, $3, $4) RETURNING id, qr_token`,
-              [orderId, it.ticket_type_id, order.customer_name, token],
-            );
-            issued.push(t.rows[0]);
-          }
+        // Issue a ticket row per seat for BOTH physical and digital so every
+        // ticket is tracked/counted in admin. Digital ones are flagged at their
+        // type and are skipped by the door scanner (virtual access only) — they
+        // get in via confirmation number + email on the Virtual Con page.
+        for (let i = 0; i < it.quantity; i += 1) {
+          const token = randomToken(24); // 48 hex chars, unguessable
+          const t = await client.query(
+            `INSERT INTO tickets (order_id, ticket_type_id, attendee_name, qr_token)
+             VALUES ($1, $2, $3, $4) RETURNING id, qr_token`,
+            [orderId, it.ticket_type_id, order.customer_name, token],
+          );
+          issued.push(t.rows[0]);
         }
         await client.query(
           `UPDATE ticket_types SET quantity_sold = quantity_sold + $2 WHERE id = $1`,

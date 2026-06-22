@@ -17,6 +17,7 @@ const RESULT_STYLE = {
   checked_in: { color: 'var(--color-success)', label: '✓ Checked in' },
   queued: { color: 'var(--color-success)', label: '✓ Checked in (offline — will sync)' },
   already_checked_in: { color: '#f59e0b', label: '⚠ Already checked in' },
+  digital: { color: '#f59e0b', label: '✕ Digital ticket — virtual access only' },
   void: { color: 'var(--color-danger)', label: '✕ Void ticket' },
   not_found: { color: 'var(--color-danger)', label: '✕ Not found' },
 };
@@ -184,7 +185,36 @@ export default function Scan() {
       {result && (
         <div className="card" style={{ marginTop: 16, borderColor: rs.color }}>
           <h2 style={{ color: rs.color, marginTop: 0 }}>{rs.label}</h2>
-          {result.ticket && (
+
+          {/* Online group result: show the whole purchase (quantity + types). */}
+          {result.order && (
+            <>
+              {result.admitted > 0 && (
+                <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>Admit {result.admitted} {result.admitted === 1 ? 'person' : 'people'}</p>
+              )}
+              <p className="muted">Order {result.order.orderNumber}{result.order.customerName ? ` · ${result.order.customerName}` : ''}</p>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
+                <tbody>
+                  {result.order.breakdown.map((b) => (
+                    <tr key={b.ticketName + b.isDigital} style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                      <td style={{ padding: '6px 0' }}>{b.ticketName}{b.isDigital ? ' (digital)' : ''}</td>
+                      <td style={{ padding: '6px 0', textAlign: 'right' }}>
+                        {b.isDigital ? `${b.total} · virtual` : `${b.checkedIn}/${b.total} checked in`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.order.totalPhysical > 0 && (
+                <p className="muted" style={{ marginTop: 8 }}>
+                  {result.order.checkedPhysical}/{result.order.totalPhysical} entry tickets checked in.
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Offline (per-ticket) result. */}
+          {result.ticket && !result.order && (
             <>
               <p><strong>{result.ticket.ticketName}</strong></p>
               <p className="muted">{result.ticket.attendeeName}</p>

@@ -2,6 +2,7 @@ import sgMail from '@sendgrid/mail';
 import { query } from '../db/pool.js';
 import { env } from '../config/env.js';
 import { getSettingValue } from './settings.js';
+import { renderEmailDocument, inlineEmailStyles } from './emailLayout.js';
 
 // Outbound email via SendGrid (§12). Config-gated: if SendGrid isn't set up in
 // the Settings panel yet, sends are skipped gracefully (never throws into the
@@ -49,32 +50,39 @@ export async function sendTicketDelivery(order) {
   if (!order?.customer_email) return { skipped: true, reason: 'no_recipient' };
 
   const { rows: tickets } = await query(
-    `SELECT t.qr_token, tt.name AS ticket_name
+    `SELECT t.qr_token, tt.name AS ticket_name, tt.is_digital
        FROM tickets t JOIN ticket_types tt ON tt.id = t.ticket_type_id
       WHERE t.order_id = $1 ORDER BY t.created_at`,
     [order.id],
   );
-  const { rows: dig } = await query(
-    `SELECT 1 FROM order_items oi JOIN ticket_types tt ON tt.id = oi.ticket_type_id
-      WHERE oi.order_id = $1 AND tt.is_digital = TRUE LIMIT 1`,
-    [order.id],
-  );
-  const hasDigital = dig.length > 0;
-  if (tickets.length === 0 && !hasDigital) return { skipped: true, reason: 'no_tickets' };
+  const physical = tickets.filter((t) => !t.is_digital);
+  const hasDigital = tickets.some((t) => t.is_digital);
+  if (tickets.length === 0) return { skipped: true, reason: 'no_tickets' };
 
-  let html = `<h1>Your order is confirmed</h1>` +
+  let content = `<p>Thanks! Your order is confirmed.</p>` +
     `<p>Confirmation number: <strong>${order.order_number}</strong></p>`;
   let text = `Your order is confirmed.\nConfirmation number: ${order.order_number}\n`;
 
-  if (tickets.length > 0) {
-    const links = tickets
-      .map((t) => `<li style="margin:6px 0"><strong>${t.ticket_name}</strong> — <a href="${env.PUBLIC_URL}/t/${t.qr_token}">View / show at the door</a></li>`)
-      .join('');
-    html += `<h2>Your tickets</h2><ul>${links}</ul><p>Open each on your phone — the QR code is scanned at entry.</p>`;
-    text += `\nTickets:\n` + tickets.map((t) => `- ${t.ticket_name}: ${env.PUBLIC_URL}/t/${t.qr_token}`).join('\n') + '\n';
+  if (physical.length > 0) {
+    // One QR for the whole order — scanning it checks the group in at the door.
+    const groupToken = physical[0].qr_token;
+    const qrImg = `${env.PUBLIC_URL}/api/v1/t/${groupToken}/qr.png`;
+    const ticketUrl = `${env.PUBLIC_URL}/t/${groupToken}`;
+    const counts = {};
+    for (const t of physical) counts[t.ticket_name] = (counts[t.ticket_name] || 0) + 1;
+    const lines = Object.entries(counts).map(([n, q]) => `<li>${q} × ${n}</li>`).join('');
+
+    content += `<h2>Your tickets</h2><ul>${lines}</ul>` +
+      `<div style="text-align:center;margin:18px 0;padding:18px;border:1px solid #e3e3ea;border-radius:10px">` +
+      `<p style="margin:0 0 10px;font-weight:700">Show this QR code at the door</p>` +
+      `<img src="${qrImg}" width="220" height="220" alt="Check-in QR code" style="width:220px;height:220px;display:block;margin:0 auto 10px"/>` +
+      `<a href="${ticketUrl}">Open your mobile ticket</a></div>` +
+      `<p>One scan checks in your whole group (${physical.length} ${physical.length === 1 ? 'ticket' : 'tickets'}).</p>`;
+    text += `\nTickets:\n` + Object.entries(counts).map(([n, q]) => `- ${q} x ${n}`).join('\n') +
+      `\nShow your QR at the door: ${ticketUrl}\n`;
   }
   if (hasDigital) {
-    html += `<h2>Virtual Con — LIVE</h2>` +
+    content += `<h2>Virtual Con — LIVE</h2>` +
       `<p>Your Digital ticket includes livestream access. When the show is live, go to ` +
       `<a href="${env.PUBLIC_URL}/virtual">${env.PUBLIC_URL.replace(/^https?:\/\//, '')}/virtual</a> ` +
       `and sign in with your <strong>confirmation number</strong> (${order.order_number}) and this email address.</p>`;
@@ -84,7 +92,7 @@ export async function sendTicketDelivery(order) {
   return sendEmail({
     to: order.customer_email,
     subject: `Your order is confirmed — ${order.order_number}`,
-    html,
+    html: renderEmailDocument({ title: `Your order — ${order.order_number}`, contentHtml: inlineEmailStyles(content) }),
     text,
   });
 }

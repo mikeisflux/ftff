@@ -14,51 +14,68 @@ validateRouter.use(requireAuth, requireRole('door_staff', 'admin'));
 
 const bodySchema = z.object({ qr_token: z.string().min(8).max(128) });
 
-// POST /validate -> { result, ticket }
+// POST /validate -> { result, order } — a QR represents the whole purchase
+// (group). Scanning it checks in every still-valid PHYSICAL ticket on that order
+// at once and returns the quantity + types so door staff can verify the group.
+// Digital tickets are virtual-access only and are never door-checked-in here.
 validateRouter.post(
   '/',
   asyncHandler(async (req, res) => {
     const { qr_token } = bodySchema.parse(req.body);
 
-    // Atomic claim: only succeeds if the ticket is currently valid.
+    const found = await query(`SELECT order_id FROM tickets WHERE qr_token = $1`, [qr_token]);
+    if (!found.rows[0]) return res.status(404).json({ result: 'not_found' });
+    const orderId = found.rows[0].order_id;
+
+    // Atomically check in all valid, non-digital tickets on this order.
     const claim = await query(
-      `UPDATE tickets SET status = 'checked_in', checked_in_at = now(), checked_in_by = $2
-        WHERE qr_token = $1 AND status = 'valid'
-        RETURNING id, checked_in_at`,
-      [qr_token, req.user.id],
+      `UPDATE tickets t SET status = 'checked_in', checked_in_at = now(), checked_in_by = $2
+         FROM ticket_types tt
+        WHERE t.ticket_type_id = tt.id AND t.order_id = $1
+          AND t.status = 'valid' AND tt.is_digital = FALSE
+        RETURNING t.id`,
+      [orderId, req.user.id],
     );
+    const admitted = claim.rowCount;
 
-    // Always load context for the response (name/type), regardless of outcome.
-    const ctx = await query(
-      `SELECT t.status, t.checked_in_at, t.attendee_name,
-              tt.name AS ticket_name, o.order_number, o.customer_name
-         FROM tickets t
-         JOIN ticket_types tt ON tt.id = t.ticket_type_id
-         JOIN orders o ON o.id = t.order_id
-        WHERE t.qr_token = $1`,
-      [qr_token],
+    const bd = await query(
+      `SELECT tt.name AS ticket_name, tt.is_digital,
+              count(*)::int AS total,
+              count(*) FILTER (WHERE t.status = 'checked_in')::int AS checked_in
+         FROM tickets t JOIN ticket_types tt ON tt.id = t.ticket_type_id
+        WHERE t.order_id = $1
+        GROUP BY tt.name, tt.is_digital
+        ORDER BY tt.is_digital, tt.name`,
+      [orderId],
     );
-    const t = ctx.rows[0];
+    const o = (await query(`SELECT order_number, customer_name FROM orders WHERE id = $1`, [orderId])).rows[0];
 
-    if (!t) {
-      return res.status(404).json({ result: 'not_found' });
+    const physical = bd.rows.filter((r) => !r.is_digital);
+    const totalPhysical = physical.reduce((n, r) => n + r.total, 0);
+    const checkedPhysical = physical.reduce((n, r) => n + r.checked_in, 0);
+    const hasDigital = bd.rows.some((r) => r.is_digital);
+
+    let result;
+    if (admitted > 0) result = 'checked_in';
+    else if (totalPhysical === 0 && hasDigital) result = 'digital';
+    else if (totalPhysical > 0 && checkedPhysical >= totalPhysical) result = 'already_checked_in';
+    else result = 'void';
+
+    if (admitted > 0) {
+      await audit(req.user.id, 'ticket.checkin', { entity: 'order', entityId: orderId, meta: { admitted } });
     }
 
-    const ticket = {
-      ticketName: t.ticket_name,
-      attendeeName: t.attendee_name || t.customer_name,
-      orderNumber: t.order_number,
-      checkedInAt: t.checked_in_at,
-    };
-
-    if (claim.rowCount === 1) {
-      await audit(req.user.id, 'ticket.checkin', { entity: 'ticket', entityId: qr_token });
-      return res.json({ result: 'checked_in', ticket });
-    }
-    if (t.status === 'checked_in') {
-      return res.json({ result: 'already_checked_in', ticket });
-    }
-    return res.json({ result: 'void', ticket });
+    res.json({
+      result,
+      admitted,
+      order: {
+        orderNumber: o?.order_number,
+        customerName: o?.customer_name,
+        totalPhysical,
+        checkedPhysical,
+        breakdown: bd.rows.map((r) => ({ ticketName: r.ticket_name, isDigital: r.is_digital, total: r.total, checkedIn: r.checked_in })),
+      },
+    });
   }),
 );
 

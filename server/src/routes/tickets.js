@@ -41,3 +41,18 @@ ticketRouter.get(
     });
   }),
 );
+
+// GET /t/:token/qr.png — the check-in QR as a hosted PNG. Used by the
+// confirmation email (email clients block data: URIs, so the QR must be a real
+// image URL). Encodes the same validation URL the scanner reads.
+ticketRouter.get(
+  '/:token/qr.png',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT qr_token FROM tickets WHERE qr_token = $1`, [req.params.token]);
+    if (!rows[0]) throw notFound('Ticket not found');
+    const png = await QRCode.toBuffer(`${env.PUBLIC_URL}/t/${rows[0].qr_token}`, { margin: 1, width: 320 });
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(png);
+  }),
+);
