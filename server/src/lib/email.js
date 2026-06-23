@@ -188,6 +188,18 @@ export async function sendExhibitorPaymentConfirmation(app, _phase) {
   return sendEmail({ to: app.contact_email, subject: `Exhibitor payment confirmed — ${app.reference}`, html });
 }
 
+// Complimentary (comped) exhibitor — confirmed with no payment required.
+export async function sendExhibitorComplimentary(app) {
+  if (!app?.contact_email) return { skipped: true, reason: 'no_recipient' };
+  const html =
+    `<h1>You're confirmed — complimentary exhibitor space 🎉</h1>` +
+    `<p>Reference <strong>${app.reference}</strong></p>` +
+    `<p>Great news, ${app.vendor_name}! Your exhibitor space is confirmed as a complimentary booking — <strong>no payment is required</strong>.</p>` +
+    exhibitorBreakdownHtml(app) +
+    `<p>Our exhibitor team will follow up with move-in details.</p>`;
+  return sendEmail({ to: app.contact_email, subject: `You're confirmed — ${app.reference}`, html });
+}
+
 // Balance-due request with a pay link (sent manually by admin or automatically
 // ~30 days before set-up).
 export async function sendExhibitorBalanceRequest(app, { url }) {

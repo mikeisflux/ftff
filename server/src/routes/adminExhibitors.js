@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 import { fulfillExhibitorSession } from '../lib/fulfillment.js';
 import { sendBalanceInvoice } from '../lib/exhibitorBalance.js';
-import { sendExhibitorPaymentConfirmation, sendExhibitorPaymentRequest } from '../lib/email.js';
+import { sendExhibitorPaymentConfirmation, sendExhibitorPaymentRequest, sendExhibitorComplimentary } from '../lib/email.js';
 import { release as releaseInventory } from '../lib/inventory.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
@@ -199,6 +199,38 @@ adminExhibitorsRouter.post(
     const updated = (await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [app.id])).rows[0];
     await audit(req.user.id, 'exhibitor.approve', { entity: 'exhibitor', entityId: app.id });
     res.json({ ok: true, application: updated });
+  }),
+);
+
+// POST /:id/comp — confirm an exhibitor with NO payment (complimentary). Marks
+// the application paid-in-full at $0 (commits held tables + marks the booth
+// sold, same as a real payment) and emails a confirmation. Lock-&-list stays a
+// separate step, just like a paid vendor.
+adminExhibitorsRouter.post(
+  '/:id/comp',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (!['pending_approval', 'approved', 'awaiting_payment', 'check_pending'].includes(app.status)) {
+      throw badRequest('This application can’t be comped (already paid or closed).', 'not_compable');
+    }
+    await query(
+      `UPDATE exhibitor_applications
+          SET approved_at = COALESCE(approved_at, now()),
+              approval_notice_sent_at = COALESCE(approval_notice_sent_at, now())
+        WHERE id=$1`,
+      [app.id],
+    );
+    // Reuse the normal paid path at $0: marks paid_in_full, commits tables/booth.
+    const result = await fulfillExhibitorSession({
+      metadata: { application_id: app.id, phase: 'full' },
+      amount_total: 0,
+    });
+    const finalApp = result?.application || app;
+    await sendExhibitorComplimentary(finalApp).catch((e) => console.error('Comp email failed:', e.message));
+    await audit(req.user.id, 'exhibitor.comp', { entity: 'exhibitor', entityId: app.id });
+    res.json({ ok: true, application: finalApp });
   }),
 );
 

@@ -152,6 +152,14 @@ export default function Exhibitors() {
                 </>
               )}
 
+              {['pending_approval', 'approved', 'awaiting_payment', 'check_pending'].includes(a.status) && (
+                <button className="btn secondary" title="Confirm this vendor with no payment and email a confirmation"
+                  disabled={busy === a.id + 'comp'}
+                  onClick={() => { if (window.confirm(`Comp ${a.vendor_name}? They’ll be confirmed with NO payment required and emailed a confirmation.`)) act(a.id, 'comp'); }}>
+                  {busy === a.id + 'comp' ? 'Working…' : 'Comp Vendor (no payment)'}
+                </button>
+              )}
+
               {['approved', 'awaiting_payment', 'check_pending'].includes(a.status) && (
                 <button className="btn" title="Re-generates the deposit/full Stripe links and emails the approval + payment message to the vendor"
                   disabled={busy === a.id + 'request-payment'} onClick={() => act(a.id, 'request-payment')}>
