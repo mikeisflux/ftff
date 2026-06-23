@@ -140,6 +140,12 @@ UPDATE ticket_types
  WHERE code = 'three_day'
    AND image_url = '/tickets/three_day.png';
 
+-- Styled tile for the Warlock Awards Banquet ticket (admin-created). Keyed on its
+-- code so it persists across rebuilds; guarded so an admin-set image is kept.
+UPDATE ticket_types SET image_url = '/tickets/warlock.svg'
+ WHERE code = 'banquet_awards_dinner'
+   AND (image_url IS NULL OR image_url = '');
+
 -- ── default mega-menu (§7.0) ─────────────────────────────────────────────────
 DO $$
 DECLARE
