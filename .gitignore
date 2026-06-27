@@ -15,3 +15,6 @@ yarn-error.log*
 *.key
 uploads/
 tmp/
+
+# Deploy backups (created by scripts/deploy.sh)
+.deploy-backups/

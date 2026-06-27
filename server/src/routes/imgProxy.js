@@ -14,6 +14,8 @@ const ALLOWED_HOSTS = new Set([
   'images.trvl-media.com',
   'dynamic-media-cdn.tripadvisor.com',
   'cf.bstatic.com',
+  'commons.wikimedia.org',
+  'upload.wikimedia.org',
 ]);
 
 imgProxyRouter.get('/', async (req, res) => {
@@ -29,7 +31,9 @@ imgProxyRouter.get('/', async (req, res) => {
       redirect: 'follow',
       headers: {
         // Some CDNs serve only when the referer looks like the hotel's own site.
-        'User-Agent': 'Mozilla/5.0 (compatible; ForTheFansFest/1.0)',
+        // UA includes a contact URL to satisfy Wikimedia's User-Agent policy
+        // while still presenting as a browser to the hotel CDNs.
+        'User-Agent': 'Mozilla/5.0 (compatible; ForTheFansFest/1.0; +https://forfansfest.com)',
         Referer: `${url.protocol}//${url.hostname}/`,
         Accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
       },
