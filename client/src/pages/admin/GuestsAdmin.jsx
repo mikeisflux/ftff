@@ -7,7 +7,7 @@ const TIERS = [['featured', 'Featured Guests'], ['special', 'Special Guests'], [
 const DAYS = ['Friday', 'Saturday', 'Sunday'];
 const blank = {
   name: '', known_for: '', bio: '', bio_url: '', headshot_url: '', category: 'celebrities', tier: 'featured',
-  is_featured: false, is_active: true, appearance_days: [], cover_art: [], table_label: '',
+  is_featured: false, is_active: true, appearance_days: [], cover_art: [], table_label: '', booth_number: '',
   autograph: '', autograph_premium: '', photo_op: '',
   imdb: '', website: '', twitter: '', instagram: '',
 };
@@ -32,7 +32,7 @@ function formFromGuest(g) {
     is_featured: g.is_featured, is_active: g.is_active,
     appearance_days: Array.isArray(g.appearance_days) ? g.appearance_days : [],
     cover_art: Array.isArray(g.cover_art) ? g.cover_art : [],
-    table_label: g.table_label || '',
+    table_label: g.table_label || '', booth_number: g.booth_number || '',
     autograph: centsToDollars(g.autograph_cents),
     autograph_premium: centsToDollars(g.autograph_premium_cents),
     photo_op: centsToDollars(g.photo_op_cents),
@@ -57,6 +57,7 @@ function bodyFromForm(f) {
     appearance_days: f.appearance_days,
     cover_art: (f.cover_art || []).filter(Boolean),
     table_label: f.table_label || null,
+    booth_number: f.booth_number || null,
     socials,
     autograph_cents: dollarsToCents(f.autograph),
     autograph_premium_cents: dollarsToCents(f.autograph_premium),
@@ -73,9 +74,39 @@ export default function GuestsAdmin() {
   const [editingId, setEditingId] = useState(null);
   const [filter, setFilter] = useState('');
   const [msg, setMsg] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [vendorApps, setVendorApps] = useState([]);
+  const [importPick, setImportPick] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => setGuests((await api('/admin/guests')).guests), []);
   useEffect(() => { load(); }, [load]);
+
+  // Open the vendor picker: applications with a selected table, most useful first.
+  async function openImport() {
+    setMsg(''); setImportPick('');
+    try {
+      const { applications } = await api('/admin/exhibitors');
+      const withTable = applications.filter((a) => (a.booth_labels?.length || a.booth_label) && a.status !== 'rejected' && a.status !== 'cancelled');
+      setVendorApps(withTable);
+      setImportOpen(true);
+      if (withTable.length === 0) setMsg('No vendor applications with an assigned table were found.');
+    } catch (err) { setMsg(err.message); }
+  }
+  const boothOf = (a) => (a.booth_labels?.length ? a.booth_labels.join(', ') : (a.booth_label || '—')).toUpperCase();
+  async function importVendor() {
+    if (!importPick) return;
+    setImporting(true); setMsg('');
+    try {
+      const { guest } = await api('/admin/guests/import-vendor', { method: 'POST', body: { applicationId: importPick } });
+      await load();
+      setImportOpen(false);
+      editGuest(guest); // load the new guest into the form to add a photo + info
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMsg(`Imported ${guest.name} — add a photo and details below, then Save.`);
+    } catch (err) { setMsg(err.message); }
+    finally { setImporting(false); }
+  }
 
   const featuredCount = guests.filter((g) => g.is_featured).length;
 
@@ -127,9 +158,38 @@ export default function GuestsAdmin() {
 
   return (
     <div>
-      <h1 className="glow">Guest Tile Manager</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <h1 className="glow">Guest Tile Manager</h1>
+        <button type="button" className="btn secondary" onClick={() => (importOpen ? setImportOpen(false) : openImport())}>
+          {importOpen ? 'Close import' : 'Import guest from vendor'}
+        </button>
+      </div>
       <p className="muted">Featured on homepage: {featuredCount}/10</p>
-      {msg && <p style={{ color: 'var(--color-danger)' }}>{msg}</p>}
+      {msg && <p className="muted">{msg}</p>}
+
+      {importOpen && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Import guest from a vendor application</h3>
+          <p className="muted" style={{ fontSize: '.9rem' }}>
+            Creates a guest from a vendor’s exhibitor application, carrying over their <strong>selected table</strong>.
+            After importing, add a photo and details below and Save.
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <label>Vendor application</label>
+              <select value={importPick} onChange={(e) => setImportPick(e.target.value)}>
+                <option value="">Select a vendor…</option>
+                {vendorApps.map((a) => (
+                  <option key={a.id} value={a.id}>{a.vendor_name} — Table {boothOf(a)} · {a.reference}</option>
+                ))}
+              </select>
+            </div>
+            <button type="button" className="btn" disabled={!importPick || importing} onClick={importVendor}>
+              {importing ? 'Importing…' : 'Import as guest'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <form className="card" onSubmit={save} style={{ marginBottom: 16 }}>
         <h3>{editingId ? 'Edit guest' : 'Add guest'}</h3>
@@ -168,6 +228,9 @@ export default function GuestsAdmin() {
               )}
               {availableTables.map((t) => <option key={t} value={t}>{t.toUpperCase()}</option>)}
             </select>
+
+            <label>Vendor table / booth <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>— carried over from an imported vendor application (e.g. B11)</span></label>
+            <input value={form.booth_number} onChange={(e) => setForm((f) => ({ ...f, booth_number: e.target.value }))} placeholder="e.g. B11" />
 
             <label>Bio</label><textarea rows={4} value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} />
             <label>“Check out their bio” link (optional URL)</label>

@@ -38,6 +38,8 @@ const guestSchema = z.object({
   cover_art: z.array(z.string().url()).max(3).optional(),
   // Row-A (featured) table assignment, e.g. 'a5'. Unique across guests.
   table_label: z.string().regex(/^a([1-9]|1[0-9]|20)$/).optional().nullable(),
+  // Free-form booth/table carried over from a vendor's exhibitor application.
+  booth_number: z.string().max(60).optional().nullable(),
 });
 
 async function featuredCount(excludeId) {
@@ -107,16 +109,48 @@ adminGuestsRouter.post('/', asyncHandler(async (req, res) => {
   const rows = await insertOrUpdateGuest(
     `INSERT INTO guests (name, known_for, bio, bio_url, headshot_url, category, tier, socials, appearance_days,
                          is_featured, is_active, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art,
-                         table_label, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
+                         table_label, booth_number, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests)) RETURNING *`,
     [g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null, g.category, g.tier ?? 'featured',
       JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
       g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? []),
-      g.table_label ?? null],
+      g.table_label ?? null, g.booth_number ?? null],
   );
   await audit(req.user.id, 'guest.create', { entity: 'guest', entityId: rows[0].id });
   await syncGuestProducts(rows[0]);
   res.status(201).json({ guest: rows[0] });
+}));
+
+// POST /import-vendor — create a guest from a vendor's exhibitor application,
+// carrying over their name and their SELECTED TABLE (booth) from the application.
+// Returns the new guest so the admin can immediately add a photo + bio.
+adminGuestsRouter.post('/import-vendor', asyncHandler(async (req, res) => {
+  const { applicationId } = z.object({ applicationId: z.string().uuid() }).parse(req.body);
+  const { rows } = await query(
+    `SELECT a.vendor_name, a.website,
+            b.label AS single_label,
+            (SELECT array_agg(label ORDER BY label) FROM booths WHERE id = ANY(a.booth_ids)) AS booth_labels
+       FROM exhibitor_applications a
+       LEFT JOIN booths b ON b.id = a.booth_id
+      WHERE a.id = $1`,
+    [applicationId],
+  );
+  const app = rows[0];
+  if (!app) throw notFound('Application not found');
+  const labels = (app.booth_labels && app.booth_labels.length)
+    ? app.booth_labels
+    : (app.single_label ? [app.single_label] : []);
+  const booth = labels.map((l) => String(l).toUpperCase()).join(', ') || null;
+  const socials = app.website ? { website: app.website } : {};
+
+  const { rows: g } = await query(
+    `INSERT INTO guests (name, category, tier, booth_number, socials, is_active, sort_order)
+     VALUES ($1,'other','also_appearing',$2,$3::jsonb,TRUE,(SELECT COALESCE(MAX(sort_order)+1,0) FROM guests))
+     RETURNING *`,
+    [app.vendor_name, booth, JSON.stringify(socials)],
+  );
+  await audit(req.user.id, 'guest.import_vendor', { entity: 'guest', entityId: g[0].id, meta: { applicationId, booth } });
+  res.status(201).json({ guest: g[0] });
 }));
 
 adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
@@ -127,10 +161,12 @@ adminGuestsRouter.put('/:id', asyncHandler(async (req, res) => {
   const rows = await insertOrUpdateGuest(
     `UPDATE guests SET name=$2, known_for=$3, bio=$4, bio_url=$5, headshot_url=$6, category=$7, tier=$8, socials=$9,
             appearance_days=$10, is_featured=$11, is_active=$12,
-            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15, cover_art=$16, table_label=$17 WHERE id=$1 RETURNING *`,
+            autograph_cents=$13, autograph_premium_cents=$14, photo_op_cents=$15, cover_art=$16, table_label=$17,
+            booth_number=$18 WHERE id=$1 RETURNING *`,
     [req.params.id, g.name, g.known_for ?? null, g.bio ? sanitizeHtml(g.bio) : null, g.bio_url ?? null, g.headshot_url ?? null,
       g.category, g.tier ?? 'featured', JSON.stringify(g.socials ?? {}), JSON.stringify(g.appearance_days ?? []), g.is_featured ?? false, g.is_active ?? true,
-      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? []), g.table_label ?? null],
+      g.autograph_cents ?? null, g.autograph_premium_cents ?? null, g.photo_op_cents ?? null, JSON.stringify(g.cover_art ?? []), g.table_label ?? null,
+      g.booth_number ?? null],
   );
   if (!rows[0]) throw notFound('Guest not found');
   await syncGuestProducts(rows[0]);

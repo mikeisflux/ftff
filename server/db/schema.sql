@@ -182,6 +182,10 @@ ALTER TABLE guests ADD COLUMN IF NOT EXISTS cover_art JSONB NOT NULL DEFAULT '[]
 -- share a table.
 ALTER TABLE guests ADD COLUMN IF NOT EXISTS table_label TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_guests_table_label ON guests(table_label) WHERE table_label IS NOT NULL;
+-- Free-form booth/table label carried over when a guest is imported from a
+-- vendor's exhibitor application (e.g. 'B11'). Not part of the Row-A guest-table
+-- assignment above, so no uniqueness constraint.
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS booth_number TEXT;
 CREATE INDEX IF NOT EXISTS idx_guests_category ON guests(category);
 CREATE INDEX IF NOT EXISTS idx_guests_featured ON guests(is_featured) WHERE is_featured;
 -- Removed categories: reassign any existing guests, then tighten the constraint.

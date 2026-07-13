@@ -56,7 +56,7 @@ publicRouter.get(
     // Note: bio is intentionally NOT selected here — it only belongs on the
     // individual guest detail page (/guests/:id), never in tile/grid listings.
     const { rows } = await query(
-      `SELECT id, name, known_for, headshot_url, category, tier, appearance_days, is_featured, sort_order, table_label
+      `SELECT id, name, known_for, headshot_url, category, tier, appearance_days, is_featured, sort_order, table_label, booth_number
          FROM guests WHERE ${where.join(' AND ')}
         ORDER BY sort_order, name LIMIT ${limit}`,
       params,
@@ -74,7 +74,7 @@ publicRouter.get(
     }
     const { rows } = await query(
       `SELECT id, name, known_for, bio, bio_url, headshot_url, category, tier, socials,
-              appearance_days, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art, table_label
+              appearance_days, autograph_cents, autograph_premium_cents, photo_op_cents, cover_art, table_label, booth_number
          FROM guests WHERE id = $1 AND is_active = TRUE`,
       [req.params.id],
     );
