@@ -85,6 +85,10 @@ export default function Slides() {
         {form.image_url && (isVideo(form.image_url)
           ? <video ref={(el) => { if (el) { el.muted = true; el.play?.().catch(() => {}); } }} src={form.image_url} muted autoPlay loop playsInline style={{ maxHeight: 100, marginTop: 8, borderRadius: 8, display: 'block' }} />
           : <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />)}
+        <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginTop: 12 }}>
+          <input type="checkbox" style={{ width: 'auto' }} checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
+          Active <span className="muted" style={{ fontWeight: 400 }}>— unchecked hides it from the site</span>
+        </label>
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button className="btn">{editingId ? 'Save' : 'Add'}</button>
           {editingId && <button type="button" className="btn secondary" onClick={() => { setEditingId(null); setForm(blank); }}>Cancel</button>}
