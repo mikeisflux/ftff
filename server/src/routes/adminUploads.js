@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { z } from 'zod';
 import { query } from '../db/pool.js';
 import { asyncHandler, badRequest, notFound } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { storeImage, storeMedia } from '../lib/uploads.js';
+import { storeImage, storeMediaFromFile, UPLOAD_DIR } from '../lib/uploads.js';
+import { randomToken } from '../lib/crypto.js';
 import { audit } from '../lib/audit.js';
 
 // Generic image/video upload + brand-asset library (§13.3). Uses the validated
@@ -12,13 +15,24 @@ import { audit } from '../lib/audit.js';
 export const adminUploadsRouter = Router();
 adminUploadsRouter.use(requireAuth, requireRole('admin', 'editor'));
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 64 * 1024 * 1024 } });
+// Small in-memory uploader for images (brand assets).
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+
+// Large uploader that STREAMS straight to a temp file inside UPLOAD_DIR (so big
+// videos never sit in RAM). storeMediaFromFile validates + renames it in place.
+const uploadLarge = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => { mkdir(UPLOAD_DIR, { recursive: true }).then(() => cb(null, UPLOAD_DIR)).catch(cb); },
+    filename: (_req, _file, cb) => cb(null, `tmp-${randomToken(16)}`),
+  }),
+  limits: { fileSize: 256 * 1024 * 1024 },
+});
 
 // POST /admin/uploads — returns a public URL for any image OR video field
-// (e.g. hero slides accept short MP4/WebM backgrounds).
-adminUploadsRouter.post('/', upload.single('file'), asyncHandler(async (req, res) => {
+// (e.g. hero slides accept MP4/WebM backgrounds up to 256MB).
+adminUploadsRouter.post('/', uploadLarge.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) throw badRequest('No file uploaded');
-  const { url, mime } = await storeMedia(req.file.buffer);
+  const { url, mime } = await storeMediaFromFile(req.file.path);
   res.status(201).json({ url, mime });
 }));
 

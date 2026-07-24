@@ -17,11 +17,15 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  // Current slide's media URL, so the timer can skip video slides (those advance
+  // when the video finishes playing — see the <video onEnded> below).
+  const currentUrl = slides[i]?.image_url;
+
   useEffect(() => {
-    if (count <= 1 || paused || reduceMotion) return undefined;
-    const t = setInterval(() => setI((n) => (n + 1) % count), 6000);
-    return () => clearInterval(t);
-  }, [count, paused, reduceMotion]);
+    if (count <= 1 || paused || reduceMotion || isVideo(currentUrl)) return undefined;
+    const t = setTimeout(() => setI((n) => (n + 1) % count), 6000);
+    return () => clearTimeout(t);
+  }, [count, paused, reduceMotion, i, currentUrl]);
 
   const go = (n) => setI(((n % count) + count) % count);
 
@@ -61,17 +65,19 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
       {hasImage && (
         isVideo(slide.image_url) ? (
           <video
+            key={slide.image_url}
             className="hero-slide-img"
             src={slide.image_url}
             autoPlay
             muted
-            loop
             playsInline
-            preload="metadata"
+            preload="auto"
+            loop={count <= 1}                              /* single slide: loop forever */
+            onEnded={() => { if (count > 1) go(i + 1); }}  /* multi: advance when it finishes */
             aria-label={slide.title || fallbackTitle}
           />
         ) : (
-          <img className="hero-slide-img" src={slide.image_url} alt={slide.title || fallbackTitle} />
+          <img key={slide.image_url} className="hero-slide-img" src={slide.image_url} alt={slide.title || fallbackTitle} />
         )
       )}
 

@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, rename, unlink, stat, open } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomToken } from './crypto.js';
@@ -47,6 +47,32 @@ export async function storeMedia(buffer, { maxBytes = 64 * 1024 * 1024 } = {}) {
   const key = `${randomToken(16)}.${kind.ext}`;
   await mkdir(UPLOAD_DIR, { recursive: true });
   await writeFile(path.join(UPLOAD_DIR, key), buffer);
+  return { url: `${env.PUBLIC_URL}/uploads/${key}`, key, mime: kind.mime };
+}
+
+/**
+ * Store an already-streamed upload (multer diskStorage) WITHOUT loading it into
+ * memory — needed for large video files that would otherwise blow the process's
+ * memory budget. `tmpPath` must be a temp file inside UPLOAD_DIR (so the final
+ * rename stays on the same filesystem). Only the header is read for magic-byte
+ * validation; on failure the temp file is removed.
+ */
+export async function storeMediaFromFile(tmpPath, { maxBytes = 256 * 1024 * 1024 } = {}) {
+  const cleanup = () => unlink(tmpPath).catch(() => {});
+  let size;
+  try { ({ size } = await stat(tmpPath)); } catch { throw new HttpError(400, 'Upload not found'); }
+  if (size === 0) { await cleanup(); throw new HttpError(400, 'Empty upload'); }
+  if (size > maxBytes) { await cleanup(); throw new HttpError(413, 'File too large'); }
+
+  const header = Buffer.alloc(16);
+  const fh = await open(tmpPath, 'r');
+  try { await fh.read(header, 0, 16, 0); } finally { await fh.close(); }
+
+  const kind = detectImage(header) || detectVideo(header);
+  if (!kind) { await cleanup(); throw new HttpError(415, 'Only images (JPEG, PNG, GIF, WEBP) or video (MP4, WebM) are allowed'); }
+
+  const key = `${randomToken(16)}.${kind.ext}`;
+  await rename(tmpPath, path.join(UPLOAD_DIR, key)); // same-dir rename = atomic, no copy
   return { url: `${env.PUBLIC_URL}/uploads/${key}`, key, mime: kind.mime };
 }
 
