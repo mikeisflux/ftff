@@ -26,6 +26,30 @@ export async function uploadFile(path, file, fields = {}) {
   return data;
 }
 
+// Multipart upload with progress. fetch can't report upload progress, so this
+// uses XHR — onProgress(fraction 0..1) fires as bytes go up (useful for large
+// video). Resolves with the parsed JSON, rejects with an Error carrying .data.
+export function uploadFileWithProgress(path, file, { fields = {}, onProgress } = {}) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.set('file', file);
+    for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BASE}${path}`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader('X-CSRF-Token', csrfToken());
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      let data = null;
+      try { data = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else { const err = new Error(data?.error || xhr.statusText || 'Upload failed'); err.status = xhr.status; err.data = data; reject(err); }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(fd);
+  });
+}
+
 // Refresh the access token at most once at a time when a request 401s, so an
 // expired short-lived session is renewed transparently instead of silently
 // failing admin actions.

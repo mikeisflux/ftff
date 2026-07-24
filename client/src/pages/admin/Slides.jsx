@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api, uploadFile } from '../../lib/api.js';
+import { api, uploadFileWithProgress } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
 const blank = { title: '', subtitle: '', image_url: '', cta_label: '', cta_url: '', page_slug: '', is_active: true };
@@ -12,6 +12,7 @@ export default function Slides() {
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState(null);
   const [msg, setMsg] = useState('');
+  const [progress, setProgress] = useState(null); // null | 0..1 | 'done'
 
   const load = useCallback(async () => {
     setSlides((await api('/admin/slides')).slides);
@@ -30,8 +31,13 @@ export default function Slides() {
     } catch (err) { setMsg(err.data?.details?.[0]?.message || err.message); }
   }
   async function onUpload(file) {
-    try { const { url } = await uploadFile('/admin/uploads', file); setForm((f) => ({ ...f, image_url: url })); }
-    catch (err) { setMsg(err.message); }
+    setMsg(''); setProgress(0);
+    try {
+      const { url } = await uploadFileWithProgress('/admin/uploads', file, { onProgress: setProgress });
+      setForm((f) => ({ ...f, image_url: url }));
+      setProgress('done');
+      setTimeout(() => setProgress((p) => (p === 'done' ? null : p)), 2500);
+    } catch (err) { setMsg(err.message); setProgress(null); }
   }
   async function del(id) { await api(`/admin/slides/${id}`, { method: 'DELETE' }); await load(); }
   async function reorder(orderedIds) { await api('/admin/slides/reorder', { method: 'POST', body: { orderedIds } }); }
@@ -58,8 +64,24 @@ export default function Slides() {
         <label>Image or video <span className="muted" style={{ fontWeight: 400 }}>(optional — image or short MP4/WebM; leave blank, with no title, to show the logo)</span></label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://… or upload (optional)" />
-          <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} style={{ width: 'auto' }} />
+          <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" disabled={typeof progress === 'number'} onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} style={{ width: 'auto' }} />
         </div>
+        {progress != null && (
+          <div style={{ marginTop: 8 }}>
+            {progress === 'done' ? (
+              <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>✓ Upload complete</span>
+            ) : (
+              <>
+                <div style={{ height: 8, borderRadius: 999, background: 'color-mix(in srgb, var(--color-muted) 25%, transparent)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent))', transition: 'width .15s' }} />
+                </div>
+                <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                  {progress >= 0.999 ? 'Processing…' : `Uploading… ${Math.round(progress * 100)}%`}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {form.image_url && (isVideo(form.image_url)
           ? <video src={form.image_url} muted autoPlay loop playsInline style={{ maxHeight: 100, marginTop: 8, borderRadius: 8, display: 'block' }} />
           : <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />)}
