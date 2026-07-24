@@ -43,7 +43,23 @@ export default function Stream() {
     <div>
       <h1 className="glow">Livestream</h1>
       {msg && <p style={{ color: 'var(--color-danger)' }}>{msg}</p>}
-      {data.error && <p style={{ color: 'var(--color-danger)' }}>{data.error}</p>}
+      {data.error && (
+        <div className="card" style={{ borderColor: 'var(--color-danger)' }}>
+          <p style={{ color: 'var(--color-danger)', marginTop: 0 }}><strong>{data.error}</strong></p>
+          {/authentic|unauthor|token|permission|10000|forbidden|9109/i.test(data.error) ? (
+            <p className="muted" style={{ marginBottom: 0 }}>
+              Cloudflare rejected the credentials. In <Link to="/admin/settings">Settings</Link>, confirm{' '}
+              <code>cloudflare.account_id</code> is your <strong>Account ID</strong> and{' '}
+              <code>cloudflare.stream_api_token</code> is a valid token with the{' '}
+              <strong>Stream:Read</strong> and <strong>Stream:Edit</strong> permissions
+              (Cloudflare dashboard → My Profile → API Tokens → Create Token → Stream). An expired,
+              mistyped, or wrong-account token gives this “Authentication error.”
+            </p>
+          ) : (
+            <p className="muted" style={{ marginBottom: 0 }}>Couldn’t reach Cloudflare Stream just now — try again shortly.</p>
+          )}
+        </div>
+      )}
 
       {!li ? (
         <div className="card">
