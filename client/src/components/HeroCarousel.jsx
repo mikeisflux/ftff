@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+const isVideo = (u) => /\.(mp4|webm|mov)(\?|$)/i.test(u || '');
+
 // Full-featured hero carousel (§7.1.1): autoplay with pause-on-hover, swipe on
 // touch, prev/next arrows, dots, lazy images. Respects prefers-reduced-motion
 // (no autoplay). Renders a static fallback when there is a single slide and a
@@ -57,7 +59,20 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
       aria-roledescription="carousel"
     >
       {hasImage && (
-        <img className="hero-slide-img" src={slide.image_url} alt={slide.title || fallbackTitle} />
+        isVideo(slide.image_url) ? (
+          <video
+            className="hero-slide-img"
+            src={slide.image_url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label={slide.title || fallbackTitle}
+          />
+        ) : (
+          <img className="hero-slide-img" src={slide.image_url} alt={slide.title || fallbackTitle} />
+        )
       )}
 
       {overlay && (

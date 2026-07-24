@@ -3,6 +3,7 @@ import { api, uploadFile } from '../../lib/api.js';
 import Reorderable from '../../components/Reorderable.jsx';
 
 const blank = { title: '', subtitle: '', image_url: '', cta_label: '', cta_url: '', page_slug: '', is_active: true };
+const isVideo = (u) => /\.(mp4|webm|mov)(\?|$)/i.test(u || '');
 
 // Hero slider manager (§13): CRUD + image upload + drag-to-reorder + per-page assignment.
 export default function Slides() {
@@ -54,12 +55,14 @@ export default function Slides() {
           <option value="">Homepage</option>
           {pages.map((p) => <option key={p.slug} value={p.slug}>{p.title || p.slug}</option>)}
         </datalist>
-        <label>Image <span className="muted" style={{ fontWeight: 400 }}>(optional — leave blank, with no title, to show the logo)</span></label>
+        <label>Image or video <span className="muted" style={{ fontWeight: 400 }}>(optional — image or short MP4/WebM; leave blank, with no title, to show the logo)</span></label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://… or upload (optional)" />
-          <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} style={{ width: 'auto' }} />
+          <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} style={{ width: 'auto' }} />
         </div>
-        {form.image_url && <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />}
+        {form.image_url && (isVideo(form.image_url)
+          ? <video src={form.image_url} muted autoPlay loop playsInline style={{ maxHeight: 100, marginTop: 8, borderRadius: 8, display: 'block' }} />
+          : <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />)}
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button className="btn">{editingId ? 'Save' : 'Add'}</button>
           {editingId && <button type="button" className="btn secondary" onClick={() => { setEditingId(null); setForm(blank); }}>Cancel</button>}
@@ -69,7 +72,9 @@ export default function Slides() {
       <h3>Slides (drag to reorder)</h3>
       <Reorderable items={slides} onReorder={reorder} render={(s) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {s.image_url && <img src={s.image_url} alt="" style={{ height: 44, borderRadius: 6 }} />}
+          {s.image_url && (isVideo(s.image_url)
+            ? <video src={s.image_url} muted style={{ height: 44, borderRadius: 6 }} />
+            : <img src={s.image_url} alt="" style={{ height: 44, borderRadius: 6 }} />)}
           <div style={{ flex: 1 }}><strong>{s.title || '(untitled)'}</strong> <span className="muted">· {s.page_slug || 'Homepage'}</span> {!s.is_active && <span className="muted">· hidden</span>}</div>
           <button className="btn secondary" onClick={() => { setEditingId(s.id); setForm({ title: s.title || '', subtitle: s.subtitle || '', image_url: s.image_url, cta_label: s.cta_label || '', cta_url: s.cta_url || '', page_slug: s.page_slug || '', is_active: s.is_active }); }}>Edit</button>
           <button className="btn secondary" onClick={() => del(s.id)}>Delete</button>

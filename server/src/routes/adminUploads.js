@@ -4,20 +4,21 @@ import { z } from 'zod';
 import { query } from '../db/pool.js';
 import { asyncHandler, badRequest, notFound } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { storeImage } from '../lib/uploads.js';
+import { storeImage, storeMedia } from '../lib/uploads.js';
 import { audit } from '../lib/audit.js';
 
-// Generic image upload + brand-asset library (§13.3). Uses the validated upload
-// pipeline (magic bytes, size cap, randomized keys).
+// Generic image/video upload + brand-asset library (§13.3). Uses the validated
+// upload pipeline (magic bytes, size cap, randomized keys).
 export const adminUploadsRouter = Router();
 adminUploadsRouter.use(requireAuth, requireRole('admin', 'editor'));
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 64 * 1024 * 1024 } });
 
-// POST /admin/uploads — returns a public URL for use in any image field.
+// POST /admin/uploads — returns a public URL for any image OR video field
+// (e.g. hero slides accept short MP4/WebM backgrounds).
 adminUploadsRouter.post('/', upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) throw badRequest('No file uploaded');
-  const { url, mime } = await storeImage(req.file.buffer);
+  const { url, mime } = await storeMedia(req.file.buffer);
   res.status(201).json({ url, mime });
 }));
 

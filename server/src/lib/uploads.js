@@ -24,6 +24,32 @@ function detectImage(buf) {
   return MAGIC.find((m) => m.bytes.every((b, i) => buf[i] === b)) || null;
 }
 
+// Video containers we accept for hero backgrounds. MP4/MOV share the ISO
+// base-media 'ftyp' box at offset 4; WebM/Matroska start with the EBML header.
+const VIDEO_MAGIC = [
+  { ext: 'webm', mime: 'video/webm', test: (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
+  { ext: 'mp4', mime: 'video/mp4', test: (b) => b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 },
+];
+function detectVideo(buf) {
+  return VIDEO_MAGIC.find((m) => m.test(buf)) || null;
+}
+
+/**
+ * Validate + store an image OR video buffer. Same guarantees as storeImage
+ * (magic-byte validation, randomized key, size cap) with a larger default cap
+ * for video. Used by the generic /admin/uploads endpoint (hero slides, etc.).
+ */
+export async function storeMedia(buffer, { maxBytes = 64 * 1024 * 1024 } = {}) {
+  if (!buffer?.length) throw new HttpError(400, 'Empty upload');
+  if (buffer.length > maxBytes) throw new HttpError(413, 'File too large');
+  const kind = detectImage(buffer) || detectVideo(buffer);
+  if (!kind) throw new HttpError(415, 'Only images (JPEG, PNG, GIF, WEBP) or video (MP4, WebM) are allowed');
+  const key = `${randomToken(16)}.${kind.ext}`;
+  await mkdir(UPLOAD_DIR, { recursive: true });
+  await writeFile(path.join(UPLOAD_DIR, key), buffer);
+  return { url: `${env.PUBLIC_URL}/uploads/${key}`, key, mime: kind.mime };
+}
+
 /**
  * Validate and store an uploaded image buffer. Returns a public URL.
  * Re-encoding (e.g. via sharp) is a planned hardening step; magic-byte
