@@ -83,7 +83,7 @@ export default function Slides() {
           </div>
         )}
         {form.image_url && (isVideo(form.image_url)
-          ? <video src={form.image_url} muted autoPlay loop playsInline style={{ maxHeight: 100, marginTop: 8, borderRadius: 8, display: 'block' }} />
+          ? <video ref={(el) => { if (el) { el.muted = true; el.play?.().catch(() => {}); } }} src={form.image_url} muted autoPlay loop playsInline style={{ maxHeight: 100, marginTop: 8, borderRadius: 8, display: 'block' }} />
           : <img src={form.image_url} alt="" style={{ maxHeight: 80, marginTop: 8, borderRadius: 8 }} />)}
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button className="btn">{editingId ? 'Save' : 'Add'}</button>

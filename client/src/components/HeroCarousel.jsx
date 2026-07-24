@@ -66,6 +66,10 @@ export default function HeroCarousel({ slides = [], fallbackTitle, fallbackSubti
         isVideo(slide.image_url) ? (
           <video
             key={slide.image_url}
+            // Force the muted PROPERTY (React's `muted` attribute alone is
+            // unreliable) and start playback — otherwise the browser's autoplay
+            // policy blocks it and the video just sits on its first frame.
+            ref={(el) => { if (el) { el.muted = true; el.play?.().catch(() => {}); } }}
             className="hero-slide-img"
             src={slide.image_url}
             autoPlay
