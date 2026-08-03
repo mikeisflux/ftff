@@ -11,6 +11,7 @@ const STATUS_LABEL = {
   deposit_paid: 'Deposit captured',
   paid_in_full: 'Full payment captured',
   cancelled: 'Cancelled',
+  refunded: 'Refunded',
 };
 
 export default function Exhibitors() {
@@ -189,6 +190,14 @@ export default function Exhibitors() {
                 </button>
               )}
               {a.is_listed && <span className="muted" style={{ alignSelf: 'center' }}>✓ Tables locked &amp; vendor listed</span>}
+
+              {['deposit_paid', 'paid_in_full'].includes(a.status) && (
+                <button className="btn secondary" title="Refund every Stripe charge (deposit + balance), release the tables, and de-list the vendor"
+                  disabled={busy === a.id + 'refund'}
+                  onClick={() => { if (window.confirm(`Refund ${a.vendor_name} in full? This refunds ALL their Stripe payments (deposit + balance), frees their tables, and removes them from the directory.`)) act(a.id, 'refund'); }}>
+                  {busy === a.id + 'refund' ? 'Refunding…' : 'Refund'}
+                </button>
+              )}
 
               {a.status !== 'paid_in_full' && a.status !== 'pending_approval' && a.status !== 'rejected' && a.status !== 'cancelled' && (
                 <button className="btn secondary" disabled={busy === a.id + 'cancel'} onClick={() => act(a.id, 'cancel')}>

@@ -34,6 +34,8 @@ export async function sendBalanceInvoice(app) {
       reference: app.reference,
       phase: 'balance',
     },
+    // Copy onto the PaymentIntent too so refunds can find the charge by metadata.
+    payment_intent_data: { metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase: 'balance' } },
     success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${env.CLIENT_ORIGIN}/`,
   });

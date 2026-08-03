@@ -760,7 +760,7 @@ ALTER TABLE exhibitor_applications ADD COLUMN IF NOT EXISTS payment_request_sent
 ALTER TABLE exhibitor_applications DROP CONSTRAINT IF EXISTS exhibitor_applications_status_check;
 ALTER TABLE exhibitor_applications ADD CONSTRAINT exhibitor_applications_status_check
   CHECK (status IN ('draft','pending_approval','approved','rejected',
-                    'awaiting_payment','check_pending','deposit_paid','paid_in_full','cancelled'));
+                    'awaiting_payment','check_pending','deposit_paid','paid_in_full','cancelled','refunded'));
 
 -- ── exhibitor_rewards (referral cash-back toward booth bookings) ─────────────
 -- Each exhibitor gets a unique referral code; when fans buy tickets via their

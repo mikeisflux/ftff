@@ -51,3 +51,14 @@ export async function release(key, qty, client = null) {
     [key, n],
   );
 }
+
+/** Return `qty` sold units back to available (refund). Reverses commit(). */
+export async function uncommit(key, qty, client = null) {
+  const n = Math.trunc(Number(qty) || 0);
+  if (n <= 0) return;
+  const run = client ? client.query.bind(client) : query;
+  await run(
+    `UPDATE inventory_pools SET sold = GREATEST(sold - $2, 0) WHERE key = $1`,
+    [key, n],
+  );
+}

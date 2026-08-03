@@ -7,7 +7,7 @@ import { audit } from '../lib/audit.js';
 import { fulfillExhibitorSession } from '../lib/fulfillment.js';
 import { sendBalanceInvoice } from '../lib/exhibitorBalance.js';
 import { sendExhibitorPaymentConfirmation, sendExhibitorPaymentRequest, sendExhibitorComplimentary } from '../lib/email.js';
-import { release as releaseInventory } from '../lib/inventory.js';
+import { release as releaseInventory, uncommit as uncommitInventory } from '../lib/inventory.js';
 import { getStripe } from '../lib/stripe.js';
 import { getSettingValue } from '../lib/settings.js';
 import { env } from '../config/env.js';
@@ -165,6 +165,8 @@ async function generateAndSendPaymentRequest(app) {
     customer_email: app.contact_email,
     line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `${label} — ${app.vendor_name} (${app.reference})` } } }],
     metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase },
+    // Copy onto the PaymentIntent too so refunds can find the charge by metadata.
+    payment_intent_data: { metadata: { kind: 'exhibitor', application_id: app.id, reference: app.reference, phase } },
     success_url: `${env.CLIENT_ORIGIN}/become-an-exhibitor/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${env.CLIENT_ORIGIN}/`,
   });
@@ -177,6 +179,71 @@ async function generateAndSendPaymentRequest(app) {
   );
   await sendExhibitorPaymentRequest(app, { depositUrl: deposit.url, fullUrl: full.url });
 }
+
+// POST /:id/refund — refund EVERY Stripe charge on the application (deposit +
+// balance if they paid in installments, or a single full payment), then release
+// their space and de-list them. Marks the application 'refunded'.
+adminExhibitorsRouter.post(
+  '/:id/refund',
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(`SELECT * FROM exhibitor_applications WHERE id=$1`, [req.params.id]);
+    const app = rows[0];
+    if (!app) throw notFound('Application not found');
+    if (!['deposit_paid', 'paid_in_full'].includes(app.status)) {
+      throw badRequest('Only a paid application can be refunded.', 'not_refundable');
+    }
+    const stripe = await getStripe();
+
+    // Gather every succeeded PaymentIntent for this application. Split payments
+    // record both the deposit session and the balance session; on-site payments
+    // carry application_id metadata. Dedupe across both sources.
+    const piIds = new Set();
+    for (const sid of [app.stripe_session_id, app.balance_session_id].filter(Boolean)) {
+      try {
+        const s = await stripe.checkout.sessions.retrieve(sid);
+        if (s.payment_status === 'paid' && s.payment_intent) {
+          piIds.add(typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent.id);
+        }
+      } catch { /* stale/invalid session id — skip */ }
+    }
+    try {
+      const found = await stripe.paymentIntents.search({
+        query: `metadata['application_id']:'${app.id}' AND status:'succeeded'`, limit: 100,
+      });
+      for (const pi of found.data) piIds.add(pi.id);
+    } catch { /* search unavailable — the sessions above still cover Checkout payments */ }
+
+    if (piIds.size === 0) {
+      throw badRequest('No Stripe charges found for this application (paid by check, or an older record). Refund manually in Stripe if needed.', 'no_charges');
+    }
+
+    let refundedCents = 0;
+    const refunds = [];
+    for (const pi of piIds) {
+      try {
+        const r = await stripe.refunds.create({ payment_intent: pi });
+        refundedCents += r.amount || 0;
+        refunds.push({ paymentIntent: pi, status: r.status, amount: r.amount });
+      } catch (e) {
+        if (e?.code === 'charge_already_refunded') { refunds.push({ paymentIntent: pi, status: 'already_refunded' }); continue; }
+        throw badRequest(`Refund failed for ${pi}: ${e.message}`, 'refund_failed');
+      }
+    }
+
+    // Free the space, de-list, and mark refunded.
+    const boothIds = app.booth_ids || [];
+    await withTransaction(async (client) => {
+      if (boothIds.length) await client.query(`UPDATE booths SET status='available', held_until=NULL, order_id=NULL WHERE id = ANY($1)`, [boothIds]);
+      if (app.booth_id) await client.query(`UPDATE booths SET status='available', held_until=NULL WHERE id=$1 AND status<>'available'`, [app.booth_id]);
+      if (app.reserved_tables > 0) await uncommitInventory('extra_tables', app.reserved_tables, client);
+      await client.query(`DELETE FROM vendors WHERE application_id=$1`, [app.id]);
+      await client.query(`UPDATE exhibitor_applications SET status='refunded', is_listed=FALSE WHERE id=$1`, [app.id]);
+    });
+
+    await audit(req.user.id, 'exhibitor.refund', { entity: 'exhibitor', entityId: app.id, meta: { refundedCents, count: refunds.length } });
+    res.json({ ok: true, refundedCents, refunds });
+  }),
+);
 
 // POST /:id/approve — approve a pending application AND immediately generate +
 // email the payment request (deposit/full pay links). Tables stay held;
