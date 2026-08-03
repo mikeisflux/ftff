@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query } from '../db/pool.js';
-import { asyncHandler, notFound } from '../lib/http.js';
+import { query, withTransaction } from '../db/pool.js';
+import { asyncHandler, notFound, badRequest } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 import { sendTicketDelivery } from '../lib/email.js';
+import { getStripe } from '../lib/stripe.js';
 
 // Admin ticket dashboard (§8): search, live check-in counts, manual check-in,
 // void, and resend delivery email.
@@ -103,6 +104,60 @@ adminTicketsRouter.post(
     if (upd.rowCount === 0) throw notFound('Ticket not found');
     await audit(req.user.id, 'ticket.void', { entity: 'ticket', entityId: id });
     res.json({ ok: true });
+  }),
+);
+
+// POST /admin/tickets/:id/refund — refund THIS ticket's price (a partial refund
+// of the order's payment), void the ticket, and free its inventory. When every
+// ticket on the order is refunded, the order is marked 'refunded'.
+adminTicketsRouter.post(
+  '/:id/refund',
+  asyncHandler(async (req, res) => {
+    const { id } = idSchema.parse(req.params);
+    const { rows } = await query(
+      `SELECT t.id AS ticket_id, t.status AS ticket_status, t.ticket_type_id,
+              o.id AS order_id, o.stripe_payment_intent, o.stripe_session_id
+         FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.id = $1`,
+      [id],
+    );
+    const row = rows[0];
+    if (!row) throw notFound('Ticket not found');
+    if (row.ticket_status === 'void') throw badRequest('This ticket is already void/refunded.');
+
+    // Amount to refund = this ticket's price (its type's unit price on the order).
+    const oi = (await query(
+      `SELECT unit_price_cents FROM order_items WHERE order_id=$1 AND ticket_type_id=$2 LIMIT 1`,
+      [row.order_id, row.ticket_type_id],
+    )).rows[0];
+    const amount = oi?.unit_price_cents ?? 0;
+
+    const stripe = await getStripe();
+    let pi = row.stripe_payment_intent;
+    if (!pi && row.stripe_session_id) {
+      try {
+        const s = await stripe.checkout.sessions.retrieve(row.stripe_session_id);
+        pi = typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent?.id;
+      } catch { /* ignore */ }
+    }
+
+    if (amount > 0) {
+      if (!pi) throw badRequest('No Stripe charge found for this order to refund.', 'no_charge');
+      try {
+        await stripe.refunds.create({ payment_intent: pi, amount });
+      } catch (e) {
+        if (e?.code !== 'charge_already_refunded') throw badRequest(`Refund failed: ${e.message}`, 'refund_failed');
+      }
+    }
+
+    await withTransaction(async (client) => {
+      await client.query(`UPDATE tickets SET status='void' WHERE id=$1`, [row.ticket_id]);
+      await client.query(`UPDATE ticket_types SET quantity_sold = GREATEST(quantity_sold - 1, 0) WHERE id=$1`, [row.ticket_type_id]);
+      const { rows: r } = await client.query(`SELECT count(*)::int AS n FROM tickets WHERE order_id=$1 AND status<>'void'`, [row.order_id]);
+      if (r[0].n === 0) await client.query(`UPDATE orders SET status='refunded' WHERE id=$1`, [row.order_id]);
+    });
+
+    await audit(req.user.id, 'ticket.refund', { entity: 'ticket', entityId: id, meta: { amount, pi } });
+    res.json({ ok: true, amountCents: amount });
   }),
 );
 

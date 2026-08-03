@@ -26,6 +26,7 @@ export default function TicketsAdmin() {
     try {
       const r = await api(`/admin/tickets/${id}/${action}`, { method: 'POST' });
       if (action === 'resend') setMsg(r.email?.skipped ? 'Email skipped (SendGrid not configured).' : 'Email sent.');
+      if (action === 'refund') setMsg(r.amountCents != null ? `Refunded $${((r.amountCents || 0) / 100).toFixed(2)} — ticket voided.` : 'Refunded — ticket voided.');
       await search(q);
       loadStats();
     } catch (err) {
@@ -79,6 +80,12 @@ export default function TicketsAdmin() {
                   {t.status === 'valid' && <button className="btn secondary" onClick={() => act(t.id, 'checkin')}>Check in</button>}
                   {t.status !== 'void' && <button className="btn secondary" onClick={() => act(t.id, 'void')}>Void</button>}
                   <button className="btn secondary" onClick={() => act(t.id, 'resend')}>Resend</button>
+                  {t.status !== 'void' && (
+                    <button className="btn secondary" title="Refund this ticket's price to the buyer and void it"
+                      onClick={() => { if (window.confirm(`Refund this ticket for ${t.customer_name || t.attendee_name || 'the buyer'}? Their money is returned and the ticket is voided.`)) act(t.id, 'refund'); }}>
+                      Refund
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
