@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
   email          CITEXT UNIQUE NOT NULL,
   name           TEXT NOT NULL,
   role           TEXT NOT NULL DEFAULT 'editor'
-                   CHECK (role IN ('admin','editor','door_staff')),
+                   CHECK (role IN ('super_admin','admin','editor','door_staff')),
   password_hash  TEXT NOT NULL,
   is_active      BOOLEAN NOT NULL DEFAULT TRUE,
   last_login_at  TIMESTAMPTZ,
@@ -31,6 +31,20 @@ CREATE TABLE IF NOT EXISTS users (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- For existing databases: allow the super_admin role.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('super_admin','admin','editor','door_staff'));
+-- At most one super_admin can ever exist.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_one_super_admin
+  ON users((role='super_admin')) WHERE role='super_admin';
+-- Bootstrap the single super_admin. Lives in the (always-run, idempotent)
+-- migration — not the seed — so it applies on every deploy without re-seeding.
+-- Guarded: only promotes the designated admin, and only while no super_admin exists.
+UPDATE users SET role='super_admin'
+ WHERE email='divinitycomicsinc@gmail.com'
+   AND role='admin'
+   AND NOT EXISTS (SELECT 1 FROM users WHERE role='super_admin');
 DROP TRIGGER IF EXISTS trg_users_updated ON users;
 CREATE TRIGGER trg_users_updated BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

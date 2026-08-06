@@ -58,23 +58,31 @@ export default function Users() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr style={{ textAlign: 'left' }}><th style={{ padding: 10 }}>Email</th><th>Name</th><th>Role</th><th>Active</th><th>Last login</th><th>Actions</th></tr></thead>
           <tbody>
-            {users.map((u) => (
+            {users.map((u) => {
+              const isSuper = u.role === 'super_admin';
+              const iAmSuper = me.role === 'super_admin';
+              return (
               <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
                 <td style={{ padding: 10 }}>{u.email}{u.id === me.id ? ' (you)' : ''}</td>
                 <td>{u.name}</td>
                 <td>
-                  <select value={u.role} onChange={(e) => update(u.id, { role: e.target.value })}>{ROLES.map((r) => <option key={r}>{r}</option>)}</select>
+                  {isSuper
+                    ? <strong title="Protected account — cannot be changed">super admin</strong>
+                    : <select value={u.role} onChange={(e) => update(u.id, { role: e.target.value })}>{ROLES.map((r) => <option key={r}>{r}</option>)}</select>}
                 </td>
                 <td>
-                  <input type="checkbox" checked={u.is_active} onChange={(e) => update(u.id, { is_active: e.target.checked })} style={{ width: 'auto' }} />
+                  {isSuper
+                    ? <span className="muted">✓</span>
+                    : <input type="checkbox" checked={u.is_active} onChange={(e) => update(u.id, { is_active: e.target.checked })} style={{ width: 'auto' }} />}
                 </td>
                 <td className="muted">{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—'}</td>
                 <td style={{ display: 'flex', gap: 6, padding: 10 }}>
-                  <button className="btn secondary" onClick={() => resetPw(u.id)}>Reset PW</button>
-                  {u.id !== me.id && <button className="btn secondary" onClick={() => del(u.id)}>Delete</button>}
+                  {/* Reset PW: a super_admin row is only resettable by the super_admin themselves. */}
+                  {(!isSuper || iAmSuper) && <button className="btn secondary" onClick={() => resetPw(u.id)}>Reset PW</button>}
+                  {u.id !== me.id && !isSuper && <button className="btn secondary" onClick={() => del(u.id)}>Delete</button>}
                 </td>
               </tr>
-            ))}
+            ); })}
           </tbody>
         </table>
       </div>

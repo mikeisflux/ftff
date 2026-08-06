@@ -107,9 +107,21 @@ npm install --include=dev
 echo "→ [4/7] Building the frontend"
 npm run build
 
-echo "→ [5/7] Migrating + seeding the database"
+echo "→ [5/7] Migrating the database (schema + idempotent migrations)"
 npm run db:migrate
-npm run db:seed
+# Only seed a FRESH database. On an existing one we NEVER re-run seed.sql, so
+# admin-managed content (nav, floor plan, pages, etc.) is never overwritten.
+# db:migrate above already applied all idempotent, guarded migrations.
+SEED_ROWS="skip"
+if [[ -n "${DATABASE_URL:-}" ]] && command -v psql >/dev/null 2>&1; then
+  SEED_ROWS="$(psql "$DATABASE_URL" -tAc 'SELECT count(*) FROM settings' 2>/dev/null | tr -d '[:space:]')"
+fi
+if [[ "$SEED_ROWS" == "0" ]]; then
+  echo "   fresh database — running full seed"
+  npm run db:seed
+else
+  echo "   existing database (settings rows: ${SEED_ROWS:-unknown}) — skipping seed to preserve your content"
+fi
 
 echo "→ [6/7] Reloading the app"
 reload_app

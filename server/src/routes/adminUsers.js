@@ -2,7 +2,7 @@ import { Router } from 'express';
 import argon2 from 'argon2';
 import { z } from 'zod';
 import { query } from '../db/pool.js';
-import { asyncHandler, notFound, badRequest } from '../lib/http.js';
+import { asyncHandler, notFound, badRequest, forbidden } from '../lib/http.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { audit } from '../lib/audit.js';
 
@@ -15,7 +15,8 @@ const ROLES = ['admin', 'editor', 'door_staff'];
 
 async function activeAdminCount(excludeId) {
   const { rows } = await query(
-    `SELECT count(*)::int AS n FROM users WHERE role='admin' AND is_active=TRUE AND id <> $1`,
+    `SELECT count(*)::int AS n FROM users
+      WHERE role IN ('admin','super_admin') AND is_active=TRUE AND id <> $1`,
     [excludeId ?? '00000000-0000-0000-0000-000000000000'],
   );
   return rows[0].n;
@@ -70,6 +71,18 @@ adminUsersRouter.put(
     const cur = (await query(`SELECT * FROM users WHERE id=$1`, [req.params.id])).rows[0];
     if (!cur) throw notFound('User not found');
 
+    // The super_admin account is protected: its role and active state can never
+    // change (that keeps the single super_admin permanent and un-lockable). Only
+    // the super_admin themselves may edit their own name.
+    if (cur.role === 'super_admin') {
+      if (patch.role !== undefined || patch.is_active !== undefined) {
+        throw forbidden('The super admin account cannot be demoted or deactivated.');
+      }
+      if (req.user.role !== 'super_admin') throw forbidden('Only the super admin can edit their own account.');
+    }
+    // No one can create a second super_admin via this route.
+    if (patch.role === 'super_admin') throw forbidden('The super admin role cannot be assigned.');
+
     // Last-admin protection.
     const demoting = (patch.role && patch.role !== 'admin') || patch.is_active === false;
     if (cur.role === 'admin' && cur.is_active && demoting && (await activeAdminCount(cur.id)) === 0) {
@@ -112,6 +125,7 @@ adminUsersRouter.delete(
     if (req.params.id === req.user.id) throw badRequest('You cannot delete your own account');
     const cur = (await query(`SELECT role, is_active FROM users WHERE id=$1`, [req.params.id])).rows[0];
     if (!cur) throw notFound('User not found');
+    if (cur.role === 'super_admin') throw forbidden('The super admin account cannot be deleted.');
     if (cur.role === 'admin' && cur.is_active && (await activeAdminCount(req.params.id)) === 0) {
       throw badRequest('Cannot delete the last active admin');
     }
