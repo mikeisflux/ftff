@@ -74,8 +74,10 @@ export default function AdminLayout() {
   if (!ready) return <div className="section container"><p className="muted">Loading…</p></div>;
 
   // Keep only groups that have at least one item visible to this role.
+  // super_admin outranks everything and sees every item.
+  const canSee = (n) => me.role === 'super_admin' || n.roles.includes(me.role);
   const groups = NAV_GROUPS
-    .map((g) => ({ ...g, items: g.items.filter((n) => n.roles.includes(me.role)) }))
+    .map((g) => ({ ...g, items: g.items.filter(canSee) }))
     .filter((g) => g.items.length > 0);
 
   return (
